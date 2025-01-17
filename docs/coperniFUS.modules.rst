@@ -3,7 +3,7 @@ Modules
 
 Modules 
 
-.. image:: /_static/readme_imgs/CoperniFUS_ui_breakdown_modules.png
+.. image:: /_static/CoperniFUS_ui_breakdown_modules.png
 
 Available Modules
 ^^^^^^^^^^^^^^^^^

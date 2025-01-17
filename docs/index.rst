@@ -8,7 +8,7 @@ CoperniFUS documentation
 ========================
 A flexible Python-based GUI for stereotaxic experiment planning.
 
-.. image:: /_static/readme_imgs/CoperniFUS_screenshot.png
+.. image:: /_static/CoperniFUS_screenshot.png
 
 **Waww nice GUIIIII!!**
 
@@ -22,7 +22,7 @@ General Application Structure
  - ``Modules`` which allow the manipulation of data displayed in the viewport
  - and ``Armatures`` which are submodules lying in the *Stereotaxic Frame* module and allow the user to conduct operations in the spatial coordinate frames of a stereotaxic aparatus.
 
-.. image:: /_static/readme_imgs/CoperniFUS_ui_breakdown.png
+.. image:: /_static/CoperniFUS_ui_breakdown.png
 
 Detailed information of the app structure can be found in `the API reference page <contents/api_reference>`_
 

@@ -6,7 +6,7 @@ Application structure & API reference
  - **Modules** allowing manipulation of data displayed in the viewport
  - **Armatures** which are submodules lying in the *Stereotaxic Frame* module and allow the user to conduct operations in the spatial coordinate frames of a stereotaxic aparatus.
 
-.. image:: /_static/readme_imgs/CoperniFUS_ui_breakdown.png
+.. image:: /_static/CoperniFUS_ui_breakdown.png
 
 API reference
 ^^^^^^^^^^^^^

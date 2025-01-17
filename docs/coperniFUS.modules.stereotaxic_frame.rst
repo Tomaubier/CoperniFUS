@@ -3,7 +3,7 @@ Stereotaxic Frame ``Module``
 
 coperniFUS's ``Stereotaxic Frame Module`` can be populated with ``Armature`` objects which at their core can model coordinates transformations of arbitrary stereotaxic frame structures. The ``Stereotaxic Frame Module`` allows the nesting of ``Armature`` objects, which facilitates the modeling of complex frame configurations.
 
-.. image:: /_static/readme_imgs/CoperniFUS_ui_breakdown_armatures.png
+.. image:: /_static/CoperniFUS_ui_breakdown_armatures.png
 
 Specialized armatures can be derived from the base ``Armature`` object, which allows operations to be carried out within the frame coordinates. Currently, specilized armature are implemented to handle the manipulation of mesh objects and perform acoustic simulations
 

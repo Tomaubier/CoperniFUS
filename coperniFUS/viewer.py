@@ -457,7 +457,7 @@ def _is_running_in_ipython():
 
 def coperniFUSviewer(assets_dir_path=None, **kwargs):
     if assets_dir_path is None:
-        assets_dir_path = pathlib.Path(__file__).parent / 'example_assets'
+        assets_dir_path = pathlib.Path(__file__).parent / 'examples' / 'assets'
         if not assets_dir_path.exists():
             assets_dir_path = None
         print(f'Referencing assets located in {assets_dir_path}')
