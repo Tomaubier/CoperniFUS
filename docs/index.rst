@@ -43,4 +43,4 @@ Documentation Structure
    contents/usage
    contents/api_reference
    contents/related_projects
-   Github <https://github.com/Tomaubier/FUS_udialysis_positionner_helper>
+   Github <https://github.com/Tomaubier/CoperniFUS>
