@@ -21,8 +21,8 @@ To interact with data from armatures, ``Armature`` objects can be grabbed using 
 .. code-block:: python
 
    In [1]: from coperniFUS.viewer import coperniFUSviewer
-      Lauching CoperniFUS
    In [2]: cfv = coperniFUSviewer()
+      Lauching CoperniFUS
    In [3]: cfv.stereotaxic_frame.armatures_objects
       {
          'Skull acoustic window': <coperniFUS.modules.armatures.mesh_armatures.STLMeshBooleanArmature at 0x317446900>,

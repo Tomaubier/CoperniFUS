@@ -1,3 +1,4 @@
+import coperniFUS
 from coperniFUS import *
 from coperniFUS.modules.anatomical_landmarks_calibration_helper import AnatLandmarksCalib
 from coperniFUS.modules.internal_console import InternalConsoleModule
@@ -457,9 +458,9 @@ def _is_running_in_ipython():
 
 def coperniFUSviewer(assets_dir_path=None, **kwargs):
     if assets_dir_path is None:
-        assets_dir_path = pathlib.Path(__file__).parent / 'examples' / 'assets'
+        assets_dir_path = pathlib.Path(coperniFUS.__file__).parent / 'examples' / 'assets'
         if not assets_dir_path.exists():
-            assets_dir_path = None
+            raise ValueError(f'assets_dir_path does not exist: {assets_dir_path}')
         print(f'Referencing assets located in {assets_dir_path}')
     if _is_running_in_ipython():
         _instance = pyqtw.QApplication.instance()

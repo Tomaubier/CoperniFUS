@@ -7,7 +7,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["coperniFUS*"]
-exclude = ["example_assets*", "readme_imgs*"]
+exclude = ["joss_paper*", "docs*", "*examples*"]
 
 [project]
 name = "coperniFUS"
