@@ -9,6 +9,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+      - uses: openrndr/setup-opengl@v1.1
+
+      - name: Setup OpenGL
+        run: xvfb-run glxinfo
+
       - name: Set up Python
         # This is the version of the action for setting up Python, not the Python version.
         uses: actions/setup-python@v5
