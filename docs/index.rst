@@ -6,11 +6,9 @@
 ========================
 CoperniFUS documentation
 ========================
-A flexible Python-based GUI for stereotaxic experiment planning.
+CoperniFUS: A flexible Python-based GUI for stereotaxic experiment planning.
 
 .. image:: /_static/CoperniFUS_screenshot.png
-
-**Waww nice GUIIIII!!**
 
 .. include:: contents/key_features.rst
 
@@ -24,11 +22,7 @@ General Application Structure
 
 .. image:: /_static/CoperniFUS_ui_breakdown.png
 
-Detailed information of the app structure can be found in `the API reference page <contents/api_reference>`_
-
-.. include:: contents/installation.rst
-
-.. include:: contents/usage.rst
+Detailed information of the app structure can be found in `the API reference page </contents/api_reference.rst>`_. 
 
 .. include:: contents/related_projects.rst
 

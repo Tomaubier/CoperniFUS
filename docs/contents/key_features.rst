@@ -21,8 +21,6 @@ Anatomical calibration module
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 3D objects can inherit from a anatomically calibrated coordinate frame whose scale and orientation can be simply matched to experimental conditions using anatomical landmarks such as Lambda and Bregma for rodents.
 
-.. image:: /_static/3_anatomical_calib_demo.gif
-
 Trimesh boolean operations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Integration with the Python library `trimesh <https://trimesh.org>`_ allows for the manipulation of meshes. This feature greatly simplifies the definition of complex domains in the context of acoustic simulations.

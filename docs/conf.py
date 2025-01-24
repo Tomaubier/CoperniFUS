@@ -25,6 +25,7 @@ extensions = [
     'sphinx.ext.autosummary',  # Optional: for summaries
     'sphinx_autodoc_typehints',  # If using type hints
     "sphinx_mdinclude",
+    "nbsphinx" # Import notebook
 ]
 
 # Napoleon settings (for Google or NumPy-style docstrings)

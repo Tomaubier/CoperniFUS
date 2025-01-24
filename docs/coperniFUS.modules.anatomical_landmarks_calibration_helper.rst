@@ -1,7 +1,16 @@
-Anatomical landmarks calibration helper ``Module``
+Anatomical landmarks calibration ``Module``
 --------------------------------------------------
 
-Calibration of coordinates systems based on anatomical measurement is currently implemented for a pair of anatomical landmarks. This correction algorithm was developped for the correction of rodent head size and orientation based on the acquisition of the stereotaxic coordinates of Lambda and Bregma skull structures.
+Calibration of coordinates systems based on anatomical measurement is currently implemented for sets of anatomical landmarks constituted of a pair of coordinates. This correction algorithm was developped for the correction of rodent head sizes and orientations based on the acquisition of stereotaxic coordinates for `Lambda` and `Bregma` skull structures.
+
+.. image:: /_static/3_anatomical_calib_demo.gif
+
+Calibration of brain atlases and assets are performed by registering `uncalibrated` and `calibrated` sets of anatomical landmark locations. `Uncalibrated` coordinates correspond to the locations of landmarks on the ``CoperniFUS``'s assets. Cross registration of assets (such as brain atlases and skull meshes) can be assisted through the use of reference images loaded as planes. `Calibrated` coordinates on the other hand correspond to the actual locations of landmarks on the animal. During experiments - `assuming well defined armatures <coperniFUS.modules.stereotaxic_frame.rst>`_ - regitration of these coordinates can be done using a reference needle probe attachment aligned with the targetted landmark.
+
+Matching the settings of the stereotaxic frame modelled within CoperniFUS with its real counterpart will . Placing the `tooltip <coperniFUS.modules.tooltip.rst>`_ on the 
+
+Coordinates of anatomical landmarks are specify to the Anatomical landmarks calibration module by setting the tooltip to the a  `Set landmark to tooltip`
+
 
 To define the transformation matrix :math:`T` for the new 3D Cartesian coordinate system whose origin lies at :math:`A`, with its :math:`x`-axis aligned with the vector :math:`\mathbf{AB}` and its :math:`z`-axis orthogonal to the global :math:`y`-axis, follow these steps:
 
