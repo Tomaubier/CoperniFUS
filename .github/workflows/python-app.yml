@@ -1,9 +1,32 @@
-on: push
+name: Python package
+
+on: [push]
 
 jobs:
-  test:
-    runs-on: ubuntu-latest
+  build:
+
+    runs-on: macos-latest
+
     steps:
-      - uses: actions/checkout@v2
-      - uses: openrndr/setup-opengl@v1.1
-      - run: xvfb-run glxinfo
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        # This is the version of the action for setting up Python, not the Python version.
+        uses: actions/setup-python@v5
+        with:
+          # Semantic version range syntax or exact version of a Python version
+          python-version: '3.12'
+          # Optional - x64 or x86 architecture, defaults to x64
+          architecture: 'x64'
+      # You can test your matrix by printing the current Python version
+      - name: Display Python version
+        run: python -c "import sys; print(sys.version)"
+
+      - name: Installing CoperniFUS
+        run: python -m pip install -e .
+
+      - name: Installing test dependencies
+        run: pip install pytest nbmake
+
+      - name: Testing CoperniFUS
+        run: pytest --nbmake tests/ipynb_test.ipynb
