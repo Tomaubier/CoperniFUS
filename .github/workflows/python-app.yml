@@ -1,4 +1,4 @@
-name: Python package
+name: CoperniFUS viewer
 
 on: [push]
 
@@ -21,7 +21,7 @@ jobs:
         run: python -c "import sys; print(sys.version)"
 
       - name: Download test BrainGlobe atlas
-        brainglobe install -a example_mouse_100um
+        run: brainglobe install -a example_mouse_100um
 
       - name: Installing CoperniFUS
         run: python -m pip install -e .
