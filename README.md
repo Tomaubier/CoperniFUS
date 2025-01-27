@@ -1,6 +1,6 @@
 # CoperniFUS
 
-[Tests](https://github.com/Tomaubier/CoperniFUS/.github/workflows/python-app.yml/badge.svg)
+![Tests](https://github.com/Tomaubier/CoperniFUS/actions/workflows/python-app.yml/badge.svg)
 
 ## Key features
 
