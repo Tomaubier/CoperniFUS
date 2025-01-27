@@ -12,14 +12,13 @@ jobs:
 
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [macos-latest, windows-latest]
         python-version: ['3.12']
 
     steps:
       - uses: actions/checkout@v4
 
       - name: Set up Python
-        # This is the version of the action for setting up Python, not the Python version.
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
