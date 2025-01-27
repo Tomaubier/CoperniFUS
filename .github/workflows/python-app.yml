@@ -27,4 +27,4 @@ jobs:
         run: pip install pytest nbmake
 
       - name: Testing CoperniFUS
-        run: pytest --nbmake tests/ipynb_test.ipynb
+        run: pytest tests/test_viewer.py

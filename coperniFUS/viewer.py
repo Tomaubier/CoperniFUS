@@ -20,8 +20,9 @@ class Window(pyqtw.QMainWindow):
     def __init__(self, app, assets_dir_path='', **kwargs) -> None:
         self.assets_dir_path = pathlib.Path(assets_dir_path)
         self.app_kwargs = kwargs
-        self.app = app
-        self.app.setStyle('Fusion')
+        if app is not None: # ignore app when running tests
+            self.app = app
+            self.app.setStyle('Fusion')
         super().__init__()
 
         self.debug_trihedras = []
