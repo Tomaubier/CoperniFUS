@@ -16,11 +16,9 @@ class BrainAtlas(Module):
     def __init__(self, parent_viewer, skip_online_atlas_retreival=False, **kwargs) -> None:
         super().__init__(parent_viewer, 'atlas', **kwargs)
 
-        # self.test_atlas = False
         if 'running_test' in self.module_kwargs and self.module_kwargs['running_test']:
             print('running test')
-            # self.test_atlas = True
-            self._DEFAULT_PARAMS['default_atlas_name'] = 'example_mouse_100um'
+            self._DEFAULT_PARAMS['default_atlas_name'] = 'example_mouse_100um' # TODO example_mouse_100um as default
 
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self.init_attributes()
@@ -182,9 +180,6 @@ class BrainAtlas(Module):
         #     bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
         #     self._add_atlas()
 
-        # if self.test_atlas: # Only when testing application
-        #     pass # TEMPORARY TODO implement proper test
-        # else:
         if selected_atlas_description is None:
             pass # TODO msg in status bar
         elif selected_atlas_description.endswith('(DOWNLOADED)'):
