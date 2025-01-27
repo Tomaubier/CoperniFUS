@@ -7,6 +7,7 @@ class Module:
     _DEFAULT_PARAMS = {}
 
     def __init__(self, parent_viewer, module_id, **kwargs) -> None:
+        self.module_kwargs = kwargs
         self.parent_viewer = parent_viewer
         self._module_id = None
         self.module_id = module_id

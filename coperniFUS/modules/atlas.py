@@ -16,6 +16,12 @@ class BrainAtlas(Module):
     def __init__(self, parent_viewer, skip_online_atlas_retreival=False, **kwargs) -> None:
         super().__init__(parent_viewer, 'atlas', **kwargs)
 
+        self.test_atlas = False
+        if 'running_test' in self.module_kwargs and self.module_kwargs['running_test']:
+            print('running test')
+            self.test_atlas = True
+            self._DEFAULT_PARAMS['default_atlas_name'] = 'example_mouse_100um'
+
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self.init_attributes()
 
@@ -172,30 +178,37 @@ class BrainAtlas(Module):
 
         selected_atlas_description = self.atlas_selector.currentText()
 
-        def download_atlas_wrapper(online_atlas_name):
-            bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
-            self._add_atlas()
+        # def download_atlas_wrapper(online_atlas_name):
+        #     bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
+        #     self._add_atlas()
 
-        if selected_atlas_description is None:
-            pass # TODO msg in status bar
-        elif selected_atlas_description.endswith('(DOWNLOADED)'):
-            offline_atlas_name = selected_atlas_description.split(' | ')[0]
-            self.parent_viewer.statusBar().showMessage(f'Loading offline {offline_atlas_name}', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
-            self.bg_atlas = BrainGlobeAtlas(offline_atlas_name, check_latest=False)
-        elif selected_atlas_description.endswith('(online)'):
-            online_atlas_name = selected_atlas_description.split(' | ')[0]
-            dialog = AcceptRejectDialog(parent=self.parent_viewer, title='Proceed with Brain Atlas download?', msg=f'Do you want to download {online_atlas_name} ?\nThis might take a few minutes')
-            dialog_result = dialog.exec()
-            if dialog_result == 1:
-                self.parent_viewer.statusBar().showMessage(f'Downloading {online_atlas_name}')
+        if self.test_atlas: # Only when testing application
+            pass # TEMPORARY TODO implement proper test
+        else:
+            if selected_atlas_description is None:
+                pass # TODO msg in status bar
+            elif selected_atlas_description.endswith('(DOWNLOADED)'):
+                offline_atlas_name = selected_atlas_description.split(' | ')[0]
+                self.parent_viewer.statusBar().showMessage(f'Loading offline {offline_atlas_name}', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+                self.bg_atlas = BrainGlobeAtlas(offline_atlas_name, check_latest=False)
+            elif selected_atlas_description.endswith('(online)'):
+                online_atlas_name = selected_atlas_description.split(' | ')[0]
                 
-                self.threaded_atlas_download = threading.Thread(
-                    target=download_atlas_wrapper,
-                    args=(online_atlas_name,))
-                self.threaded_atlas_download.start()
-                # TODO allow thread interruption
-            else:
-                self.parent_viewer.statusBar().showMessage('Atlas Download Canceled!', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+                dialog = AcceptRejectDialog(parent=self.parent_viewer, title='Proceed with Brain Atlas download?', msg=f'Do you want to download {online_atlas_name} ?\nThis might take a few minutes')
+                dialog_result = dialog.exec()
+                if dialog_result == 1:
+                    self.parent_viewer.statusBar().showMessage(f'Downloading {online_atlas_name}')
+                    
+                    # TODO reimplement threaded download
+                    # self.threaded_atlas_download = threading.Thread(
+                    #     target=download_atlas_wrapper,
+                    #     args=(online_atlas_name,))
+                    # self.threaded_atlas_download.start()
+                    # TODO allow thread interruption
+                    self.bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
+                    
+                else:
+                    self.parent_viewer.statusBar().showMessage('Atlas Download Canceled!', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
 
         if self.bg_atlas is not None:
 
