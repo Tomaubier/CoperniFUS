@@ -1,7 +1,5 @@
 name: CoperniFUS viewer
 
-on: [push]
-
 on:
   push:
     branches:
