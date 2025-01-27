@@ -1,5 +1,7 @@
 # CoperniFUS
 
+[Tests](https://github.com/Tomaubier/CoperniFUS/.github/workflows/python-app.yml/badge.svg)
+
 ## Key features
 
 ### BrainGlobe + Structure highlighting
