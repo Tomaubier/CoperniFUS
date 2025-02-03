@@ -1,105 +1,58 @@
 ---
-title: 'Gala: A Python package for galactic dynamics'
+title: 'CoperniFUS: A flexible Python-based GUI for stereotaxic experiment planning'
 tags:
   - Python
   - Experimental Neuroscience
   - Ultrasound neurostimulation
 authors:
-  - name: Adrian M. Price-Whelan
-    orcid: 0000-0000-0000-0000
-    equal-contrib: true
-    affiliation: "1, 2" # (Multiple affiliations must be quoted)
-  - name: Author Without ORCID
-    equal-contrib: true # (This is how you can denote equal contributions between multiple authors)
-    affiliation: 2
-  - name: Author with no affiliation
+  - name: Tom Aubier
+    orcid: 0009-0004-5558-8435
+    affiliation: 1 # (Multiple affiliations must be quoted)
+  - name: Ivan M. Suarez-Castellanos
     corresponding: true # (This is how to denote the corresponding author)
-    affiliation: 3
-  - given-names: Ludwig
-    dropping-particle: van
-    surname: Beethoven
-    affiliation: 3
+    affiliation: 1
+  - name: Sandrine Parrot
+    affiliation: 2
+  - name: W. Apoutou N'Djin
+    affiliation: 1
 affiliations:
- - name: Lyman Spitzer, Jr. Fellow, Princeton University, United States
+ - name: LabTAU, INSERM, Centre Léon Bérard, Université Claude Bernard Lyon 1, F-69003, Lyon, France
    index: 1
-   ror: 00hx57361
- - name: Institution Name, Country
+ - name: Université Claude Bernard Lyon 1, INSERM, Centre de Recherche en Neurosciences de Lyon CRNL U1028 UMR5292, F-69500 Bron, France
    index: 2
- - name: Independent Researcher, Country
-   index: 3
-date: 13 August 2017
-bibliography: paper.bib
+date: 00 February 2025
+bibliography: neustim.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
-aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
-aas-journal: Astrophysical Journal <- The name of the AAS journal.
+# aas-doi: 10.3847/xxxxx <- update this with the DOI from AAS once you know it.
+# aas-journal: Astrophysical Journal <- The name of the AAS journal.
 ---
 
 # Summary
 
-The forces on stars, galaxies, and dark matter under external gravitational
-fields lead to the dynamical evolution of structures in the universe. The orbits
-of these bodies are therefore key to understanding the formation, history, and
-future state of galaxies. The field of "galactic dynamics," which aims to model
-the gravitating components of galaxies to study their structure and evolution,
-is now well-established, commonly taught, and frequently used in astronomy.
-Aside from toy problems and demonstrations, the majority of problems require
-efficient numerical tools, many of which require the same base code (e.g., for
-performing numerical orbit integration).
+Focused UltraSound (FUS) is gaining increasing interest for its potential as a minimally-invasive yet targeted alternative to existing neurostimulation modalities.
+% relying on highly diffuse electrical or magnetic fields to affect the activity of neural structures.
+Although reversible changes in the neural activity of structures have been reported as far back as 1928 [@Harvey1928], comprehensive descriptions of the short- and long-term effects of ultrasound on neural structures are still laking to achieved neurostimulation with satisfactory levels of control and safety. Delivering well characterized FUS pulses with a high degree of spatial selectivity along with local assessment of the state and activity of specific brain regions is crucial in pursuing this research.
+Unlike most electrophysiology procedures involving compact needle-like probes that can be achieved using stereotaxic frame limited to three degrees of freedom, FUS experiments on small *in vivo* models often require the implementation of complex probe layouts to assess the activity of the stimulated neural structures.
+Treatment planning, evaluation of acoustic parameters through simulations, and post-precessing of results often rely on distinct softwares with their own coordinate systems which greatly complicates the detailed characterization of the spatial and temporal effects of FUS stimulations.
+`CoperniFUS` aims to overcome this obstacle by providing a flexible software platform to plan procedures on stereotaxic frames thanks to a unified coordinate system architecture, which additionally allows for the management of anatomical variability based on the registration of anatomical landmark.
 
 # Statement of need
 
-`Gala` is an Astropy-affiliated Python package for galactic dynamics. Python
-enables wrapping low-level languages (e.g., C) for speed without losing
-flexibility or ease-of-use in the user-interface. The API for `Gala` was
-designed to provide a class-based and user-friendly interface to fast (C or
-Cython-optimized) implementations of common operations such as gravitational
-potential and force evaluation, orbit integration, dynamical transformations,
-and chaos indicators for nonlinear dynamics. `Gala` also relies heavily on and
-interfaces well with the implementations of physical units and astronomical
-coordinate systems in the `Astropy` package [@astropy] (`astropy.units` and
-`astropy.coordinates`).
+<!-- % Relevance of studies on FUS-induces microenvironment alteration -->
+In an effort to assess the therapeutic potential of ultrasound neurostimulation, studies have been attempted to characterize the effect of ultrasound on the biochemical micro-environment of brain structures after stimulations. While tools like Magnetic Resonance Spectroscopy (MRS) offer a non-invasive way of assessing the concentrations of metabolites *in vivo*, they come with significant limitations. Concentration evaluation are non-specific, only representative of the total amount metabolic, extra- and intra-cellular quantity of a compound [@Dyke2017]. The spatial selectivity of the method is also limited to minimum voxel volumes of several $cm^3$. Finally, the difficulties arising from the integration of FUS transducers in MRIs are holding back the investigation of *online* effects [@Yaakub2023].
 
-`Gala` was designed to be used by both astronomical researchers and by
-students in courses on gravitational dynamics or astronomy. It has already been
-used in a number of scientific publications [@Pearson:2017] and has also been
-used in graduate courses on Galactic dynamics to, e.g., provide interactive
-visualizations of textbook material [@Binney:2008]. The combination of speed,
-design, and support for Astropy functionality in `Gala` will enable exciting
-scientific explorations of forthcoming data releases from the *Gaia* mission
-[@gaia] by students and experts alike.
+<!-- % FUS targetting -->
+Studies on rodent models have been pursued using invasive methods such as microdialysis [@Min2011; @Yang2012]. Although these studies report effects of FUS stimulations on Dopamine, Serotonin or GABA levels, their observations are restricted to low ultrasound central frequencies resulting in poorly spatially-selective stimulation, which complicates the assessment of region-specific responses. The choice of low frequencies is typically done to maximize energy transfer through the skull and minimize pressure field distortions. Transducer placement and targeting of the structure is empirical, based on trigonometric evaluation of the focus relative to reference atlases.
 
-# Mathematics
+<!-- % acoustic simulations -->
+With the growing interest in transcranial ultrasound therapeutic approaches, extensive research has been conducted to develop and validate computational models of acoustic wave propagation through the skull. Although a number of tools and formalisms exist [@Aubry2022a], k-Wave [@Treeby2010] has been widely adopted in the field of ultrasound neurostimulation specifically [@Constans2018; @Verhagen2019; @Yaakub2023]. Acoustic simulations in this context are performed using standalone Matlab scripts for the definition of acoustic sources and domains. Acoustic domains are defined either directly based on CT or pseudo-CT scans [@Aubry2003], or by constructing maps from rasterized brain and skull meshes. Registration of the transducer location relative to targeted brain structures is achieved using optical tracking systems on human or non-human primate subjects, however empirical methods are usually chosen in small rodents experiments due to the space constraints associated with these models.
 
-Single dollars ($) are required for inline mathematics e.g. $f(x) = e^{\pi/x}$
+<!-- % structure atlases + morpho calib -->
+Targeting of brain structures is achieved using reference atlases registered to MRI scans of subjects when available. However for small animals, these are typically not performed in a systematic way. Targeted structures coordinates are thus directly evaluated on reference atlases, based on anatomical landmarks such as the Bregma skull suture on rats and mice [@Kleven2023; @Wang2020]. Morphological variability between subjects can compromise experiments if it is not taken into account however registration of reference atlases to anatomical measurements can be tedious and is rarely reported in rodent studies.
 
-Double dollars make self-standing equations:
-
-$$\Theta(x) = \left\{\begin{array}{l}
-0\textrm{ if } x < 0\cr
-1\textrm{ else}
-\end{array}\right.$$
-
-You can also use plain \LaTeX for equations
-\begin{equation}\label{eq:fourier}
-\hat f(\omega) = \int_{-\infty}^{\infty} f(x) e^{i\omega x} dx
-\end{equation}
-and refer to \autoref{eq:fourier} from text.
-
-# Citations
-
-Citations to entries in paper.bib should be in
-[rMarkdown](http://rmarkdown.rstudio.com/authoring_bibliographies_and_citations.html)
-format.
-
-If you want to cite a software repository URL (e.g. something on GitHub without a preferred
-citation) then you can do it with the example BibTeX entry below for @fidgit.
-
-For a quick reference, the following citation commands can be used:
-- `@author:2001`  ->  "Author et al. (2001)"
-- `[@author:2001]` -> "(Author et al., 2001)"
-- `[@author1:2001; @author2:2001]` -> "(Author1 et al., 2001; Author2 et al., 2002)"
+# Features
 
 # Figures
 
@@ -112,7 +65,6 @@ Figure sizes can be customized by adding an optional second parameter:
 
 # Acknowledgements
 
-We acknowledge contributions from Brigitta Sipocz, Syrtis Major, and Semyeong
-Oh, and support from Kathryn Johnston during the genesis of this project.
+This project was supported by the French National Research Agency (ANR-16-TERC0017, ANR-21-CE19-0007 \& ANR-21-CE19-0030), the American Focused Ultrasound Foundation (LabTAU, FUSF Center of Excellence). Additionally, this work was performed within the framework of the LABEX DEV WECAN (ANR-10-LABX-0061) and CORTEX (ANR-11-LABX-0042) of Université de Lyon, within the program "Investissements d'Avenir" (ANR-11-IDEX-0007) operated by the French National Research Agency (ANR). The work of the communities behind k-Wave and the Python packages used throughout this work was integral to its completion.
 
 # References
