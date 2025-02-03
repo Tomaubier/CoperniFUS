@@ -73,10 +73,10 @@ class Window(pyqtw.QMainWindow):
         self.anat_calib = AnatLandmarksCalib(self, **self.app_kwargs)
         self.stereotaxic_frame = StereotaxicFrame(self, **self.app_kwargs)
 
-        self._modules = [ # optionnal modules
-            RefImageAsPlane(self, **self.app_kwargs),
-            BrainAtlas(self, **self.app_kwargs),
-            StlHandlerGUI(self, **self.app_kwargs),
+        self._modules = [ # optionnal modules # WINDOWS_DEBUGG
+            # RefImageAsPlane(self, **self.app_kwargs),
+            # BrainAtlas(self, **self.app_kwargs),
+            # StlHandlerGUI(self, **self.app_kwargs),
             # BrainSlicesPostProcessing(self, **self.app_kwargs),
         ]
 

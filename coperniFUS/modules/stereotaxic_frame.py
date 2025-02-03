@@ -49,7 +49,7 @@ class StereotaxicFrame(Module):
                 stereotax_frame_instance=self)
             for armature_display_name, armature_cls_name in self.get_user_param('_steframe_armatures_objects_clsnames').items()
         }
-    
+
     # --- Required module attributes ---
 
     def init_dock(self):
@@ -112,8 +112,8 @@ class StereotaxicFrame(Module):
     def add_rendered_object(self):
         self.populate_armature_parameters_stacked_widget()
         self.update_armature_inheritance(gl_objects_exist=False)
-        for arm_name, arm_obj in self._armatures_objects.items():
-            arm_obj.add_render()
+        # for arm_name, arm_obj in self._armatures_objects.items(): # WINDOWS_DEBUGG
+        #     arm_obj.add_render()
 
     def delete_rendered_object(self):
         for arm_name, arm_obj in self._armatures_objects.items():
