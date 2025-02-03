@@ -112,8 +112,8 @@ class StereotaxicFrame(Module):
     def add_rendered_object(self):
         self.populate_armature_parameters_stacked_widget()
         self.update_armature_inheritance(gl_objects_exist=False)
-        # for arm_name, arm_obj in self._armatures_objects.items(): # WINDOWS_DEBUGG
-        #     arm_obj.add_render()
+        for arm_name, arm_obj in self._armatures_objects.items():
+            arm_obj.add_render()
 
     def delete_rendered_object(self):
         for arm_name, arm_obj in self._armatures_objects.items():
@@ -281,7 +281,7 @@ class StereotaxicFrame(Module):
                 self._update_armature_parameters_widgets_on_configuration_change(armature_object)
 
                 armature_object.delete_render()
-                # armature_object.add_render() # WINDOWS_DEBUGG
+                armature_object.add_render()
                 self.parent_viewer.update_rendered_view()
             else:
                 self.parent_viewer.statusBar().showMessage('Armature configuration edition canceled', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
