@@ -2,7 +2,7 @@ import coperniFUS
 from coperniFUS import *
 from coperniFUS.modules.anatomical_landmarks_calibration_helper import AnatLandmarksCalib
 from coperniFUS.modules.internal_console import InternalConsoleModule
-from coperniFUS.modules.stereotaxic_frame import StereotaxicFrame
+# from coperniFUS.modules.stereotaxic_frame import StereotaxicFrame # WINDOWS_DEBUGG
 from coperniFUS.modules.img_as_plane import RefImageAsPlane
 from coperniFUS.modules.stl_handler import StlHandlerGUI
 from coperniFUS.modules.atlas import BrainAtlas
@@ -71,7 +71,7 @@ class Window(pyqtw.QMainWindow):
         # Mandatory module variable init
         self.tooltip = Tooltip(self, **self.app_kwargs)
         self.anat_calib = AnatLandmarksCalib(self, **self.app_kwargs)
-        self.stereotaxic_frame = StereotaxicFrame(self, **self.app_kwargs)
+        # self.stereotaxic_frame = StereotaxicFrame(self, **self.app_kwargs) # WINDOWS_DEBUGG
 
         self._modules = [ # optionnal modules # WINDOWS_DEBUGG
             # RefImageAsPlane(self, **self.app_kwargs),
@@ -129,29 +129,31 @@ class Window(pyqtw.QMainWindow):
 
     def init_modules_docks(self):
         self.gl_view.gl_items_toggler.init_dock()
-        self.stereotaxic_frame.init_dock()
+        # self.stereotaxic_frame.init_dock() # WINDOWS_DEBUGG
         self.anat_calib.init_dock()
         for mm in self._modules:
             mm.init_dock()
         self.console_dock.init_dock()
 
     def init_rendered_view(self):
-        self.tooltip.add_rendered_object() # Init Tooltip globjects
-        self.stereotaxic_frame.add_rendered_object()
-        self.anat_calib.add_rendered_object()
+        pass
+        # self.tooltip.add_rendered_object() # Init Tooltip globjects
+        # self.stereotaxic_frame.add_rendered_object() # WINDOWS_DEBUGG
+        # self.anat_calib.add_rendered_object()
 
-        self.show_axes()
-        for mm in self._modules:
-            mm.add_rendered_object()
+        # self.show_axes()
+        # for mm in self._modules:
+        #     mm.add_rendered_object()
 
     def update_rendered_view(self):
+        pass
         # Update armature tmat inheritance + tooltip tmat for proper plane slicing operations
-        self.stereotaxic_frame.update_armature_inheritance()
-        self.stereotaxic_frame.update_tooltip_on_armature()
-        self.tooltip.update_rendered_object() # Update Tooltip globjects
-        for mm in self._modules:
-            mm.update_rendered_object()
-        self.stereotaxic_frame.update_rendered_object()
+        # self.stereotaxic_frame.update_armature_inheritance() # WINDOWS_DEBUGG
+        # self.stereotaxic_frame.update_tooltip_on_armature() # WINDOWS_DEBUGG
+        # self.tooltip.update_rendered_object() # Update Tooltip globjects
+        # for mm in self._modules:
+        #     mm.update_rendered_object()
+        # self.stereotaxic_frame.update_rendered_object() # WINDOWS_DEBUGG
 
     def update_cached_settings_menu(self):
         self.cached_settings_menu.clear()
@@ -172,23 +174,23 @@ class Window(pyqtw.QMainWindow):
     def update_modules_menu(self):
         self.modules_menu.clear()
 
-        modules_docks_objects = {module.dock.windowTitle(): module for module in [self.console_dock, self.gl_view.gl_items_toggler, self.stereotaxic_frame, self.anat_calib]}
-        modules_docks_objects.update({module.dock.windowTitle(): module for module in self._modules})
-        modules_docks_objects.update({module.dock.windowTitle(): module for module in self._modules})
-        modules_docks_visibility = {module_name: module_obj.dock.isVisible() for module_name, module_obj in modules_docks_objects.items()}
+        # modules_docks_objects = {module.dock.windowTitle(): module for module in [self.console_dock, self.gl_view.gl_items_toggler, self.stereotaxic_frame, self.anat_calib]} # WINDOWS_DEBUGG
+        # modules_docks_objects.update({module.dock.windowTitle(): module for module in self._modules})
+        # modules_docks_objects.update({module.dock.windowTitle(): module for module in self._modules})
+        # modules_docks_visibility = {module_name: module_obj.dock.isVisible() for module_name, module_obj in modules_docks_objects.items()}
 
-        for module_name, is_module_dock_visible in modules_docks_visibility.items():
-            module_item = pyqtg.QAction(module_name, self)
-            module_item.setCheckable(True)
-            module_item.setChecked(is_module_dock_visible)
+        # for module_name, is_module_dock_visible in modules_docks_visibility.items():
+        #     module_item = pyqtg.QAction(module_name, self)
+        #     module_item.setCheckable(True)
+        #     module_item.setChecked(is_module_dock_visible)
 
-            module_item.toggled.connect(lambda visibility, module_name=module_name: self.hide_show_module_dock(modules_docks_objects[module_name].dock, module_name, visibility))
+        #     module_item.toggled.connect(lambda visibility, module_name=module_name: self.hide_show_module_dock(modules_docks_objects[module_name].dock, module_name, visibility))
 
-            self.modules_menu.addAction(module_item)
+        #     self.modules_menu.addAction(module_item)
     
     def clear_rendered_view(self):
-        self.tooltip.delete_rendered_object() # Init Tooltip globjects
-        self.stereotaxic_frame.delete_rendered_object()
+        self.tooltip.delete_rendered_object()
+        # self.stereotaxic_frame.delete_rendered_object() # WINDOWS_DEBUGG
         self.anat_calib.delete_rendered_object()
 
         for mm in self._modules:

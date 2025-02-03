@@ -281,7 +281,7 @@ class StereotaxicFrame(Module):
                 self._update_armature_parameters_widgets_on_configuration_change(armature_object)
 
                 armature_object.delete_render()
-                armature_object.add_render()
+                # armature_object.add_render() # WINDOWS_DEBUGG
                 self.parent_viewer.update_rendered_view()
             else:
                 self.parent_viewer.statusBar().showMessage('Armature configuration edition canceled', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
