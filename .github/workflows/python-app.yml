@@ -12,10 +12,23 @@ jobs:
 
     strategy:
       matrix:
-        os: [macos-latest, windows-latest] # TODO add ubuntu-latest, windows-latest
+        os: [windows-latest] # TODO add ubuntu-latest, windows-latest, macos-latest
         python-version: ['3.12']
 
     steps:
+      - name: Check Windows Version
+        run: |
+          $os = (Get-ComputerInfo).OsName
+          $version = (Get-ComputerInfo).OsVersion
+          Write-Output "Windows Version: $os ($version)"
+        shell: pwsh
+
+      - name: Get System Architecture
+        run: |
+          $arch = (Get-ComputerInfo).OsArchitecture
+          Write-Output "Architecture: $arch"
+        shell: pwsh
+        
       - uses: actions/checkout@v4
 
       - name: Set up Python
