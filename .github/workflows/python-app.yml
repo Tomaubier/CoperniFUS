@@ -16,18 +16,6 @@ jobs:
         python-version: ['3.12']
 
     steps:
-      - name: Check Windows Version
-        run: |
-          $os = (Get-ComputerInfo).OsName
-          $version = (Get-ComputerInfo).OsVersion
-          Write-Output "Windows Version: $os ($version)"
-        shell: pwsh
-
-      - name: Get System Architecture
-        run: |
-          $arch = (Get-ComputerInfo).OsArchitecture
-          Write-Output "Architecture: $arch"
-        shell: pwsh
         
       - uses: actions/checkout@v4
 
@@ -42,8 +30,8 @@ jobs:
       - name: Installing test dependencies
         run: pip install pytest pytest-qt
 
-      - name: Download test BrainGlobe atlas
-        run: brainglobe install -a example_mouse_100um
+      # - name: Download test BrainGlobe atlas
+      #   run: brainglobe install -a example_mouse_100um
 
       - name: Testing CoperniFUS
         run: pytest tests/test_viewer.py
