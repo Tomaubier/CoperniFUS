@@ -34,4 +34,4 @@ jobs:
       #   run: brainglobe install -a example_mouse_100um
 
       - name: Testing CoperniFUS
-        run: pytest tests/test_viewer.py
+        run: pytest tests/test_pqtg.py
