@@ -267,7 +267,7 @@ class Armature:
             armature_joint_transforms = {}
         return armature_joint_transforms
     
-    def evaluate_armature_config_dict(self, uneval_armature_config_dict, armature_constants_dict, raise_errors=False): #LADEDAN
+    def evaluate_armature_config_dict(self, uneval_armature_config_dict, armature_constants_dict, raise_errors=False):
         evaluated_armature_config_dict = copy.deepcopy(uneval_armature_config_dict) # Deep copy for "inplace" str args evaluation
         args_nested_keys = recursive_key_finder(uneval_armature_config_dict, target_key='args') # Grab all 'args' keys from armature_config_dict
 
@@ -325,7 +325,7 @@ class Armature:
         self.armature_config_dict = armature_config_dict_copy
     
     @property
-    def armature_config_dict(self): #LADEDAN
+    def armature_config_dict(self):
         if self._armature_config_dict is None:
             self._armature_config_dict = self.evaluate_armature_config_dict(self.uneval_armature_config_dict, self.armature_config_csts)
         return self._armature_config_dict

@@ -332,7 +332,7 @@ class ArmatureParamsEditorWidget:
                     param_label = param_flat_dict['_param_label']
                 else: # Transform degree of freedom label as default
                     transf_axis = param_flat_dict['args'][0].upper()
-                    param_label = f'{nested_keys[0]} {transf_axis} {nested_keys[-1].split("_")[0]}'
+                    param_label = f'{nested_keys[-2]} {transf_axis} {nested_keys[-1].split("_")[0]}'
 
                 # Gui location
                 param_id = '&&'.join(nested_keys) # Unique id from nested_keys
