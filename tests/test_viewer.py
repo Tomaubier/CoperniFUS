@@ -10,4 +10,3 @@ def viewer_window(qtbot):
 def test_brain_atlas(viewer_window):
     """Test tha the example atlas has been loaded."""
     assert viewer_window.get_module_object_from_name('BrainAtlas').bg_atlas.atlas_name == 'example_mouse_100um'
-
