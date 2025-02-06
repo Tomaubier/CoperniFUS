@@ -342,7 +342,15 @@ class ArmatureParamsEditorWidget:
                 armature_param_label = pyqtw.QLabel(param_label)
                 minus_button = pyqtw.QPushButton('-')
                 plus_button = pyqtw.QPushButton('+')
-                value_editor = pyqtw.QLineEdit(si_format(default_value, format_str='{value} {prefix}'+unit))
+                try:
+                    value_editor = pyqtw.QLineEdit(si_format(default_value, format_str='{value} {prefix}'+unit))
+                except TypeError as e:
+                    self.parent_viewer.show_error_popup(
+                        f"Error in {self.armature_object.armature_display_name} armature parameter definition",
+                        f'{type(e).__name__}: Attempting to set {param_label} value editor widget of {self.armature_object.armature_display_name} armature with an object whose type is not supported by si_format\n\nOriginal error message:\n{str(e)}'
+                    )
+                    value_editor = pyqtw.QLineEdit(si_format(0, format_str='{value} {prefix}'+unit))
+                    value_editor.setEnabled(False)
 
                 # Connect signals
                 minus_button.clicked.connect(
