@@ -267,29 +267,37 @@ class Armature:
             armature_joint_transforms = {}
         return armature_joint_transforms
     
-    def evaluate_armature_config_dict(self, uneval_armature_config_dict, armature_constants_dict, raise_errors=False):
-        evaluated_armature_config_dict = copy.deepcopy(uneval_armature_config_dict)
-        for joint_id in self.get_joints(uneval_armature_config_dict):
-            for transform_id in self.get_joint_transforms(joint_id, uneval_armature_config_dict):
-                transform_args = uneval_armature_config_dict['_armature_joints'][joint_id][transform_id]['args']
-                if isinstance(transform_args[1], int) or isinstance(transform_args[1], float):
-                    evaluated_arg = transform_args[1]
-                elif isinstance(transform_args[1], str):
+    def evaluate_armature_config_dict(self, uneval_armature_config_dict, armature_constants_dict, raise_errors=False): #LADEDAN
+        evaluated_armature_config_dict = copy.deepcopy(uneval_armature_config_dict) # Deep copy for "inplace" str args evaluation
+        args_nested_keys = recursive_key_finder(uneval_armature_config_dict, target_key='args') # Grab all 'args' keys from armature_config_dict
+
+        for nested_keys, _ in args_nested_keys:
+            param_flat_dict = evaluated_armature_config_dict
+            for nested_key in nested_keys:
+                param_flat_dict = param_flat_dict[nested_key]
+
+            args = param_flat_dict['args']
+            if isinstance(args, list) and len(args) >= 2: # if args contains 2 elements
+                    
+                if isinstance(args[1], str): # and is a str -> evaluate str
                     try:
-                        evaluated_arg = eval(transform_args[1], {'csts': armature_constants_dict, 'np': np})
+                        evaluated_arg = eval(args[1], {'csts': armature_constants_dict, 'np': np})
+                        args[1] = evaluated_arg
                     except Exception as e:
-                        err_msg = f'Error in args expression in {self.armature_display_name} {joint_id} -> {transform_id}\n{type(e).__name__}: {str(e)}'
+                        err_msg = f'Error in args expression in {self.armature_display_name} {"/".join(nested_keys)} -> {args}\n{type(e).__name__}: {str(e)}'
                         if raise_errors:
                             raise ValueError(err_msg)
                         else:
                             print(err_msg)
+
                 else:
-                    err_msg = f'Unsupported args expression in {self.armature_display_name} {joint_id} -> {transform_id}'
-                    if raise_errors:
-                        raise ValueError(err_msg)
-                    else:
-                        print(err_msg)
-                evaluated_armature_config_dict['_armature_joints'][joint_id][transform_id]['args'] = [transform_args[0], evaluated_arg]
+                    # Test validity of arg values (int or float are expected appart from string args for evaluation)
+                    if not (isinstance(args[1], int) or isinstance(args[1], float)):
+                        err_msg = f'Unsupported args expression in {self.armature_display_name} {"/".join(nested_keys)} -> {args}'
+                        if raise_errors:
+                            raise ValueError(err_msg)
+                        else:
+                            print(err_msg)
         return evaluated_armature_config_dict
 
     def _update_armature_dict_value(self, nested_keys, value):
@@ -317,7 +325,7 @@ class Armature:
         self.armature_config_dict = armature_config_dict_copy
     
     @property
-    def armature_config_dict(self):
+    def armature_config_dict(self): #LADEDAN
         if self._armature_config_dict is None:
             self._armature_config_dict = self.evaluate_armature_config_dict(self.uneval_armature_config_dict, self.armature_config_csts)
         return self._armature_config_dict
