@@ -2,6 +2,7 @@ from coperniFUS import *
 from coperniFUS.modules.armatures.mesh_armatures import STLMeshBooleanArmature
 from coperniFUS.modules.armatures.base_armature import Armature
 from coperniFUS.modules.interfaces.kwave_interfaces import *
+from coperniFUS.modules.interfaces.trimesh_interfaces import *
 
 
 class KwaveAShomogeneousSimulationArmature(Armature):
