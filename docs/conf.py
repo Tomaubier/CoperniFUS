@@ -4,10 +4,20 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import os, sys
+import importlib.util
 sys.path.insert(0, os.path.abspath(".."))
 
-from directory_tree import DisplayTree
-DisplayTree('.')
+path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "coperniFUS")
+spec = importlib.util.spec_from_file_location(
+    "coperniFUS",
+    os.path.join(path, "__init__.py")
+)
+coperniFUS = importlib.util.module_from_spec(spec)
+sys.modules["coperniFUS"] = coperniFUS
+spec.loader.exec_module(coperniFUS)
+
+# from directory_tree import DisplayTree
+# DisplayTree('.')
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
