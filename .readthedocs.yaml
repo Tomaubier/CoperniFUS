@@ -1,5 +1,3 @@
-version: "0.1"
-
 build:
   os: "ubuntu-22.04"
   tools:
