@@ -22,7 +22,7 @@ General Application Structure
 
 .. image:: /_static/CoperniFUS_ui_breakdown.png
 
-Detailed information of the app structure can be found in `the API reference page </contents/api_reference.rst>`_. 
+Detailed information of the app structure can be found in `the API reference page <contents/api_reference.rst>`_. 
 
 .. include:: contents/related_projects.rst
 
