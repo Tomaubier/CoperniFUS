@@ -5,3 +5,4 @@ nbconvert==7.16.6
 sphinx-autodoc-typehints==3.0.1
 sphinx_mdinclude==0.6.2
 directory_tree
+coperniFUS
