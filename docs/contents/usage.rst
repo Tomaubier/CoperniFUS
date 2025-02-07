@@ -32,4 +32,6 @@ Description of data fields can be obtained by hovering gui elements.
 
 .. image:: /_static/pointer_tooltip_doc.png
 
-Detailed information of the app structure can be found in `the API reference page <contents/api_reference.rst>`_
+.. include:: transformation_strings_syntax.rst
+
+Detailed information of the app structure can be found in `the API reference page <api_reference.rst>`_

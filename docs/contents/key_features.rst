@@ -9,11 +9,11 @@ Supports a large range of Brain Atlases and associated structures thanks to `Bra
 
 Stereotaxic frame module - Armature inheritance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Arbitrary stereotaxic frames can be easily modelled using a flexible dictionary-based editor.
+Arbitrary stereotaxic frames can be easily modelled using a `flexible dictionary-based editor <../coperniFUS.modules.armatures.base_armature.rst>`_.
 
 .. image:: /_static/armature_config_editor.png
 
-Stereotaxic frame elements (referred to as ``Armatures``) can be associated in a hierarchical tree structure, allowing operations such as mesh boolean operations or acoustic simulations in any spatial reference frame.
+Stereotaxic frame elements (referred to as ``Armatures``) can be associated in a hierarchical tree structure, allowing operations such as mesh boolean operations or acoustic simulations to be performed in any spatial reference frame.
 
 .. image:: /_static/2_arm_heritance_demo.gif
 
