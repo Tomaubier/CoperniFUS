@@ -9,7 +9,7 @@ Supports a large range of Brain Atlases and associated structures thanks to `Bra
 
 Stereotaxic frame module - Armature inheritance
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Arbitrary stereotaxic frames can be easily modelled using a `flexible dictionary-based editor <coperniFUS.modules.armatures.base_armature.rst>`_.
+Arbitrary stereotaxic frames can be easily modelled using a `flexible dictionary-based editor <../coperniFUS.modules.armatures.base_armature.rst>`_.
 
 .. image:: /_static/armature_config_editor.png
 
