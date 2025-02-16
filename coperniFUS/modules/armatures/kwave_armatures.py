@@ -17,6 +17,18 @@ class KwaveAShomogeneousSimulationArmature(Armature):
             'kwave_AS_h5_dir': None
         },
         'uneval_armature_config_dict': {
+            '_armature_joints': {
+                'source_offset': {
+                    'translation_0': {
+                        'args': ['z', 0],
+                        '_is_editable': False
+                    },
+                    'rotation_0': {
+                        'args': ['x', 180],
+                        '_is_editable': False
+                    }
+                },
+            },
             '_stl_mesh': {
                 'file_path': 'None',
                 'transform_str': None,
@@ -116,18 +128,6 @@ mesh = extrusion.to_mesh()
         self.kwAS = None
         self.p_amp_AS_vol_tmat = None
         self.voxel_centers = {}
-
-    @property
-    def end_transform_mat(self):
-        """ returns the transform matrix of the last joint in the armature """
-        tx_bowl_depth = 2.01e-3
-        if self.parent_transform_mat is None:
-            self._end_transform_mat = np.eye(4) # (0, 0, 0) -> default if no parent armature
-        else:
-            self._end_transform_mat = self.parent_transform_mat
-        self._end_transform_mat = af_tr.translat_mat('z', tx_bowl_depth) @ self._end_transform_mat
-        self._end_transform_mat = af_tr.rot_mat('x', 180) @ self._end_transform_mat
-        return self._end_transform_mat
 
     @property
     def axisym_domain_mesh(self):
@@ -326,6 +326,18 @@ class KWave3dSimulationArmature(STLMeshBooleanArmature):
             'pressure_field_render_stride': 1
         },
         'uneval_armature_config_dict': {
+            '_armature_joints': {
+                'source_offset': {
+                    'translation_0': {
+                        'args': ['z', 0],
+                        '_is_editable': False
+                    },
+                    'rotation_0': {
+                        'args': ['x', 180],
+                        '_is_editable': False
+                    }
+                },
+            },
             '_stl_mesh': {
                 'file_path': 'None',
                 'transform_str': None,
@@ -470,16 +482,6 @@ mesh = extrusion.to_mesh()
         self.kw3D = None
         self.p_amp_3D_vol_tmat = None
         self.voxel_centers = {}
-
-    @property
-    def end_transform_mat(self):
-        """ returns the transform matrix of the last joint in the armature """
-        if self.parent_transform_mat is None:
-            self._end_transform_mat = np.eye(4) # (0, 0, 0) -> default if no parent armature
-        else:
-            self._end_transform_mat = self.parent_transform_mat
-        self._end_transform_mat = af_tr.rot_mat('x', 180) @ self._end_transform_mat
-        return self._end_transform_mat
 
     def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
         custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
@@ -686,6 +688,18 @@ class KWaveAS3dSimulationArmature(STLMeshBooleanArmature):
             'kwave_3D_h5_dir': None
         },
         'uneval_armature_config_dict': {
+            '_armature_joints': {
+                'source_offset': {
+                    'translation_0': {
+                        'args': ['z', 0],
+                        '_is_editable': False
+                    },
+                    'rotation_0': {
+                        'args': ['x', 180],
+                        '_is_editable': False
+                    }
+                },
+            },
             '_stl_mesh': {
                 'file_path': 'None',
                 'transform_str': None,
@@ -893,18 +907,6 @@ mesh = extrusion.to_mesh()
         self.p_amp_3D_vol_tmat = None
         self.p_amp_AS_vol_tmat = None
         self.voxel_centers = {}
-
-    @property
-    def end_transform_mat(self):
-        """ returns the transform matrix of the last joint in the armature """
-        tx_bowl_depth = 2.01e-3
-        if self.parent_transform_mat is None:
-            self._end_transform_mat = np.eye(4) # (0, 0, 0) -> default if no parent armature
-        else:
-            self._end_transform_mat = self.parent_transform_mat
-        self._end_transform_mat = af_tr.translat_mat('z', tx_bowl_depth) @ self._end_transform_mat
-        self._end_transform_mat = af_tr.rot_mat('x', 180) @ self._end_transform_mat
-        return self._end_transform_mat
 
     @property
     def axisym_domain_mesh(self):
