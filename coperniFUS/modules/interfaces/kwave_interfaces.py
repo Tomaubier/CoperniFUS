@@ -904,6 +904,7 @@ class Kwave3D():
             self._x_3d = np.squeeze(self.kgrid.x_vec)
             self._y_3d = np.squeeze(self.kgrid.y_vec)
             self._z_3d = np.squeeze(self.kgrid.z_vec) - self.kgrid.z_vec[0] + self.simulation_params['AS_domain_z_size'] - self.dx/2
+            self._z_3d = self._z_3d[:-self.simulation_params['source_z_offset']] # Discard extra z points introduced by the source offset 
 
         return (self._p_amp_xyz, self._phase_xyz, self._freq, self._x_3d, self._y_3d, self._z_3d)
     

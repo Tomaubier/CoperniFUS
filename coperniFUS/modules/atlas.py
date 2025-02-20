@@ -1,6 +1,7 @@
 from coperniFUS import *
 from coperniFUS.modules.module_base import Module
 
+
 class BrainAtlas(Module):
 
     _DEFAULT_PARAMS = {
