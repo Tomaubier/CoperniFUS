@@ -1,6 +1,6 @@
 # CoperniFUS: A flexible Python-based GUI for stereotaxic Focused UltraSound (FUS) experiment planning
 
-![Tests](https://github.com/Tomaubier/CoperniFUS/actions/workflows/python-app.yml/badge.svg)
+![Tests](https://github.com/Tomaubier/CoperniFUS/actions/workflows/python-app.yml/badge.svg) [![status](https://joss.theoj.org/papers/a1d9b1796f62be795d8b3390161dd46e/status.svg)](https://joss.theoj.org/papers/a1d9b1796f62be795d8b3390161dd46e)
 
 ## Key features
 
