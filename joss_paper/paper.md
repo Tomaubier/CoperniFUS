@@ -21,7 +21,7 @@ affiliations:
  - name: Université Claude Bernard Lyon 1, INSERM, Centre de Recherche en Neurosciences de Lyon CRNL U1028 UMR5292, F-69500 Bron, France
    index: 2
 date: 7 February 2025
-bibliography: neustim.bib
+bibliography: references.bib
 
 # Optional fields if submitting to a AAS journal too, see this blog post:
 # https://blog.joss.theoj.org/2018/12/a-new-collaboration-with-aas-publishing
