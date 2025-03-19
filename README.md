@@ -40,6 +40,9 @@ For detailed instructions, [checkout the documentation here](https://copernifus.
     - `pip install git+https://github.com/Tomaubier/CoperniFUS.git`
 4. Launch `coperniFUS` by running `coperniFUS` in a terminal.
 
+## Contributing to the project
+With the aim of making CoperniFUS suitable for a wide range of applications, your feedback and contributions are always welcome! Please refer to the [Contribution Guidelines](CONTRIBUTING.md) if you wish to do so.
+
 ## Related projects
 - [BrainCoordinator](https://github.com/simonarvin/braincoordinator)
 - [BrainCoord](https://github.com/RicardoRios46/BrainCoord)
