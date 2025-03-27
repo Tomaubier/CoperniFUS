@@ -21,7 +21,7 @@ mapbox_earcut==1.0.1
 zarr==2.18.3
 pillow==10.3.0
 tqdm==4.66.4
-dask==2024.5.2
+dask==2025.3.0
 rembg==2.0.59
 opencv-python==4.10.0.84
 matplotlib==3.9.0
