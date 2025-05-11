@@ -17,8 +17,9 @@ class Window(pyqtw.QMainWindow):
 
     _STATUS_BAR_MSG_TIMEOUT = 5000
 
-    def __init__(self, app, assets_dir_path='', **kwargs) -> None:
+    def __init__(self, app, assets_dir_path='', disable_internal_console=False, **kwargs) -> None:
         self.assets_dir_path = pathlib.Path(assets_dir_path)
+        self.disable_internal_console = disable_internal_console
         self.app_kwargs = kwargs
         if app is not None: # ignore app when running tests
             self.app = app
@@ -77,10 +78,10 @@ class Window(pyqtw.QMainWindow):
             RefImageAsPlane(self, **self.app_kwargs),
             BrainAtlas(self, **self.app_kwargs),
             StlHandlerGUI(self, **self.app_kwargs),
-            # BrainSlicesPostProcessing(self, **self.app_kwargs),
         ]
 
-        self.console_dock = InternalConsoleModule(self)
+        if not self.disable_internal_console:
+            self.console_dock = InternalConsoleModule(self)
 
         self.init_status_bar()
         self.init_modules_docks()
@@ -133,7 +134,8 @@ class Window(pyqtw.QMainWindow):
         self.anat_calib.init_dock()
         for mm in self._modules:
             mm.init_dock()
-        self.console_dock.init_dock()
+        if not self.disable_internal_console:
+            self.console_dock.init_dock()
 
     def init_rendered_view(self):
         self.tooltip.add_rendered_object() # Init Tooltip globjects
@@ -172,7 +174,9 @@ class Window(pyqtw.QMainWindow):
     def update_modules_menu(self):
         self.modules_menu.clear()
 
-        modules_docks_objects = {module.dock.windowTitle(): module for module in [self.console_dock, self.gl_view.gl_items_toggler, self.stereotaxic_frame, self.anat_calib]}
+        modules_docks_objects = {module.dock.windowTitle(): module for module in 
+            [*([self.console_dock] if not self.disable_internal_console else []), self.gl_view.gl_items_toggler, self.stereotaxic_frame, self.anat_calib]
+        }
         modules_docks_objects.update({module.dock.windowTitle(): module for module in self._modules})
         modules_docks_objects.update({module.dock.windowTitle(): module for module in self._modules})
         modules_docks_visibility = {module_name: module_obj.dock.isVisible() for module_name, module_obj in modules_docks_objects.items()}
