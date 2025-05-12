@@ -238,6 +238,7 @@ class BrainAtlas(Module):
             rgba_vol = plt.cm.Greys_r(atlas_norm_func(self.ref_atlas)) * 255
             rgba_vol[:, :, :, 3] = self.get_user_param('alpha') * 255
             rgba_vol[:, :, :, 3][rgba_vol[:, :, :, 0] < self.get_user_param('black_threshold')] = 0 # Set black regions to transparent
+            rgba_vol = rgba_vol.astype(np.ubyte)
 
             self._raw_atlas_rgba_volume = (atlas_rgba_vol_id, rgba_vol)
             del rgba_vol

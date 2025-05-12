@@ -255,8 +255,8 @@ mesh = extrusion.to_mesh()
             p_amp_norm_func = plt.Normalize(vmin=0, vmax=vmax)
             self.p_amp_rgba = plt.cm.viridis(p_amp_norm_func(p_amp_AS_xyz)) * 255
 
-            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_AS_xyz)).astype(int)
-            self.p_amp_AS_vol = gl.GLVolumeItem(self.p_amp_rgba.astype(int), smooth=True, glOptions='additive')
+            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_AS_xyz)).astype(np.ubyte)
+            self.p_amp_AS_vol = gl.GLVolumeItem(self.p_amp_rgba, smooth=True, glOptions='additive')
             self.parent_viewer.gl_view.addItem(self.p_amp_AS_vol, name=f'k-Wave AS pressure field')
             self.p_amp_AS_vol.setDepthValue(2)
 
@@ -660,8 +660,8 @@ mesh = extrusion.to_mesh()
             p_amp_norm_func = plt.Normalize(vmin=0, vmax=vmax)
             self.p_amp_rgba = plt.cm.viridis(p_amp_norm_func(p_amp_3D_xyz)) * 255
 
-            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_3D_xyz)).astype(int)
-            self.p_amp_3D_vol = gl.GLVolumeItem(self.p_amp_rgba.astype(int), smooth=True, glOptions='additive')
+            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_3D_xyz)).astype(np.ubyte)
+            self.p_amp_3D_vol = gl.GLVolumeItem(self.p_amp_rgba, smooth=True, glOptions='additive')
             self.parent_viewer.gl_view.addItem(self.p_amp_3D_vol, name=f'k-Wave 3D pressure field')
             self.p_amp_3D_vol.setDepthValue(2)
 
@@ -1052,8 +1052,8 @@ mesh = extrusion.to_mesh()
             p_amp_norm_func = plt.Normalize(vmin=0, vmax=vmax)
             self.p_amp_rgba = plt.cm.viridis(p_amp_norm_func(p_amp_AS_xyz)) * 255
 
-            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_AS_xyz)).astype(int)
-            self.p_amp_AS_vol = gl.GLVolumeItem(self.p_amp_rgba.astype(int), smooth=True, glOptions='additive')
+            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_AS_xyz)).astype(np.ubyte)
+            self.p_amp_AS_vol = gl.GLVolumeItem(self.p_amp_rgba, smooth=True, glOptions='additive')
             self.parent_viewer.gl_view.addItem(self.p_amp_AS_vol, name=f'k-Wave AS pressure field')
             self.p_amp_AS_vol.setDepthValue(2)
 
@@ -1262,8 +1262,8 @@ mesh = extrusion.to_mesh()
             p_amp_norm_func = plt.Normalize(vmin=0, vmax=vmax)
             self.p_amp_rgba = plt.cm.viridis(p_amp_norm_func(p_amp_3D_xyz)) * 255
 
-            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_3D_xyz)).astype(int)
-            self.p_amp_3D_vol = gl.GLVolumeItem(self.p_amp_rgba.astype(int), smooth=True, glOptions='additive')
+            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_3D_xyz)).astype(np.ubyte)
+            self.p_amp_3D_vol = gl.GLVolumeItem(self.p_amp_rgba, smooth=True, glOptions='additive')
             self.parent_viewer.gl_view.addItem(self.p_amp_3D_vol, name=f'k-Wave AS-3D pressure field')
             self.p_amp_3D_vol.setDepthValue(2)
 
