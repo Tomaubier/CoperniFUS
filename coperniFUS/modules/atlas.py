@@ -1,6 +1,8 @@
+from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+import brainglobe_atlasapi
+
 from coperniFUS import *
 from coperniFUS.modules.module_base import Module
-
 
 class BrainAtlas(Module):
 

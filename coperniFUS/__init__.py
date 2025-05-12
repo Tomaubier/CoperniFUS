@@ -6,8 +6,6 @@ import sys, functools, os, json, pathlib, trimesh, scipy, matplotlib, pickle, sh
 import PyQt6.QtGui as pyqtg
 import PyQt6.QtCore as pyqtc
 import PyQt6.QtWidgets as pyqtw
-from bg_atlasapi.bg_atlas import BrainGlobeAtlas
-import brainglobe_atlasapi
 from si_prefix import si_format, si_parse
 import matplotlib.pyplot as plt
 import pyqtgraph.opengl as gl
