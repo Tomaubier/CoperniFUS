@@ -1,19 +1,19 @@
 Installation
 ------------
 
+.. role:: raw-html(raw)
+    :format: html
+
 Tested on macOS 15, Ubuntu 24.04.2 LTS, Windows 10 & 11 using Python 3.12.
 
 1. Make sure you have `Blender 4.1 <https://download.blender.org/release/Blender4.1/>`_ installed on your system. It will be used by `trimesh <https://trimesh.org>`_ to perform boolean operations.
 
-    *1a. For Ubuntu users:* Make sure that the path to the Blender is defined in the system ``PATH``. You can add it by running ``echo 'export PATH="/path/to/blender_executable_parent_dir:$PATH"'>>~/.bashrc``
+    1a. *For Ubuntu users:* Make sure that the path to the Blender is defined in the system ``PATH``. You can add it by running ``echo 'export PATH="/path/to/blender_executable_parent_dir:$PATH"'>>~/.bashrc``
 
-2. Optional but highly recommended: setup a dedicated Python 3.12 environment (I recommended using `miniconda <https://docs.anaconda.com/miniconda/install/>`_)
-    - Using `conda`: ``conda create -n coperniFUS_env python=3.12``
-    - Activate the newly created environment using ``conda activate coperniFUS_env``
-3. Install ``coperniFUS`` using ``pip`` (if you are using windows, you might need to install Git)
-    - ``pip install git+https://github.com/Tomaubier/CoperniFUS.git``
+2. Optional but highly recommended: setup a dedicated Python 3.12 environment (I recommended using `miniconda <https://docs.anaconda.com/miniconda/install/>`_) :raw-html:`<br />` - Using `conda`: ``conda create -n coperniFUS_env python=3.12`` :raw-html:`<br />` - Activate the newly created environment using ``conda activate coperniFUS_env``
+3. Install ``coperniFUS`` using ``pip`` (if you are using windows, you might need to install Git) :raw-html:`<br />` - ``pip install git+https://github.com/Tomaubier/CoperniFUS.git``
 
-    *3a. For Ubuntu users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
+    3a. *For Ubuntu users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
 
 4. Launch ``coperniFUS`` by running ``coperniFUS`` in a terminal.
 
