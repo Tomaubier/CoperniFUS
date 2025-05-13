@@ -57,7 +57,7 @@ Proper armature definition should results in simulated armature geometries match
 .. image:: /_static/armature_validation_dv1_angle.png
 .. image:: /_static/armature_validation_dv0_angle.png
 
-In this example, the stereotaxic frame has been defined as 3 dictinct armatures:
+In this example, the stereotaxic frame has been defined as a series of 3 discrete armatures:
    #. `Bregma loc correction` → bridging the rodent head location, with the Arm origin.
    #. `Arm 2` → The main arm possessing 5 degrees of freedom (:math:`x`, :math:`y`, :math:`z` translations + :math:`x`, :math:`z` rotations)
    #. `Dummy probe` → a detachable probe holder which is in this case constitutes of a single rod with no attachments.
