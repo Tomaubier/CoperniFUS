@@ -472,6 +472,10 @@ mesh = extrusion.to_mesh()
         """
 
         def compute_b_operation(boperator_str, boolean_meshes_names, bool_mesh_index):
+
+            if not trimesh.interfaces.blender.exists:
+                raise ValueError('Blender could not be used as trimesh\'s boolean operation backend. Please make sure that Blender 4.1 is installed and its location defined in the system PATH variable. Refer to the Installation section of CoperniFUS\'s docs for additionnal guidance.')
+            
             b_mesh = None
             b_meshes = []
             for b_mesh_name in boolean_meshes_names:
@@ -497,7 +501,7 @@ mesh = extrusion.to_mesh()
                     warnings.warn(f'Skipping {b_mesh_name} as it does not exist -> Please make sure that the mesh has been succesfully loaded or computed in the case of trimesh operations.\nAvaiblable meshes are:\n\t_stl_mesh\n\t_boolean_mask{available_stl_armatures_formated}')
 
             if boperator_str in b_operators:
-                boolean_computed_mesh = b_operators[boperator_str](b_meshes)
+                boolean_computed_mesh = b_operators[boperator_str](b_meshes, engine='blender')
                 boolean_computed_mesh.bool_mesh_index = bool_mesh_index # Add index attribute (acoustic simulations material assignement)
             else:
                 raise ValueError('Invalid boolean operator')
