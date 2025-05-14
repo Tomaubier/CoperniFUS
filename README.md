@@ -27,18 +27,25 @@ Support axisymmetric simulations in homogeneous domains and 3D simulations in co
 ![k-Wave integration demo](docs/_static/5_kwave_demo.gif)
 
 ## Getting started
-Tested on macOS 15, Windows 10 & 11 using Python 3.12.
+Tested on macOS 15, Ubuntu 24.04.2 LTS, Linux Mint 21.1, Windows 10 & 11 using Python 3.12.
 
 ### Installation
-For detailed instructions, [checkout the documentation here](https://copernifus.readthedocs.io/en/latest/index.html).
+For detailed instructions and troubleshooting steps [checkout the documentation here](https://copernifus.readthedocs.io/en/latest/index.html).
 
 1. Make sure [Blender 4.1](https://download.blender.org/release/Blender4.1/) is installed on your system. It will be used by [trimesh](https://trimesh.org) to perform boolean operations.
+
+    > 1a. *For Linux users:* Make sure that the path to the Blender is defined in the system ``PATH``. You can add it by running ``echo 'export PATH="/path/to/blender_executable_parent_dir:$PATH"'>>~/.bashrc``
+
 2. Optional but highly recommended: setup a dedicated Python 3.12 environment (I recommended using [miniconda](https://docs.anaconda.com/miniconda/install/))
     - Using `conda`: `conda create -n coperniFUS_env python=3.12`
     - Activate the newly created environment using `conda activate coperniFUS_env`
+
 3. Install `coperniFUS` using `pip` (if you are using windows, you might need to install Git)
     - `pip install git+https://github.com/Tomaubier/CoperniFUS.git`
-4. Launch `coperniFUS` by running `coperniFUS` in a terminal.
+
+    > 3a. *For Linux users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
+
+4. Launch `coperniFUS` by running `coperniFUS` in a terminal. Checkout [this page](https://copernifus.readthedocs.io/en/latest/contents/usage.html) for detailed usage instructions.
 
 ## Contributing to the project
 With the aim of making CoperniFUS suitable for a wide range of applications, your feedback and contributions are always welcome! Please refer to the [Contribution Guidelines](CONTRIBUTING.md) if you wish to do so.
