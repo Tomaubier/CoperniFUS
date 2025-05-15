@@ -78,12 +78,12 @@ class BrainAtlas(Module):
         self.atlas_selector.setToolTip('Select a brain atlas for download. Previously downloaded atlases are registered as (DOWNLOADED).<br>You can find detailed descriptions of the available atlases on BrainGlobe\'s documentation.')
 
         # Subsampling stride editor
-        self.subsampling_stride_editor = pyqtw.QLineEdit(str(self._DEFAULT_PARAMS['subsampling_stride']))
+        self.subsampling_stride_editor = descriptive_line_edit(str(self._DEFAULT_PARAMS['subsampling_stride']), 'Atlas subsampling')
         self.subsampling_stride_editor.editingFinished.connect(functools.partial(self._parse_editor, self.subsampling_stride_editor, 'subsampling_stride', '', 'int'))
         self.dock_layout.addWidget(self.subsampling_stride_editor, 0, 1, 1, 1) # Y, X, w, h
         self.subsampling_stride_editor.setToolTip('Atlas subsampling stride<br>Use 1 to show the altas in its full resolution, larger strides will however improve performances.')
 
-        self.atlas_transform_editor = pyqtw.QLineEdit(str(self._DEFAULT_PARAMS['atlas_transforms_str']))
+        self.atlas_transform_editor = descriptive_line_edit(str(self._DEFAULT_PARAMS['atlas_transforms_str']), 'Atlas transform')
         self.atlas_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.atlas_transform_editor, 'atlas_transforms_str', '', 'str'))
         self.dock_layout.addWidget(self.atlas_transform_editor, 0, 2, 1, 1) # Y, X, w, h
         self.atlas_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')

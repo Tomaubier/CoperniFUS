@@ -53,13 +53,10 @@ class Tooltip(Module):
         seperator_ui_label = pyqtw.QLabel(' |')
         self.parent_viewer.statusBar().addPermanentWidget(seperator_ui_label)
 
-        default_tooltip_tf_ui_label = pyqtw.QLabel('Default tooltip transform')
-        self.parent_viewer.statusBar().addPermanentWidget(default_tooltip_tf_ui_label)
-
-        self.tooltip_transform_editor = pyqtw.QLineEdit(str(self.get_user_param('tooltip_transforms_str')))
+        self.tooltip_transform_editor = descriptive_line_edit(str(self.get_user_param('tooltip_transforms_str')), 'Default Tooltip transform')
         self.tooltip_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.tooltip_transform_editor, 'tooltip_transforms_str', '', 'str'))
         self.parent_viewer.statusBar().addPermanentWidget(self.tooltip_transform_editor)
-        self.tooltip_transform_editor.setFixedWidth(400)
+        self.tooltip_transform_editor.setFixedWidth(600)
         self.tooltip_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
     
     def _on_editor_parsed(self, param_name, edited_value):

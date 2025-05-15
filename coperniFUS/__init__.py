@@ -260,7 +260,30 @@ def constrain_scaling_along_local_axis(tmat, scale, scaling_axis_index):
     constrained_tmat[:3, 0] = scaled_x_axis
     return constrained_tmat
 
-# ----- QT misc classes ------
+# ----- QT misc classes and functions ------
+
+def descriptive_line_edit(default_text, description_text):
+    """ Custom QLineEdit with a description text prefix """
+
+    descr_line_edit = pyqtw.QLineEdit(default_text)
+
+    # Description prefix label
+    prefix_label = pyqtw.QLabel(description_text)
+    prefix_label.setStyleSheet("padding-left: 2px; padding-right: 0px; color: gray;")
+
+    # Eval description width to avoid trucation
+    font_metrics = pyqtg.QFontMetrics(prefix_label.font())
+    text_width = font_metrics.horizontalAdvance(description_text)
+    prefix_label.setFixedWidth(text_width + font_metrics.averageCharWidth())
+
+    # Description label embeding into QLineEdit
+    prefix_action = pyqtw.QWidgetAction(descr_line_edit)
+    prefix_action.setDefaultWidget(prefix_label)
+    descr_line_edit.addAction(prefix_action, pyqtw.QLineEdit.ActionPosition.LeadingPosition)
+    descr_line_edit.setTextMargins(text_width - font_metrics.averageCharWidth(), 0, 0, 0)
+
+    return descr_line_edit
+
 
 class AcceptRejectDialog(pyqtw.QDialog):
     def __init__(self, parent=None, title='Title', msg='Msg'):

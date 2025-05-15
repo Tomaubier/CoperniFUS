@@ -38,7 +38,7 @@ class StlHandlerGUI(StlHandler): # TODO Subclass Module
         self.dock_layout.addWidget(self.select_stl_file_btn, 0, 0, 1, 1) # Y, X, w, h
 
         # Transform matrix str editor
-        self.stl_item_transform_editor = pyqtw.QLineEdit(str(self.get_stl_user_param('stl_item_transforms_str')))
+        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_stl_user_param('stl_item_transforms_str')), 'Mesh transform')
         self.stl_item_transform_editor.editingFinished.connect(functools.partial(self.parse_editor, self.stl_item_transform_editor, 'stl_item_transforms_str', '', 'str'))
         self.stl_item_transform_editor.editingFinished.connect(self.reset_stl_item_tmat)
         self.stl_item_transform_editor.setEnabled(False)
