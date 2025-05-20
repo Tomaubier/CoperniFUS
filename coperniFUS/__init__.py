@@ -1,6 +1,7 @@
 # %%
+from importlib.metadata import version
 
-print('Launching CoperniFUS')
+print(f"Launching CoperniFUS v{version('coperniFUS')}")
 
 import sys, functools, os, json, pathlib, trimesh, scipy, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
 import PyQt6.QtGui as pyqtg

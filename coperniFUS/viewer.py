@@ -39,7 +39,7 @@ class Window(pyqtw.QMainWindow):
 
         self.cache = CachedDataHandler('coperniFUSCache')
 
-        self.setWindowTitle("CoperniFUS")
+        self.setWindowTitle(f"CoperniFUS {version('coperniFUS')}")
         self.setGeometry(*self.cache.get_attr('viewer.geometry', default_value=[100, 100, 1500, 1000]))
 
         self.init_gui()
