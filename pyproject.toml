@@ -1,8 +1,5 @@
 [build-system]
-requires = [
-  "setuptools >= 69",
-  "setuptools_scm[toml]>=8"
-]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
@@ -12,10 +9,13 @@ exclude = ["joss_paper*", "docs*", "*examples*"]
 [project]
 name = "coperniFUS"
 description = "A flexible Python-based GUI for stereotaxic experiment planning"
+keywords = ["ultrasound", "neuroscience", "neurostimulation", "neuromodulation"]
+license = "GPL-3.0-or-later"
+license-files = ["LICENSE"]
 authors = [
     { name = "Tom Aubier", email = "tom.aubier@inserm.fr" },
 ]
-version = "0.1"
+version = "0.1.0"
 requires-python = ">=3.12"
 dependencies = [
     "PyQt6==6.7.0",
@@ -41,9 +41,14 @@ dependencies = [
     "onnxruntime==1.19.2",
     "k-Wave-python==0.3.4",
 ]
+classifiers = [
+  "Programming Language :: Python"
+]
 
-[project.license]
-text = "License :: OSI Approved :: GNU General Public License v3 (GPLv3)"
+[project.urls]
+Documentation = "https://copernifus.readthedocs.io/"
+Repository = "https://github.com/Tomaubier/CoperniFUS.git"
+"Bug Tracker" = "https://github.com/Tomaubier/CoperniFUS/issues?q=is%3Aissue"
 
 [project.scripts]
 coperniFUS = "coperniFUS.__main__:main"
