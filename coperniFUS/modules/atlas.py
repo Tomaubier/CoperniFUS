@@ -6,6 +6,7 @@ from coperniFUS.modules.module_base import Module
 
 class BrainAtlas(Module):
 
+    _DEFAULT_N_VOXELS = 1e6 # target number of voxels for default atlas subsampling stride computation
     _DEFAULT_PARAMS = {
         'default_atlas_name': 'whs_sd_rat_39um',
         'highlighted_structure': 'Select structure',
@@ -50,6 +51,10 @@ class BrainAtlas(Module):
                 default_value=default_value)
         else:
             param_value = self._DEFAULT_PARAMS[param_name]
+            # if default_value is not None:
+            #     param_value = default_value
+            # else:
+            #     param_value = self._DEFAULT_PARAMS[param_name]
         return param_value
 
     def set_user_param(self, param_name, param_value):
@@ -227,8 +232,12 @@ class BrainAtlas(Module):
         self.update_atlas_selector()
 
     @property
+    def _default_subsampling_stride(self):
+        return int((np.prod(self.bg_atlas.shape) / self._DEFAULT_N_VOXELS)**(1/3))
+
+    @property
     def raw_atlas_rgba_volume(self):
-        subs_stride = self.get_user_param('subsampling_stride')
+        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
         atlas_rgba_vol_id = f'{self.bg_atlas.atlas_name}.{subs_stride}'
 
         if self._raw_atlas_rgba_volume is None or self._raw_atlas_rgba_volume[0] != atlas_rgba_vol_id:
@@ -251,7 +260,7 @@ class BrainAtlas(Module):
     def raw_highlighted_structure_volume(self):
         selected_hemisphere = self.get_user_param('highlighted_structure_hemisphere')
         selected_structure = self.get_user_param('highlighted_structure')
-        subs_stride = self.get_user_param('subsampling_stride')
+        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
         structure_acronym = self.bg_atlas_structures[selected_structure]
 
         if structure_acronym is None:
@@ -275,7 +284,7 @@ class BrainAtlas(Module):
 
     @property
     def atlas_resolution(self):
-        subs_stride = self.get_user_param('subsampling_stride')
+        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
         atlas_res = subs_stride * np.array(self.bg_atlas.resolution) * 1e-6 # um to meters
         return atlas_res
     
@@ -344,7 +353,7 @@ class BrainAtlas(Module):
         self.highlight_structure_btn.setEnabled(True)
 
     def update_atlas_user_params_editors(self):
-        self.subsampling_stride_editor.setText(str(self.get_user_param('subsampling_stride')))
+        self.subsampling_stride_editor.setText(str(self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)))
         self.atlas_transform_editor.setText(self.get_user_param('atlas_transforms_str'))
 
     def update_atlas_transform(self):
