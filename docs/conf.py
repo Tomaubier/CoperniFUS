@@ -25,7 +25,7 @@ spec.loader.exec_module(coperniFUS)
 project = 'CoperniFUS'
 copyright = '2025, Tom Aubier'
 author = 'Tom Aubier'
-release = '0.1'
+release = '0.1.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration

@@ -2,6 +2,8 @@
 
 ![Tests](https://github.com/Tomaubier/CoperniFUS/actions/workflows/python-app.yml/badge.svg) [![status](https://joss.theoj.org/papers/a1d9b1796f62be795d8b3390161dd46e/status.svg)](https://joss.theoj.org/papers/a1d9b1796f62be795d8b3390161dd46e)
 
+[Documentation](https://copernifus.readthedocs.io/en/latest/)
+
 ## Key features
 
 ### BrainGlobe + Structure highlighting
@@ -54,3 +56,4 @@ With the aim of making CoperniFUS suitable for a wide range of applications, you
 - [BrainCoordinator](https://github.com/simonarvin/braincoordinator)
 - [BrainCoord](https://github.com/RicardoRios46/BrainCoord)
 - [VVASP](https://github.com/spkware/vvasp)
+- [Kranion](https://www.fusfoundation.org/for-researchers-and-clinicians/resources/kranion/)
