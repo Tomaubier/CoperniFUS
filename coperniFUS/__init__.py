@@ -1,6 +1,6 @@
 # %%
 
-print('Lauching CoperniFUS')
+print('Launching CoperniFUS')
 
 import sys, functools, os, json, pathlib, trimesh, scipy, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
 import PyQt6.QtGui as pyqtg

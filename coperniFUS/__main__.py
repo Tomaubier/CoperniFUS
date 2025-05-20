@@ -1,5 +1,5 @@
+import sys, argparse
 from coperniFUS.viewer import coperniFUSviewer
-import argparse, sys
 
 def main():
     parser = argparse.ArgumentParser()
