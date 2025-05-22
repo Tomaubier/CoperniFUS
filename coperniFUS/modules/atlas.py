@@ -1,4 +1,5 @@
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
+import brainglobe_space as bgs
 import brainglobe_atlasapi
 
 from coperniFUS import *
@@ -6,10 +7,18 @@ from coperniFUS.modules.module_base import Module
 
 class BrainAtlas(Module):
 
+    """
+    BrainAtlas module.
+
+    Attributes:
+        bg_atlas: BrainGlobe Atlas API atlas object.
+    """
+
+    COPERNIFUS_AXES_ORDERING_CONVENTION = "pri" # Postirior Right Inferior see brainglobe_space docs
     _DEFAULT_N_VOXELS = 1e6 # target number of voxels for default atlas subsampling stride computation
     _DEFAULT_PARAMS = {
         'default_atlas_name': 'whs_sd_rat_39um',
-        'highlighted_structure': 'Select structure',
+        'highlighted_structure': 'Select Structure',
         'highlighted_structure_hemisphere': 'Both',
         'atlas_transforms_str' : 'Rx0deg Tz0um',
         'subsampling_stride': 10,
@@ -36,7 +45,7 @@ class BrainAtlas(Module):
         self._brain_atlas_tmat = None
         self.atlas_glvol = None
         self.bg_atlas = None
-        self.bg_atlas_structures = {'Select structure': None}
+        self.bg_atlas_structures = {'Select Structure': None}
 
         self._atlas_voxel_coordinates = None
         self._slicing_plane_mask = None
@@ -97,7 +106,7 @@ class BrainAtlas(Module):
         self.structure_selector = pyqtw.QComboBox()
         # self.structure_selector.setStyleSheet("QComboBox { combobox-popup: 0; }") # Limit dropdown height
         # self.structure_selector.setMaxVisibleItems(20) # Limit dropdown height # BUG darkmode interference
-        self.structure_selector.addItems(['Select structures'])
+        self.structure_selector.addItems(self.bg_atlas_structures.values())
         self.structure_selector.setEnabled(False)
         self.dock_layout.addWidget(self.structure_selector, 1, 0, 1, 1)
         self.structure_selector.setToolTip('Select the brain structure to be highlighted then click on Highlight Structure.<br>You can find detailed descriptions of the available structure on BrainGlobe\'s documentation.')
@@ -112,6 +121,50 @@ class BrainAtlas(Module):
         self.highlight_structure_btn.clicked.connect(self._highlight_structure_btn_pressed)
         self.highlight_structure_btn.setEnabled(False)
         self.dock_layout.addWidget(self.highlight_structure_btn, 1, 2, 1, 1)
+
+        self.update_atlas_selector()
+
+    # ========= TODO brainglobe install -a allen_mouse_25um
+
+    def _add_atlas(self):
+        self.delete_rendered_object()
+        self.init_attributes()
+
+        selected_atlas_description = self.atlas_selector.currentText()
+
+        if selected_atlas_description in ['Select Atlas', 'Offline mode -> Only downloaded atlas are visible']:
+            self.parent_viewer.cache.set_attr('atlas.default_atlas_name', 'no_atlas')
+        elif selected_atlas_description.endswith('(DOWNLOADED)'):
+            offline_atlas_name = selected_atlas_description.split(' | ')[0]
+            self.parent_viewer.statusBar().showMessage(f'Loading offline {offline_atlas_name}', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+            self.bg_atlas = BrainGlobeAtlas(offline_atlas_name, check_latest=False)
+        elif selected_atlas_description.endswith('(online)'):
+            online_atlas_name = selected_atlas_description.split(' | ')[0]
+            
+            dialog = AcceptRejectDialog(parent=self.parent_viewer, title='Proceed with Brain Atlas download?', msg=f'Do you want to download {online_atlas_name} ?\nThis might take a few minutes')
+            dialog_result = dialog.exec()
+            if dialog_result == 1:
+                self.parent_viewer.statusBar().showMessage(f'Downloading {online_atlas_name}')
+                self.bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
+                
+            else:
+                self.parent_viewer.statusBar().showMessage('Atlas Download Canceled!', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+
+        if self.bg_atlas is not None:
+
+            # Set transform str for rat atlas on blank projects
+            if self.bg_atlas.atlas_name == 'whs_sd_rat_39um' and self.get_user_param('atlas_transforms_str') == self._DEFAULT_PARAMS['atlas_transforms_str']:
+                self.set_user_param('atlas_transforms_str', 'S1.15 Rx-89.3deg Rz180deg Ry-5deg Ty.55mm Tx-5.5mm Tz-9.3mm')
+
+            self.update_structure_selector()
+            self.update_atlas_user_params_editors()
+            self.parent_viewer.cache.set_attr('atlas.default_atlas_name', self.bg_atlas.atlas_name)
+
+            # TODO -> tranfer to add_rendered_object ???
+            self.atlas_glvol = gl.GLVolumeItem(self.atlas_rgba_volume, smooth=True, glOptions='translucent')
+            self.parent_viewer.gl_view.addItem(self.atlas_glvol, name='Brain atlas')
+            self.atlas_glvol.setDepthValue(1) # GL volumes -> render tree foreground
+            self.update_atlas_transform()
 
         self.update_atlas_selector()
 
@@ -169,67 +222,20 @@ class BrainAtlas(Module):
             
             self.parent_viewer.statusBar().clearMessage()
             if formatted_online_atlases is None:
-                formatted_online_atlases = {None: 'No internet connection -> downloaded only'}
+                formatted_online_atlases = {
+                    None: 'Offline mode -> Only downloaded atlas are visible'
+                }
 
-            self._available_atlases = {**formatted_offline_atlases, **formatted_online_atlases}
+            self._available_atlases = {
+                'no_atlas': 'Select Atlas',
+                **formatted_offline_atlases,
+                **formatted_online_atlases
+            }
         return self._available_atlases
     
     @available_atlases.setter
     def available_atlases(self, value):
         self._available_atlases = value
-
-    def _add_atlas(self):
-        self.delete_rendered_object()
-        self.init_attributes()
-
-        selected_atlas_description = self.atlas_selector.currentText()
-
-        # def download_atlas_wrapper(online_atlas_name):
-        #     bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
-        #     self._add_atlas()
-
-        if selected_atlas_description is None:
-            pass # TODO msg in status bar
-        elif selected_atlas_description.endswith('(DOWNLOADED)'):
-            offline_atlas_name = selected_atlas_description.split(' | ')[0]
-            self.parent_viewer.statusBar().showMessage(f'Loading offline {offline_atlas_name}', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
-            self.bg_atlas = BrainGlobeAtlas(offline_atlas_name, check_latest=False)
-        elif selected_atlas_description.endswith('(online)'):
-            online_atlas_name = selected_atlas_description.split(' | ')[0]
-            
-            dialog = AcceptRejectDialog(parent=self.parent_viewer, title='Proceed with Brain Atlas download?', msg=f'Do you want to download {online_atlas_name} ?\nThis might take a few minutes')
-            dialog_result = dialog.exec()
-            if dialog_result == 1:
-                self.parent_viewer.statusBar().showMessage(f'Downloading {online_atlas_name}')
-                
-                # TODO reimplement threaded download
-                # self.threaded_atlas_download = threading.Thread(
-                #     target=download_atlas_wrapper,
-                #     args=(online_atlas_name,))
-                # self.threaded_atlas_download.start()
-                # TODO allow thread interruption
-                self.bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
-                
-            else:
-                self.parent_viewer.statusBar().showMessage('Atlas Download Canceled!', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
-
-        if self.bg_atlas is not None:
-
-            # Set transform str for rat atlas on blank projects
-            if self.bg_atlas.atlas_name == 'whs_sd_rat_39um' and self.get_user_param('atlas_transforms_str') == self._DEFAULT_PARAMS['atlas_transforms_str']:
-                self.set_user_param('atlas_transforms_str', 'S1.15 Rx-89.3deg Rz180deg Ry-5deg Ty.55mm Tx-5.5mm Tz-9.3mm')
-
-            self.update_structure_selector()
-            self.update_atlas_user_params_editors()
-            self.parent_viewer.cache.set_attr('atlas.default_atlas_name', self.bg_atlas.atlas_name)
-
-            # TODO -> tranfer to add_rendered_object ???
-            self.atlas_glvol = gl.GLVolumeItem(self.atlas_rgba_volume, smooth=True, glOptions='translucent')
-            self.parent_viewer.gl_view.addItem(self.atlas_glvol, name='Brain atlas')
-            self.atlas_glvol.setDepthValue(1) # GL volumes -> render tree foreground
-            self.update_atlas_transform()
-
-        self.update_atlas_selector()
 
     @property
     def _default_subsampling_stride(self):
@@ -293,10 +299,21 @@ class BrainAtlas(Module):
         if self._brain_atlas_tmat is None:
             resolution = self.atlas_resolution
             atlas_shape = self.raw_atlas_rgba_volume.shape
-            self._brain_atlas_tmat = af_tr.scale_mat(resolution)
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('x', -(resolution[0] * atlas_shape[0]) / 2)
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('y', -(resolution[1] * atlas_shape[1]) / 2)
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('z', -(resolution[2] * atlas_shape[2]) / 2)
+
+            # Axes ordering correction
+            source_space = bgs.AnatomicalSpace(self.bg_atlas.orientation, shape=atlas_shape[:3])
+            target_space = bgs.AnatomicalSpace(self.COPERNIFUS_AXES_ORDERING_CONVENTION)
+            axes_order_idx = source_space.map_to(target_space)[0]
+            space_conversion_tmat = source_space.transformation_matrix_to(target_space)
+            self.brain_atlas_tmat = space_conversion_tmat.T
+
+            # Setting atlas scale based on resolution
+            self.brain_atlas_tmat = self.brain_atlas_tmat @ af_tr.scale_mat(resolution)
+
+            # Img space origin to atlas center
+            self.brain_atlas_tmat = self.brain_atlas_tmat @ af_tr.translat_mat('x', -(resolution[0] * atlas_shape[axes_order_idx[0]]) / 2)
+            self.brain_atlas_tmat = self.brain_atlas_tmat @ af_tr.translat_mat('y', -(resolution[1] * atlas_shape[axes_order_idx[1]]) / 2)
+            self.brain_atlas_tmat = self.brain_atlas_tmat @ af_tr.translat_mat('z', -(resolution[2] * atlas_shape[axes_order_idx[2]]) / 2)
 
             atlas_transforms_matrices = af_tr_from_str.transform_matrices_from_str(
                 self.get_user_param('atlas_transforms_str')
@@ -325,7 +342,9 @@ class BrainAtlas(Module):
         # Init atlas selector
         default_offline_atlas = self.parent_viewer.cache.get_attr(
             'atlas.default_atlas_name', default_value=self._DEFAULT_PARAMS['default_atlas_name'])
-        if f'offline_{default_offline_atlas}' in self.available_atlases.keys():
+        if default_offline_atlas == 'no_atlas':
+            self.atlas_selector.setCurrentIndex(0) # set to "Select Atlas" option
+        elif f'offline_{default_offline_atlas}' in self.available_atlases.keys():
             self.atlas_selector.setCurrentIndex(list(self.available_atlases.keys()).index(f'offline_{default_offline_atlas}'))
 
         self.atlas_selector.currentIndexChanged.connect(self._add_atlas)
@@ -333,7 +352,7 @@ class BrainAtlas(Module):
     def update_structure_selector(self):
         sorted_structure_dict = dict(sorted({f"{struct['name']} ({struct['acronym']})": struct['acronym'] for struct in self.bg_atlas.structures_list}.items()))
         self.bg_atlas_structures = {
-            **{'Select structure': None},
+            **{'Select Structure': None},
             **sorted_structure_dict
         }
 
