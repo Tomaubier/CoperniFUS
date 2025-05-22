@@ -58,18 +58,28 @@ class Window(pyqtw.QMainWindow):
         return None
     
     def get_module_object_from_name(self, module_name=None):
-        available_module_names = [module.__class__.__name__ for module in self._modules]
+        builtin_modules_dict = {
+            module.__class__.__name__: module
+            for module in [self.tooltip, self.anat_calib, self.stereotaxic_frame]
+        }
+        optional_module_names = [
+            module.__class__.__name__
+            for module in self._modules
+        ]
+
         if module_name is None:
-            print(f'Please specify a module name.\nAvailable Modules:\n\t- {"\n\t- ".join(available_module_names)}')
+            print(f'Please specify a module name.\nBuilt-in Modules:\n\t- {"\n\t- ".join(builtin_modules_dict.keys())}\nOptionnal Modules Available:\n\t- {"\n\t- ".join(optional_module_names)}')
             return None
-        try:
-            brain_atlas_module_index = available_module_names.index(module_name)
+        if module_name in optional_module_names:
+            brain_atlas_module_index = optional_module_names.index(module_name)
             return self._modules[brain_atlas_module_index]
-        except ValueError:
-            raise ValueError(f'{module_name} not available in modules.\nAvailable Modules:\n\t- {"\n\t- ".join(available_module_names)}')
+        elif module_name in builtin_modules_dict:
+            return builtin_modules_dict[module_name]
+        else:
+            raise ValueError(f'{module_name} not available in modules.\nBuilt-in Modules:\n\t- {"\n\t- ".join(builtin_modules_dict.keys())}\nOptionnal Modules Available:\n\t- {"\n\t- ".join(optional_module_names)}')
     
     def init_modules(self):
-        # Mandatory module variable init
+        # Built-in modules objects init
         self.tooltip = Tooltip(self, **self.app_kwargs)
         self.anat_calib = AnatLandmarksCalib(self, **self.app_kwargs)
         self.stereotaxic_frame = StereotaxicFrame(self, **self.app_kwargs)
