@@ -120,10 +120,7 @@ class BrainAtlas(Module):
 
         self.update_atlas_selector()
 
-    # ========= TODO brainglobe install -a allen_mouse_25um
-
-    def _add_atlas(self):
-        self.delete_rendered_object()
+    def init_bg_atlas_from_user_selection(self):
         self.init_attributes()
 
         selected_atlas_description = self.atlas_selector.currentText()
@@ -137,35 +134,33 @@ class BrainAtlas(Module):
         elif selected_atlas_description.endswith('(online)'):
             online_atlas_name = selected_atlas_description.split(' | ')[0]
             
-            dialog = AcceptRejectDialog(parent=self.parent_viewer, title='Proceed with Brain Atlas download?', msg=f'Do you want to download {online_atlas_name} ?\nThis might take a few minutes')
+            dialog = AcceptRejectDialog(parent=self.parent_viewer, title='This atlas has to be downloaded externally', msg=f'Run\n\tbrainglobe install -a {online_atlas_name}\nin a Terminal to do so\n\nClick OK to copy the command in the clipboard and close CoperniFUS.\nRestart CoperniFUS once the download is complete.')
             dialog_result = dialog.exec()
             if dialog_result == 1:
-                self.parent_viewer.statusBar().showMessage(f'Downloading {online_atlas_name}')
-                self.bg_atlas = BrainGlobeAtlas(online_atlas_name, check_latest=True)
-                
+                # Download cmd to clipboard
+                clipboard = self.parent_viewer.app.clipboard()
+                clipboard.setText(f'brainglobe install -a {online_atlas_name}')
+                # Close CoperniFUS
+                self.parent_viewer.close()
             else:
-                self.parent_viewer.statusBar().showMessage('Atlas Download Canceled!', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+                self.parent_viewer.statusBar().showMessage('Proceeding with offline atlases', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+
+    def add_rendered_object(self):
+        self.delete_rendered_object()
+        self.init_bg_atlas_from_user_selection()
 
         if self.bg_atlas is not None:
-
-            # Set transform str for rat atlas on blank projects
-            if self.bg_atlas.atlas_name == 'whs_sd_rat_39um' and self.get_user_param('atlas_transforms_str') == self._DEFAULT_PARAMS['atlas_transforms_str']:
-                self.set_user_param('atlas_transforms_str', 'S1.15 Rx-89.3deg Rz180deg Ry-5deg Ty.55mm Tx-5.5mm Tz-9.3mm')
 
             self.update_structure_selector()
             self.update_atlas_user_params_editors()
             self.parent_viewer.cache.set_attr('atlas.default_atlas_name', self.bg_atlas.atlas_name)
 
-            # TODO -> tranfer to add_rendered_object ???
             self.atlas_glvol = gl.GLVolumeItem(self.atlas_rgba_volume, smooth=True, glOptions='translucent')
             self.parent_viewer.gl_view.addItem(self.atlas_glvol, name='Brain atlas')
             self.atlas_glvol.setDepthValue(1) # GL volumes -> render tree foreground
             self.update_atlas_transform()
 
         self.update_atlas_selector()
-
-    def add_rendered_object(self):
-        self._add_atlas()
 
     def delete_rendered_object(self):
         if self.atlas_glvol in self.parent_viewer.gl_view.items:
@@ -263,7 +258,11 @@ class BrainAtlas(Module):
         selected_hemisphere = self.get_user_param('highlighted_structure_hemisphere')
         selected_structure = self.get_user_param('highlighted_structure')
         subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
-        structure_acronym = self.bg_atlas_structures[selected_structure]
+
+        if selected_structure in self.bg_atlas_structures:
+            structure_acronym = self.bg_atlas_structures[selected_structure]
+        else:
+            structure_acronym = None
 
         if structure_acronym is None:
             return None
@@ -343,7 +342,7 @@ class BrainAtlas(Module):
         elif f'offline_{default_offline_atlas}' in self.available_atlases.keys():
             self.atlas_selector.setCurrentIndex(list(self.available_atlases.keys()).index(f'offline_{default_offline_atlas}'))
 
-        self.atlas_selector.currentIndexChanged.connect(self._add_atlas)
+        self.atlas_selector.currentIndexChanged.connect(self.add_rendered_object)
 
     def update_structure_selector(self):
         sorted_structure_dict = dict(sorted({f"{struct['name']} ({struct['acronym']})": struct['acronym'] for struct in self.bg_atlas.structures_list}.items()))
