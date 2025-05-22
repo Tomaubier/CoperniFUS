@@ -15,6 +15,8 @@ class Window(pyqtw.QMainWindow):
     y_GREEN = '#7fd169'
     z_BLUE = '#497ccc'
 
+    ATLAS_SPACE_CONVENTION = ['Posterior', 'Left', 'Superior'] # defined according to https://brainglobe.info/documentation/brainglobe-space/index.html
+
     _STATUS_BAR_MSG_TIMEOUT = 5000
 
     def __init__(self, app, assets_dir_path='', disable_internal_console=False, **kwargs) -> None:

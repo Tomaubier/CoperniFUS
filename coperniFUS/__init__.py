@@ -328,6 +328,36 @@ def recursive_key_finder(nested_dict, target_key='_is_editable'):
     return recursive_search(nested_dict)
 
 
+def get_flipped_atlas_space_convention(space_convention):
+    """ Returns a flipped version of space_convention according to https://brainglobe.info/documentation/brainglobe-space/index.html
+    space_convention can be
+        - a list of axes directions (eg. ['Posterior', 'Left', 'Superior'])
+        - a string containing abreviations (eg. 'pls')
+    """
+    flipped_space_convention = [None]*len(space_convention) # create empty list
+    for ii, ax in enumerate(space_convention):
+
+        if ax == "Right" or ax.lower() == 'r':
+            flipped_space_convention[ii] = "Left"
+        elif ax == "Left" or ax.lower() == 'l':
+            flipped_space_convention[ii] = "Right"
+        
+        elif ax == "Superior" or ax.lower() == 's':
+            flipped_space_convention[ii] = "Inferior"
+        elif ax == "Inferior" or ax.lower() == 'i':
+            flipped_space_convention[ii] = "Superior"
+        
+        elif ax == "Anterior" or ax.lower() == 'a':
+            flipped_space_convention[ii] = "Posterior"
+        elif ax == "Posterior" or ax.lower() == 'p':
+            flipped_space_convention[ii] = "Anterior"
+        
+        else:
+            raise ValueError(f'{ax} is not a valid space convention axis. See https://brainglobe.info/documentation/brainglobe-space/index.html')
+        
+    return flipped_space_convention
+
+
 def object_list_hash(obj_list):
     # Enforce list type
     if not isinstance(obj_list, list):

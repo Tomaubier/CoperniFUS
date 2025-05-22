@@ -53,12 +53,39 @@ class Tooltip(Module):
         seperator_ui_label = pyqtw.QLabel(' |')
         self.parent_viewer.statusBar().addPermanentWidget(seperator_ui_label)
 
+        # Tooltip global coordinates widget
+        space_conv = self.parent_viewer.ATLAS_SPACE_CONVENTION
+        self.statusbar_label = pyqtw.QLabel(' Tooltip global coords: ')
+        self.statusbar_x_coord_label = pyqtw.QLabel(f"{space_conv[0][:4]}. (x): 0 m")
+        self.statusbar_x_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.x_RED};')
+        self.statusbar_y_coord_label = pyqtw.QLabel(f"{space_conv[1][:4]}. (y): 0 m")
+        self.statusbar_y_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.y_GREEN};')
+        self.statusbar_z_coord_label = pyqtw.QLabel(f"{space_conv[2][:4]}. (z): 0 m")
+        self.statusbar_z_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.z_BLUE};')
+        
+        self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_label)
+        self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_x_coord_label)
+        self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_y_coord_label)
+        self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_z_coord_label)
+        self.parent_viewer.statusBar().addPermanentWidget(pyqtw.QLabel(" ")) # Termination spacer
+
+        # Tooltip coordinate transform editor
         self.tooltip_transform_editor = descriptive_line_edit(str(self.get_user_param('tooltip_transforms_str')), 'Default Tooltip transform')
         self.tooltip_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.tooltip_transform_editor, 'tooltip_transforms_str', '', 'str'))
         self.parent_viewer.statusBar().addPermanentWidget(self.tooltip_transform_editor)
-        self.tooltip_transform_editor.setFixedWidth(600)
+        self.parent_viewer.statusBar().addPermanentWidget(pyqtw.QLabel(" ")) # Termination spacer
+        self.tooltip_transform_editor.setFixedWidth(500)
         self.tooltip_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
-    
+
+    def update_statusbar_coordinates(self):
+        coords = self.tooltip_coordinates
+        if coords is not None:
+            space_conv = self.parent_viewer.ATLAS_SPACE_CONVENTION
+            formated_coords = [si_format(cc, format_str='{value} {prefix}m') for cc in coords]
+            self.statusbar_x_coord_label.setText(f"{space_conv[0][:4]}. (x): {formated_coords[0]}")
+            self.statusbar_y_coord_label.setText(f"{space_conv[1][:4]}. (y): {formated_coords[1]}")
+            self.statusbar_z_coord_label.setText(f"{space_conv[2][:4]}. (z): {formated_coords[2]}")
+
     def _on_editor_parsed(self, param_name, edited_value):
         self.set_user_param(param_name, edited_value)
         self.parent_viewer.update_rendered_view()
@@ -75,6 +102,13 @@ class Tooltip(Module):
         self._on_editor_parsed(param_name, edited_value)
     
     # --- Module specific attributes ---
+
+    @property
+    def tooltip_coordinates(self):
+        _tooltip_coordinates = None
+        if self.tooltip_tmat is not None:
+            _tooltip_coordinates = self.tooltip_tmat[3, :3]
+        return _tooltip_coordinates
 
     @property
     def tooltip_tmat(self):
@@ -99,3 +133,4 @@ class Tooltip(Module):
         self.y_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
         self.z_glaxis.resetTransform()
         self.z_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
+        self.update_statusbar_coordinates()

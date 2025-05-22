@@ -14,7 +14,6 @@ class BrainAtlas(Module):
         bg_atlas: BrainGlobe Atlas API atlas object.
     """
 
-    COPERNIFUS_AXES_ORDERING_CONVENTION = "pri" # Postirior Right Inferior see brainglobe_space docs
     _DEFAULT_N_VOXELS = 1e6 # target number of voxels for default atlas subsampling stride computation
     _DEFAULT_PARAMS = {
         'default_atlas_name': 'example_mouse_100um',
@@ -297,7 +296,7 @@ class BrainAtlas(Module):
 
             # Axes ordering correction
             source_space = bgs.AnatomicalSpace(self.bg_atlas.orientation, shape=atlas_shape[:3])
-            target_space = bgs.AnatomicalSpace(self.COPERNIFUS_AXES_ORDERING_CONVENTION)
+            target_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.parent_viewer.ATLAS_SPACE_CONVENTION))
             axes_order_idx = source_space.map_to(target_space)[0]
             space_conversion_tmat = source_space.transformation_matrix_to(target_space)
             self.brain_atlas_tmat = space_conversion_tmat.T
