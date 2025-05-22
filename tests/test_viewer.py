@@ -4,7 +4,7 @@ from coperniFUS.viewer import Window, pyqtw
 @pytest.fixture
 def viewer_window(qtbot):
     """Fixture to create CoperniFUS viewer window."""
-    window = Window(app=None, running_test=True)
+    window = Window(app=None)
     return window
 
 def test_brain_atlas(viewer_window):

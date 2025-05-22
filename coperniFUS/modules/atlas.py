@@ -17,7 +17,7 @@ class BrainAtlas(Module):
     COPERNIFUS_AXES_ORDERING_CONVENTION = "pri" # Postirior Right Inferior see brainglobe_space docs
     _DEFAULT_N_VOXELS = 1e6 # target number of voxels for default atlas subsampling stride computation
     _DEFAULT_PARAMS = {
-        'default_atlas_name': 'whs_sd_rat_39um',
+        'default_atlas_name': 'example_mouse_100um',
         'highlighted_structure': 'Select Structure',
         'highlighted_structure_hemisphere': 'Both',
         'atlas_transforms_str' : 'Rx0deg Tz0um',
@@ -28,10 +28,6 @@ class BrainAtlas(Module):
 
     def __init__(self, parent_viewer, skip_online_atlas_retreival=False, **kwargs) -> None:
         super().__init__(parent_viewer, 'atlas', **kwargs)
-
-        if 'running_test' in self.module_kwargs and self.module_kwargs['running_test']:
-            print('running test')
-            self._DEFAULT_PARAMS['default_atlas_name'] = 'example_mouse_100um' # TODO example_mouse_100um as default
 
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self.init_attributes()
