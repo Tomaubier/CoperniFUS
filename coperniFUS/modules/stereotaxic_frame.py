@@ -72,6 +72,7 @@ class StereotaxicFrame(Module):
 
         # Set up the tree view
         self.tree_view = CustomTreeView()
+        self.tree_view.resized.connect(self._on_tree_view_resize)
         self.dock_layout.addWidget(self.tree_view, 1, 0, 1, 2) # Y, X, h, w
 
         # Enable drag and drop
@@ -108,6 +109,10 @@ class StereotaxicFrame(Module):
         self.armature_parameters_groupbox.setContentsMargins(0, 20, 0, 0)
         self.armature_parameters_stacked_widget.setContentsMargins(0, 0, 0, 0)
         armature_parameters_layout.setContentsMargins(0, 0, 0, 0)
+    
+    def _on_tree_view_resize(self):
+        self.tree_view.setColumnWidth(0, self.tree_view.width() - 50)
+        self.tree_view.setColumnWidth(1, 50-30)
 
     def add_rendered_object(self):
         self.populate_armature_parameters_stacked_widget()
@@ -156,7 +161,8 @@ class StereotaxicFrame(Module):
         self.selection_model.selectionChanged.connect(self._on_item_selected)
 
         # Set column widths
-        self.tree_view.setColumnWidth(0, 300) # Set width of the first column (Key)
+        self.tree_view.setColumnWidth(0, self.tree_view.width() - 50)
+        self.tree_view.setColumnWidth(1, 50-10)
     
     def _add_armature_to_qtree(self):
         self.new_armature_popup = NewArmaturePopup(
@@ -392,12 +398,16 @@ class StereotaxicFrame(Module):
 
             self.parent_viewer.update_rendered_view()
 
+    def release_tooltip(self):
+        uncheck_all_checkboxes_in_qtree_column(self.model, checkbox_column=1)
+
     def reset_tooltip_on_armatures(self):
         for arm_name, arm_obj in self._armatures_objects.items():
             arm_obj.tooltip_on_armature = False
 
     def update_tooltip_on_armature(self):
         default_tooltip_loc = True
+        self.parent_viewer.tooltip.release_from_modules(sender_module=self)
         for arm_name, arm_obj in self._armatures_objects.items():
             if arm_obj.tooltip_on_armature is True:
                 self.parent_viewer.tooltip.tooltip_tmat = arm_obj.armature_tooltip_tmat

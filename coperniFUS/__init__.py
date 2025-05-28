@@ -305,7 +305,34 @@ class AcceptRejectDialog(pyqtw.QDialog):
         self.layout.addWidget(self.buttonBox)
         self.setLayout(self.layout)
 
+
+class DynamicallyResizableTreeView(pyqtw.QTreeView):
+
+    resized = pyqtc.pyqtSignal()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.resized.emit() # Emit signal on resize
+
+
+def uncheck_all_checkboxes_in_qtree_column(model, checkbox_column=0, parent_index=None):
+    if parent_index is None:
+        parent_index = model.invisibleRootItem()
+
+    row_count = parent_index.rowCount()
+    for row in range(row_count):
+        item = parent_index.child(row, checkbox_column)
+        if item is not None:
+            if item.isCheckable():
+                item.setCheckState(pyqtc.Qt.CheckState.Unchecked)
+        # Recurse into children
+        child = parent_index.child(row)
+        if child:
+            uncheck_all_checkboxes_in_qtree_column(model, checkbox_column, child)
+
+
 # ----- misc helper functions -----
+
 
 def recursive_key_finder(nested_dict, target_key='_is_editable'):
     def recursive_search(d, parent_keys=None):

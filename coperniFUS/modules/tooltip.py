@@ -62,7 +62,6 @@ class Tooltip(Module):
         self.statusbar_y_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.y_GREEN};')
         self.statusbar_z_coord_label = pyqtw.QLabel(f"{space_conv[2][:4]}. (z): 0 m")
         self.statusbar_z_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.z_BLUE};')
-        
         self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_label)
         self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_x_coord_label)
         self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_y_coord_label)
@@ -90,7 +89,7 @@ class Tooltip(Module):
         self.set_user_param(param_name, edited_value)
         self.parent_viewer.update_rendered_view()
 
-    def _parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to MOdule
+    def _parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to Module base class?
         if param_type == 'int':
             edited_value = int(src_editor.text())
         elif param_type == 'float':
@@ -102,6 +101,18 @@ class Tooltip(Module):
         self._on_editor_parsed(param_name, edited_value)
     
     # --- Module specific attributes ---
+
+    def release_from_modules(self, sender_module=None):
+        """ All modules allowing Tooltip capture have to implement the release_tooltip method """
+        # Builtin modules
+        if sender_module is not self.parent_viewer.stereotaxic_frame:
+            self.parent_viewer.stereotaxic_frame.release_tooltip()
+        # if sender_module is not self.parent_viewer.anat_calib:
+            # self.parent_viewer.anat_calib.release_tooltip() TODO
+        # Optionnal modules
+        for mm in self.parent_viewer._modules:
+            if hasattr(mm, 'release_tooltip') and sender_module is not mm:
+                mm.release_tooltip()
 
     @property
     def tooltip_coordinates(self):
@@ -124,6 +135,9 @@ class Tooltip(Module):
     
     @tooltip_tmat.setter
     def tooltip_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
         self._tooltip_tmat = value
     
     def _update_transform(self):

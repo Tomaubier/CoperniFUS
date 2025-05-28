@@ -211,7 +211,7 @@ class ArmatureTextEditPopup(pyqtw.QDialog):
         return self._edited_uneval_armature_config_dict
 
 
-class CustomTreeView(pyqtw.QTreeView):
+class CustomTreeView(DynamicallyResizableTreeView):
 
     def expand_all_items(self, model):
         # Recursively expand all items
