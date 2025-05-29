@@ -107,8 +107,8 @@ class Tooltip(Module):
         # Builtin modules
         if sender_module is not self.parent_viewer.stereotaxic_frame:
             self.parent_viewer.stereotaxic_frame.release_tooltip()
-        # if sender_module is not self.parent_viewer.anat_calib:
-            # self.parent_viewer.anat_calib.release_tooltip() TODO
+        if sender_module is not self.parent_viewer.anat_calib:
+            self.parent_viewer.anat_calib.release_tooltip()
         # Optionnal modules
         for mm in self.parent_viewer._modules:
             if hasattr(mm, 'release_tooltip') and sender_module is not mm:

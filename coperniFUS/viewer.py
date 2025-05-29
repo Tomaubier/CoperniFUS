@@ -385,14 +385,14 @@ class Window(pyqtw.QMainWindow):
     
     # --- Debug trihedras ---
     
-    def add_debug_trihedra(self, transform_matrix, axes_len=5e-3):
+    def add_debug_trihedra(self, transform_matrix, axes_len=5e-3, line_width=6):
         x_tri_loc = np.array([[0,0,0,1], [axes_len,0,0,1]])
         y_tri_loc = np.array([[0,0,0,1], [0,axes_len,0,1]])
         z_tri_loc = np.array([[0,0,0,1], [0,0,axes_len,1]])
 
-        x_glaxis = gl.GLLinePlotItem(pos=(x_tri_loc @ transform_matrix)[:, :3], width=6, color=self.x_RED, antialias=True, glOptions='translucent')
-        y_glaxis = gl.GLLinePlotItem(pos=(y_tri_loc @ transform_matrix)[:, :3], width=6, color=self.y_GREEN, antialias=True, glOptions='translucent')
-        z_glaxis = gl.GLLinePlotItem(pos=(z_tri_loc @ transform_matrix)[:, :3], width=6, color=self.z_BLUE, antialias=True, glOptions='translucent')
+        x_glaxis = gl.GLLinePlotItem(pos=(x_tri_loc @ transform_matrix)[:, :3], width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
+        y_glaxis = gl.GLLinePlotItem(pos=(y_tri_loc @ transform_matrix)[:, :3], width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
+        z_glaxis = gl.GLLinePlotItem(pos=(z_tri_loc @ transform_matrix)[:, :3], width=line_width, color=self.z_BLUE, antialias=True, glOptions='translucent')
 
         self.debug_trihedras = [*self.debug_trihedras, x_glaxis, y_glaxis, z_glaxis] # Append
 
@@ -400,15 +400,15 @@ class Window(pyqtw.QMainWindow):
         self.gl_view.addItem(y_glaxis, name='debug trihedra y axis')
         self.gl_view.addItem(z_glaxis, name='debug trihedra z axis')
 
-    def add_debug_trihedra_og_scale(self, transform_matrix):
+    def add_debug_trihedra_og_scale(self, transform_matrix, line_width=6):
         x_vec = transform_matrix[0, :3]
         y_vec = transform_matrix[1, :3]
         z_vec = transform_matrix[2, :3]
         origin = transform_matrix[3, :3]
 
-        x_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+x_vec]), width=6, color=self.x_RED, antialias=True, glOptions='translucent')
-        y_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+y_vec]), width=6, color=self.y_GREEN, antialias=True, glOptions='translucent')
-        z_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+z_vec]), width=6, color=self.z_BLUE, antialias=True, glOptions='translucent')
+        x_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+x_vec]), width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
+        y_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+y_vec]), width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
+        z_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+z_vec]), width=line_width, color=self.z_BLUE, antialias=True, glOptions='translucent')
 
         self.debug_trihedras = [*self.debug_trihedras, x_glaxis, y_glaxis, z_glaxis] # Append
 
