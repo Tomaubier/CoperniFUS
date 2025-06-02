@@ -451,7 +451,7 @@ class BrainAtlas(Module):
         selected_hemisphere = self.hemisphere_selector.currentText()
 
         if selected_structure == 'Select Structure':
-            pyqtw.QMessageBox.warning(self.parent_viewer, "Add Layer", "Please select a brain structure.")
+            self.parent_viewer.show_error_popup('Add Layer', error_description='Please select a brain structure.')
             return
 
         self.add_structure_layer(selected_structure, selected_hemisphere)
@@ -460,7 +460,7 @@ class BrainAtlas(Module):
         # Grab layer selected in treee view
         tree_viewer_layer_index = self.atlas_layers_tree_view.currentIndex()
         if not tree_viewer_layer_index.isValid():
-            pyqtw.QMessageBox.warning(self.parent_viewer, "Remove Layer", "No altas layer selected.")
+            self.parent_viewer.show_error_popup('Remove Layer', error_description='No altas layer selected.')
             return
 
         self.remove_altas_layer(tree_viewer_layer_index=tree_viewer_layer_index)
