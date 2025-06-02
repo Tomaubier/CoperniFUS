@@ -680,6 +680,9 @@ class BrainAtlas(Module):
     
     @brain_atlas_tmat.setter
     def brain_atlas_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
         self._brain_atlas_tmat = value
 
     def update_atlas_selector(self):

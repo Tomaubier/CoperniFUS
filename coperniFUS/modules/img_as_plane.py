@@ -230,6 +230,9 @@ class RefImageAsPlane(Module):
     
     @ref_image_tmat.setter
     def ref_image_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
         self._ref_image_tmat = value
 
     def update_img_transform(self):

@@ -104,6 +104,9 @@ class StlHandlerGUI(StlHandler): # TODO Subclass Module
     
     @stl_item_tmat.setter
     def stl_item_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
         self._stl_item_tmat = value
         self.stl_item_mesh = None # Reset processed stl mesh to apply transform
 
