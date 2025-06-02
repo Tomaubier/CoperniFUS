@@ -12,7 +12,7 @@ jobs:
         
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest] # ubuntu-latest
+        os: [ubuntu-latest] # [macos-latest, windows-latest] # 
         python-version: ['3.12']
 
     steps:
@@ -37,6 +37,23 @@ jobs:
           sudo apt-get update -y --allow-releaseinfo-change
           sudo apt-get install -y libxcb-cursor-dev
 
+      - name: Install system dependencies
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libegl1 \
+            xvfb \
+            libgl1-mesa-glx \
+            libxkbcommon-x11-0 \
+            libxcb-xinerama0
+
+      # - name: "XVFB Display Info"
+      #   if: runner.os == 'Linux'
+      #   run: |
+      #     xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.glinfo
+      #     xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.get_resolution
+
       # - name: "Install Linux VirtualDisplay"
       #   if: runner.os == 'Linux'
       #   run: |
@@ -60,15 +77,10 @@ jobs:
       - name: Installing test dependencies
         run: pip install pytest pytest-qt
 
-      - name: "XVFB Display Info"
-        if: runner.os == 'Linux'
-        run: |
-          xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.glinfo
-          xvfb-run --server-args="-screen 0, 1920x1200x24 -ac +extension GLX +render -noreset" python -m pyqtgraph.util.get_resolution
-
       - name: "Display Info"
         if: runner.os != 'Linux'
         run: |
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24"
           python -m pyqtgraph.util.glinfo
           python -m pyqtgraph.util.get_resolution
 
