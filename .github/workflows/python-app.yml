@@ -91,15 +91,17 @@ jobs:
       - name: Installing test dependencies
         run: pip install pytest pytest-qt
 
-      - name: "Display Info"
+      - name: "Windows/MacOS Display Info"
         if: runner.os != 'Linux'
+        run: |
+          python -m pyqtgraph.util.glinfo
+          python -m pyqtgraph.util.get_resolution
+
+      - name: "Linux Display Info"
+        if: runner.os == 'Linux'
         run: |
           export QT_QPA_PLATFORM=offscreen
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
-          python -m pyqtgraph.util.glinfo
-          python -m pyqtgraph.util.get_resolution
-        if: runner.os == 'Linux'
-        run: |
           python -m pyqtgraph.util.glinfo
           python -m pyqtgraph.util.get_resolution
 
