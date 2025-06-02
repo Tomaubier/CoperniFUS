@@ -6,12 +6,12 @@ class AnatLandmarksCalib(Module):
 
     _DEFAULT_PARAMS = {
         'uncal_anatomical_landmarks_coords': { 
-            'Lambda': [-1e-2, 0, 2e-3],
-            'Bregma': [0, 0, 0]
+            # 'Lambda': [-1e-2, 0, 2e-3],
+            # 'Bregma': [0, 0, 0]
         },
         'cal_anatomical_landmarks_coords': {
-            'Lambda': [-1e-2, 0, 2e-3],
-            'Bregma': [0, 0, 0]
+            # 'Lambda': [-1e-2, 0, 2e-3],
+            # 'Bregma': None # not specified
         },
         'cal_tmat': np.eye(4),
     }
@@ -431,7 +431,7 @@ class AnatLandmarksCalib(Module):
             anat_landmarks_tmat = anat_landmarks_tmat @ af_tr.scale_mat(anat_landmarks_scale)
             
         else:
-            raise NotImplementedError('Only anat_landmarks_dicts containing two landmarks are supported at the moment')
+            raise NotImplementedError('Evaluation of calibration affine transformations matrix is only implemented for a pair of landmarks at the moment.')
         
         return anat_landmarks_tmat
 
@@ -458,13 +458,27 @@ class AnatLandmarksCalib(Module):
         self.parent_viewer.add_debug_trihedra_og_scale(cal_tmat.T)
         self.parent_viewer.add_debug_trihedra_og_scale(uncal_tmat.T)
 
-    def apply_calibration_tmat(self):
-        uncal_tmat = self.get_tmat_from_anat_landmarks(
-            self.get_user_param('uncal_anatomical_landmarks_coords')
-        )
-        cal_tmat = self.get_tmat_from_anat_landmarks(
-            self.get_user_param('cal_anatomical_landmarks_coords')
-        )
+    def apply_calibration_tmat(self): # TODO
+
+
+        if len(self.anat_landmarks_dict['cal_anatomical_landmarks_coords']) < 2:
+            self.parent_viewer.show_error_popup('Anatomical Calibration', error_description='Please add at least two anatomical landmarks before proceeding.')
+            return
+        
+        if None in self.landmark_coords_from_full_name.values():
+            self.parent_viewer.show_error_popup('Anatomical Calibration', error_description='Please make sure that the coordinates of all anatomical landmarks are set before proceeding.')
+            return
+
+        try:
+            uncal_tmat = self.get_tmat_from_anat_landmarks(
+                self.get_user_param('uncal_anatomical_landmarks_coords')
+            )
+            cal_tmat = self.get_tmat_from_anat_landmarks(
+                self.get_user_param('cal_anatomical_landmarks_coords')
+            )
+        except Exception as e:
+            self.parent_viewer.show_error_popup('Anatomical Calibration', error_description=str(e))
+            return
 
         # Calibration matrix evaluation
         calibration_tmat = (cal_tmat @ np.linalg.inv(uncal_tmat)).T
