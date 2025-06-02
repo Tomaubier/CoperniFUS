@@ -83,9 +83,9 @@ jobs:
       - name: "Display Info"
         # if: runner.os != 'Linux'
         run: |
-          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24"
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
           python -m pyqtgraph.util.glinfo
-          python -m pyqtgraph.util.get_resolution
+        # python -m pyqtgraph.util.get_resolution
 
       # - name: "Debug Info"
       #   run: |
