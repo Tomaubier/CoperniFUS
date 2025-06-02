@@ -82,37 +82,54 @@ jobs:
       #       libopengl0 \
       #       libxcb-cursor0
 
-      - name: Installing CoperniFUS
-        run: python -m pip install -e .
+      # - name: Installing CoperniFUS
+      #   run: python -m pip install -e .
 
-      # - name: Installing pqtg
-      #   run: pip install PyQt6 pyqtgraph
+      - name: Installing pqtg
+        run: pip install PyQt6 pyqtgraph
 
       - name: Installing test dependencies
         run: pip install pytest pytest-qt
 
       - name: "Display Info"
-        # if: runner.os != 'Linux'
+        if: runner.os != 'Linux'
         run: |
+          export QT_QPA_PLATFORM=offscreen
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
           python -m pyqtgraph.util.glinfo
-        # python -m pyqtgraph.util.get_resolution
-
-      - name: "Debug Info"
+          python -m pyqtgraph.util.get_resolution
+        if: runner.os == 'Linux'
         run: |
-          echo python location: `which python`
-          echo python version: `python --version`
-          echo pytest location: `which pytest`
-          echo installed packages
-          python -m pip list
-          echo pyqtgraph system info
-          python -c "import pyqtgraph as pg; pg.systemInfo()"
-        shell: bash
-        env:
-          QT_DEBUG_PLUGINS: 1
+          python -m pyqtgraph.util.glinfo
+          python -m pyqtgraph.util.get_resolution
 
-      - name: Download test BrainGlobe atlas
-        run: brainglobe install -a example_mouse_100um
+      - name: "Display Info 2"
+        run: |
+          export QT_QPA_PLATFORM=offscreen
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
+          python -c "from PyQt6.QtGui import QGuiApplication; app = QGuiApplication([]); print(QGuiApplication.platformName())"
 
-      - name: Testing CoperniFUS
-        run: pytest tests/test_viewer.py
+
+      # - name: "Debug Info"
+      #   run: |
+      #     echo python location: `which python`
+      #     echo python version: `python --version`
+      #     echo pytest location: `which pytest`
+      #     echo installed packages
+      #     python -m pip list
+      #     echo pyqtgraph system info
+      #     python -c "import pyqtgraph as pg; pg.systemInfo()"
+      #   shell: bash
+      #   env:
+      #     QT_DEBUG_PLUGINS: 1
+
+      # - name: Download test BrainGlobe atlas
+      #   run: brainglobe install -a example_mouse_100um
+
+      # - name: Testing CoperniFUS
+      #   if: runner.os != 'Linux'
+      #   run: pytest tests/test_viewer.py
+      #   if: runner.os == 'Linux'
+      #   run: |
+      #     xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
+      #     run: pytest tests/test_viewer.py
