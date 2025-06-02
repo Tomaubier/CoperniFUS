@@ -131,11 +131,11 @@ jobs:
       #   run: pytest tests/test_viewer.py
 
       - name: Run PyQt code headlessly
-        env:
-          QT_QPA_PLATFORM: offscreen
         run: |
-          python -m pyqtgraph.util.glinfo
-          pytest tests/test_viewer.py
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
+            python -m pyqtgraph.util.glinfo
+          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
+            pytest tests/test_viewer.py
 
       # - name: "Testing CoperniFUS (Linux)"
       #   if: runner.os == 'Linux'
