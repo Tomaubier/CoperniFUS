@@ -41,7 +41,8 @@ For detailed instructions and troubleshooting steps [checkout the documentation 
 1. Install `coperniFUS` using `pip` (if you are using windows, you might need to install Git)
     - `pip install git+https://github.com/Tomaubier/CoperniFUS.git`
 
-    > 3a. *For Linux users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
+
+    > 1a. *For Linux users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
 
 2. Launch `coperniFUS` by running `coperniFUS` in a terminal. Checkout [this page](https://copernifus.readthedocs.io/en/latest/contents/usage.html) for detailed usage instructions.
 
