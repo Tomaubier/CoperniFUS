@@ -694,7 +694,7 @@ class BrainAtlas(Module):
         self.atlas_selector.addItems(self.available_atlases.values())
 
         # Init atlas selector
-        if self.bg_atlas is not None: # TODO check
+        if self.bg_atlas is not None:
             selected_offline_atlas = self.bg_atlas.atlas_name
         else:
             selected_offline_atlas = 'no_atlas'

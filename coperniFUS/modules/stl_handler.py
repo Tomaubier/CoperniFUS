@@ -71,7 +71,7 @@ class StlHandlerGUI(StlHandler): # TODO Subclass Module
 
     # --- Module specific attributes ---
 
-    def parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to Module
+    def parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to base Module?
         if param_type == 'int':
             edited_value = int(src_editor.text())
         elif param_type == 'float':

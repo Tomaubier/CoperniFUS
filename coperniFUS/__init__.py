@@ -3,7 +3,7 @@ from importlib.metadata import version
 
 print(f"Launching CoperniFUS v{version('coperniFUS')}")
 
-import sys, functools, os, json, pathlib, trimesh, scipy, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
+import sys, functools, os, json, pathlib, trimesh, scipy, pymeshfix, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
 import PyQt6.QtGui as pyqtg
 import PyQt6.QtCore as pyqtc
 import PyQt6.QtWidgets as pyqtw
@@ -449,6 +449,24 @@ def dict_to_path_patched(as_dict):
     result["entities"] = entities
 
     return result
+
+
+def ensure_mesh_is_a_volume_manifold(mesh):
+    """ Ensures that the mesh  """
+    is_mesh_valid = lambda mesh: mesh.is_watertight and mesh.is_volume
+
+    if not is_mesh_valid(mesh): # Run meshfix on your mesh if needed
+        warnings.warn('Mesh is not valid for boolean operations (not a volume manifold) -> Attempting automatic repair..')
+        meshfix = pymeshfix.MeshFix(mesh.vertices, mesh.faces)
+        meshfix.repair()
+        mesh = trimesh.Trimesh(vertices=meshfix.v, faces=meshfix.f)
+
+        if is_mesh_valid(mesh):
+            warnings.warn('Mesh succesfully repaired!')
+        else:
+            raise ValueError('Mesh could not be automatically repaired')
+    
+    return mesh
 
 
 def limit_line_breaks(text):

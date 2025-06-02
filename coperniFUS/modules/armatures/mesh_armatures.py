@@ -347,8 +347,6 @@ d_ML_bregref = d_ML - bregma_ML
 mid_ML = (b_ML_bregref + d_ML_bregref) / 2
 corner_radius = abs(b_ML_bregref - d_ML_bregref) / 2
 
-trimesh.path.entities.Arc(points=[0, 1, 2], closed=False)
-
 path_2d_dict = {
     'entities': [
         {'type': 'Arc', 'points': [0, 1, 2], 'closed': False},
@@ -473,9 +471,6 @@ mesh = extrusion.to_mesh()
 
         def compute_b_operation(boperator_str, boolean_meshes_names, bool_mesh_index):
 
-            if not trimesh.interfaces.blender.exists:
-                raise ValueError('Blender could not be used as trimesh\'s boolean operation backend. Please make sure that Blender 4.1 is installed and its location defined in the system PATH variable. Refer to the Installation section of CoperniFUS\'s docs for additionnal guidance.')
-            
             b_mesh = None
             b_meshes = []
             for b_mesh_name in boolean_meshes_names:
@@ -495,13 +490,14 @@ mesh = extrusion.to_mesh()
                     raise ValueError(f'Unsupported boolean mesh -> {b_mesh_name}')
                 
                 if b_mesh is not None:
+                    b_mesh = ensure_mesh_is_a_volume_manifold(b_mesh)
                     b_meshes.append(b_mesh)
                 else:
                     available_stl_armatures_formated = "\n\t".join([arma_obj_name for arma_obj_name, arma_obj in self.stereotax_frame_instance._armatures_objects.items() if '_stl_mesh' in arma_obj.armature_config_dict])
                     warnings.warn(f'Skipping {b_mesh_name} as it does not exist -> Please make sure that the mesh has been succesfully loaded or computed in the case of trimesh operations.\nAvaiblable meshes are:\n\t_stl_mesh\n\t_boolean_mask{available_stl_armatures_formated}')
 
             if boperator_str in b_operators:
-                boolean_computed_mesh = b_operators[boperator_str](b_meshes, engine='blender')
+                boolean_computed_mesh = b_operators[boperator_str](b_meshes, engine='manifold')
                 boolean_computed_mesh.bool_mesh_index = bool_mesh_index # Add index attribute (acoustic simulations material assignement)
             else:
                 raise ValueError('Invalid boolean operator')
