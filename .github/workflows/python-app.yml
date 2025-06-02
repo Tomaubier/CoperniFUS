@@ -111,18 +111,18 @@ jobs:
       #     xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
       #     python -c "from PyQt6.QtGui import QGuiApplication; app = QGuiApplication([]); print(QGuiApplication.platformName())"
 
-      - name: "Debug Info"
-        run: |
-          echo python location: `which python`
-          echo python version: `python --version`
-          echo pytest location: `which pytest`
-          echo installed packages
-          python -m pip list
-          echo pyqtgraph system info
-          python -c "import pyqtgraph as pg; pg.systemInfo()"
-        shell: bash
-        env:
-          QT_DEBUG_PLUGINS: 1
+      # - name: "Debug Info"
+      #   run: |
+      #     echo python location: `which python`
+      #     echo python version: `python --version`
+      #     echo pytest location: `which pytest`
+      #     echo installed packages
+      #     python -m pip list
+      #     echo pyqtgraph system info
+      #     python -c "import pyqtgraph as pg; pg.systemInfo()"
+      #   shell: bash
+      #   env:
+      #     QT_DEBUG_PLUGINS: 1
 
       - name: Download test BrainGlobe atlas
         run: brainglobe install -a example_mouse_100um
