@@ -46,7 +46,18 @@ jobs:
             libgl1 \
             xvfb \
             libxkbcommon-x11-0 \
-            libxcb-xinerama0
+            libxcb-cursor0 \
+            libxcb-xinerama0 \
+            libxcb-render0 \
+            libxcb-shape0 \
+            libxcb-randr0 \
+            libxcb-icccm4 \
+            libxcb-image0 \
+            libxcb-keysyms1 \
+            libxcb-util1 \
+            libxrender1 \
+            libxi6 \
+            libxtst6
 
       # - name: "XVFB Display Info"
       #   if: runner.os == 'Linux'
