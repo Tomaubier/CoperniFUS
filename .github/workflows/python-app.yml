@@ -128,12 +128,11 @@ jobs:
         run: brainglobe install -a example_mouse_100um
 
       - name: "Testing CoperniFUS (Windows/MacOS)"
-        if: runner.os != 'Linux'
         run: pytest tests/test_viewer.py
 
-      - name: "Testing CoperniFUS (Linux)"
-        if: runner.os == 'Linux'
-        run: |
-          export QT_QPA_PLATFORM=offscreen
-          xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
-          run: pytest tests/test_viewer.py
+      # - name: "Testing CoperniFUS (Linux)"
+      #   if: runner.os == 'Linux'
+      #   run: |
+      #     export QT_QPA_PLATFORM=offscreen
+      #     xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
+      #     run: pytest tests/test_viewer.py
