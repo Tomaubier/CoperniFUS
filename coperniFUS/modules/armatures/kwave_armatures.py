@@ -7,6 +7,8 @@ from coperniFUS.modules.interfaces.trimesh_interfaces import *
 
 class KwaveAShomogeneousSimulationArmature(Armature):
 
+    """ kWave simulation attributes are contained in kwAS """
+
     _DEFAULT_PARAMS = {
         'visible': False,
         'tooltip_on_armature': False,
@@ -111,6 +113,7 @@ mesh = extrusion.to_mesh()
             }
         }
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
@@ -129,8 +132,34 @@ mesh = extrusion.to_mesh()
         self.p_amp_AS_vol_tmat = None
         self.voxel_centers = {}
 
+    # --- Armature specific public attributes ---
+
+    def run_AS_simulation(self):
+        """ Call to run kwave simulation """
+        self.kwAS = KwaveHomogeneousAxisymetricBowlSim()
+
+        self._update_AS_sim_parameters()
+
+        # kWave I/O h5 files location retreival
+        if 'kwave_AS_h5_dir' in self.armature_config_csts:
+            kwave_AS_h5_dir = self.armature_config_csts['kwave_AS_h5_dir']
+        else:
+            kwave_AS_h5_dir = None
+
+        def run_simulation_threaded_wrapper(*args, **kwargs):
+            # Run sim
+            self._kwAS_success = self.kwAS.run_simulation(io_h5files_directory_path=kwave_AS_h5_dir)
+            self._render_AS_pfield()
+
+        self.threaded_kwave_sim = threading.Thread(
+            target=run_simulation_threaded_wrapper,
+            args=(kwave_AS_h5_dir,))
+        self.threaded_kwave_sim.start()
+
     @property
     def axisym_domain_mesh(self):
+        """ Mesh object of the domain boundaries """
+
         has_been_updated = False
 
         # Retreive boolean mask param values
@@ -162,8 +191,59 @@ mesh = extrusion.to_mesh()
                 self.parent_viewer.show_error_popup(f"Error in {self.armature_display_name} _axisymmetric_domain_boundary_trimesh_script", f'{type(e).__name__}: {str(e)}')
 
         return (self._axisym_domain_mesh, has_been_updated)
+    
+    # --- Required armature attributes ---
+
+    def add_render(self):
+        """ Called when populating the viewer with the armature rendered objects """
+        super().add_render()
+        if '_kwave_sim' in self.armature_config_dict:
+
+            if self.axisym_domain_mesh is not None:
+                self.axisym_domain_mesh_handler.stl_item_name = 'kwave_axisym_domain_mesh'
+                self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
+                self._is_render_uptodate # Init hash
+                
+                self._update_axisym_domain_transform_matrix()
+
+                # Set StlHandler gl parameters
+                armature_dict_mesh_params = self.uneval_armature_config_dict['_kwave_sim']['_axisym_domain_gl_options']
+                for mesh_param_key in self.axisym_domain_mesh_handler._DEFAULT_PARAMS.keys():
+                    if mesh_param_key in armature_dict_mesh_params:
+                        self.axisym_domain_mesh_handler.set_stl_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
+
+                if self.axisym_domain_mesh_handler.stl_glitem != None or self.visible is False:
+                    self.axisym_domain_mesh_handler.delete_rendered_object()
+                else:
+                    self.axisym_domain_mesh_handler.add_rendered_object()
+
+    def update_render(self, force_update=False):
+        """ Called on render view updates """
+        if not self._is_render_uptodate or force_update:
+            super().update_render(force_update=True)
+            # st_time = time.time()
+            if self.visible is True:
+                if self.axisym_domain_mesh_handler.stl_glitem is None:
+                    self.add_render()
+
+                self._update_axisym_domain_transform_matrix()
+
+                if self.axisym_domain_mesh[1]: # Check if the mesh has been updated
+                    self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
+                self.axisym_domain_mesh_handler.update_rendered_object()
+            else:
+                self.delete_render()
+            # print(f' >> STLMeshBooleanArmature -> {self._is_render_uptodate} | {si_format(time.time() - st_time)}s')
+    
+    def delete_render(self):
+        """ Called on deletion of the armature rendered objects """
+        super().delete_render()
+        self.axisym_domain_mesh_handler.delete_rendered_object()
+
+    # --- Optionnal armature methods ---
 
     def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
         custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
         # AS simulation button
         as_sim_btn = pyqtw.QPushButton('Axisymmetric (AS) simulation')
@@ -172,12 +252,14 @@ mesh = extrusion.to_mesh()
             (as_sim_btn, armature_params_rowcount+1, 0, 1, armature_params_colcount)
         )
         return custom_widgets
+    
+    # --- Armature specific attributes ---
 
-    def update_axisym_domain_transform_matrix(self):
+    def _update_axisym_domain_transform_matrix(self):
         self.axisym_domain_mesh_handler.stl_item_tmat = self.end_transform_mat #bmask_tmat
 
-    def update_AS_sim_parameters(self):
-        # Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _axisymmetric_domain_acoustic_params
+    def _update_AS_sim_parameters(self):
+        """ Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _axisymmetric_domain_acoustic_params """
         armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_axisymmetric_domain_acoustic_params']
         for sim_param_key in armature_dict_sim_params.keys():
             self.kwAS.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
@@ -188,29 +270,7 @@ mesh = extrusion.to_mesh()
             if sim_param_key in _editable_params_values:
                 self.kwAS.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
 
-    def run_AS_simulation(self):
-
-        self.kwAS = KwaveHomogeneousAxisymetricBowlSim()
-
-        self.update_AS_sim_parameters()
-
-        # kWave I/O h5 files location retreival
-        if 'kwave_AS_h5_dir' in self.armature_config_csts:
-            kwave_AS_h5_dir = self.armature_config_csts['kwave_AS_h5_dir']
-        else:
-            kwave_AS_h5_dir = None
-
-        def run_simulation_threaded_wrapper(*args, **kwargs):
-            # Run sim
-            self._kwAS_success = self.kwAS.run_simulation(io_h5files_directory_path=kwave_AS_h5_dir)
-            self.render_AS_pfield()
-
-        self.threaded_kwave_sim = threading.Thread(
-            target=run_simulation_threaded_wrapper,
-            args=(kwave_AS_h5_dir,))
-        self.threaded_kwave_sim.start()
-        
-    def render_AS_pfield(self):
+    def _render_AS_pfield(self):
         if self._kwAS_success:
             p_amp_AS_xyz, x_AS, y_AS, z_AS = self.kwAS.p_amp_xyz
 
@@ -269,51 +329,10 @@ mesh = extrusion.to_mesh()
             self.p_amp_AS_vol.resetTransform()
             self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.T.ravel()), local=False)
 
-    def add_render(self):
-        super().add_render()
-        if '_kwave_sim' in self.armature_config_dict:
-
-            if self.axisym_domain_mesh is not None:
-                self.axisym_domain_mesh_handler.stl_item_name = 'kwave_axisym_domain_mesh'
-                self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
-                self._is_render_uptodate # Init hash
-                
-                self.update_axisym_domain_transform_matrix()
-
-                # Set StlHandler gl parameters
-                armature_dict_mesh_params = self.uneval_armature_config_dict['_kwave_sim']['_axisym_domain_gl_options']
-                for mesh_param_key in self.axisym_domain_mesh_handler._DEFAULT_PARAMS.keys():
-                    if mesh_param_key in armature_dict_mesh_params:
-                        self.axisym_domain_mesh_handler.set_stl_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
-
-                if self.axisym_domain_mesh_handler.stl_glitem != None or self.visible is False:
-                    self.axisym_domain_mesh_handler.delete_rendered_object()
-                else:
-                    self.axisym_domain_mesh_handler.add_rendered_object()
-
-    def update_render(self, force_update=False):
-        if not self._is_render_uptodate or force_update:
-            super().update_render(force_update=True)
-            # st_time = time.time()
-            if self.visible is True:
-                if self.axisym_domain_mesh_handler.stl_glitem is None:
-                    self.add_render()
-
-                self.update_axisym_domain_transform_matrix()
-
-                if self.axisym_domain_mesh[1]: # Check if the mesh has been updated
-                    self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
-                self.axisym_domain_mesh_handler.update_rendered_object()
-            else:
-                self.delete_render()
-            # print(f' >> STLMeshBooleanArmature -> {self._is_render_uptodate} | {si_format(time.time() - st_time)}s')
-    
-    def delete_render(self):
-        super().delete_render()
-        self.axisym_domain_mesh_handler.delete_rendered_object()
-
 
 class KWave3dSimulationArmature(STLMeshBooleanArmature):
+    
+    """ kWave simulation attributes are contained in kw3D """
 
     _DEFAULT_PARAMS = {
         'visible': False,
@@ -474,6 +493,7 @@ mesh = extrusion.to_mesh()
             }
         }
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
@@ -483,34 +503,13 @@ mesh = extrusion.to_mesh()
         self.p_amp_3D_vol_tmat = None
         self.voxel_centers = {}
 
-    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
-        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
-
-        # 3D simulation button
-        as_sim_btn = pyqtw.QPushButton('3D simulation')
-        as_sim_btn.clicked.connect(self.run_3D_simulation)
-        custom_widgets.append(
-            (as_sim_btn, armature_params_rowcount+2, 0, 1, armature_params_colcount)
-        )
-        return custom_widgets
-
-    def update_3D_sim_parameters(self):
-        # Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _3dcartesian_domain_acoustic_params
-        armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_3dcartesian_domain_acoustic_params']
-        for sim_param_key in armature_dict_sim_params.keys():
-            self.kw3D.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
-
-        # Overwrite default simulation parameters with editable values
-        _editable_params_values = copy.deepcopy(self._editable_params_values)
-        for sim_param_key in self.kw3D.simulation_params.keys():
-            if sim_param_key in _editable_params_values:
-                self.kw3D.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
+    # --- Armature specific public attributes ---
 
     def run_3D_simulation(self):
-
+        """ Call to run kwave simulation. Results are contained in kw3D attribute. """
         self.kw3D = Kwave3D()
 
-        self.update_3D_sim_parameters()
+        self._update_3D_sim_parameters()
 
         # kWave I/O h5 files location retreival
         if 'kwave_3D_h5_dir' in self.armature_config_csts:
@@ -562,7 +561,7 @@ mesh = extrusion.to_mesh()
                 # KDTree for fast voxel lookup
                 self.voxel_centers[material_index] = voxelized.points
                 voxel_tree = cKDTree(self.voxel_centers[material_index])
-                # self.render_voxelized_mesh_preview(material_index)
+                # self.render_voxelized_mesh_debug_preview(material_index)
                 # Only keep points that are within the voxel grid
                 distance_threshold = voxel_size / 2.0  # Adjust based on voxel grid resolution
                 distances, indices = voxel_tree.query(self.kw3D.kgrid_coords, distance_upper_bound=distance_threshold)
@@ -591,7 +590,7 @@ mesh = extrusion.to_mesh()
             # Run sim
             self._kw3D_success = self.kw3D.run_simulation(io_h5files_directory_path=kwave_3D_h5_dir)
 
-            self.render_3D_pfield()
+            self._render_3D_pfield()
 
             # Debug
             # viewer.add_image(self.kw3D.p_amp_xyz[0], name='Pressure field', colormap='viridis', blending='additive', translate=(-self.kw3D.Nx//2, -self.kw3D.Ny//2, -self.kw3D.simulation_params['source_z_offset']))
@@ -600,8 +599,8 @@ mesh = extrusion.to_mesh()
             target=run_simulation_threaded_wrapper,
             args=(kwave_3D_h5_dir,))
         self.threaded_kwave_sim.start()
-    
-    def render_voxelized_mesh_preview(self, material_index=0):
+
+    def render_voxelized_mesh_debug_preview(self, material_index=0):
         # Voxelized mesh gl preview
         if hasattr(self, f'voxelized_material_{material_index}'):
             vox_mat_glpts = getattr(self, f'voxelized_material_{material_index}')
@@ -623,7 +622,36 @@ mesh = extrusion.to_mesh()
             vox_mat_glpts.resetTransform()
             vox_mat_glpts.applyTransform(pyqtg.QMatrix4x4(voxmesh_tmat.T.ravel()), local=False)
 
-    def render_3D_pfield(self):
+    # --- Optionnal armature methods ---
+
+    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
+        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+
+        # 3D simulation button
+        as_sim_btn = pyqtw.QPushButton('3D simulation')
+        as_sim_btn.clicked.connect(self.run_3D_simulation)
+        custom_widgets.append(
+            (as_sim_btn, armature_params_rowcount+2, 0, 1, armature_params_colcount)
+        )
+        return custom_widgets
+
+    # --- Armature specific attributes ---
+
+    def _update_3D_sim_parameters(self):
+        # Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _3dcartesian_domain_acoustic_params
+        armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_3dcartesian_domain_acoustic_params']
+        for sim_param_key in armature_dict_sim_params.keys():
+            self.kw3D.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
+
+        # Overwrite default simulation parameters with editable values
+        _editable_params_values = copy.deepcopy(self._editable_params_values)
+        for sim_param_key in self.kw3D.simulation_params.keys():
+            if sim_param_key in _editable_params_values:
+                self.kw3D.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
+
+    def _render_3D_pfield(self):
+        """ Called to render pressure magnitude fields. """
         if self._kw3D_success:
             p_amp_3D_xyz, x_3D, y_3D, z_3D = self.kw3D.p_amp_xyz
 
@@ -676,6 +704,8 @@ mesh = extrusion.to_mesh()
 
 
 class KWaveAS3dSimulationArmature(STLMeshBooleanArmature):
+    
+    """ kWave simulation attributes are contained in kwAS and kw3D """
 
     _DEFAULT_PARAMS = {
         'visible': False,
@@ -887,7 +917,7 @@ mesh = extrusion.to_mesh()
             }
         }
     }
-
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
@@ -908,88 +938,14 @@ mesh = extrusion.to_mesh()
         self.p_amp_AS_vol_tmat = None
         self.voxel_centers = {}
 
-    @property
-    def axisym_domain_mesh(self):
-        has_been_updated = False
-
-        # Retreive boolean mask param values
-        bool_mask_params = {mask_param: mask_param_value['args'][1] for (mask_param, mask_param_value) in self.armature_config_dict['_boolean_mask']['_boolean_mask_coords'].items()}
-
-        # Reset mesh if parameters have been updated
-        if self._current_axisym_domain_mesh_params != bool_mask_params:
-            self._axisym_domain_mesh = None
-
-        if self._axisym_domain_mesh is None:
-            accessible_globals_names = [
-                'trimesh', 'np',
-                'dict_to_path_patched'
-            ]
-
-            accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
-            accessible_globals = {**accessible_globals, **bool_mask_params}
-
-            # run trimesh script
-            try:
-                exec(self.armature_config_dict['_kwave_sim']['_axisymmetric_domain_boundary_trimesh_script'], accessible_globals)
-                self._axisym_domain_mesh = accessible_globals['mesh']
-                self._current_axisym_domain_mesh_params = bool_mask_params
-                has_been_updated = True
-            except Exception as e:
-                self._axisym_domain_mesh = None
-                self._current_axisym_domain_mesh_params = None
-                has_been_updated = False
-                self.parent_viewer.show_error_popup(f"Error in {self.armature_display_name} _axisymmetric_domain_boundary_trimesh_script", f'{type(e).__name__}: {str(e)}')
-
-        return (self._axisym_domain_mesh, has_been_updated)
-
-    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
-        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
-        # AS simulation button
-        as_sim_btn = pyqtw.QPushButton('Axisymmetric (AS) simulation')
-        as_sim_btn.clicked.connect(self.run_AS_simulation)
-        custom_widgets.append(
-            (as_sim_btn, armature_params_rowcount+1, 0, 1, armature_params_colcount)
-        )
-        # 3D simulation button
-        as_sim_btn = pyqtw.QPushButton('Coupled AS-3D simulation')
-        as_sim_btn.clicked.connect(self.run_AS3D_simulation)
-        custom_widgets.append(
-            (as_sim_btn, armature_params_rowcount+2, 0, 1, armature_params_colcount)
-        )
-        return custom_widgets
-    
-    def update_axisym_domain_transform_matrix(self):
-        self.axisym_domain_mesh_handler.stl_item_tmat = self.end_transform_mat #bmask_tmat
-
-    def update_AS_sim_parameters(self):
-        # Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _axisymmetric_domain_acoustic_params
-        armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_axisymmetric_domain_acoustic_params']
-        for sim_param_key in armature_dict_sim_params.keys():
-            self.kwAS.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
-
-        # Overwrite default simulation parameters with editable values
-        _editable_params_values = copy.deepcopy(self._editable_params_values)
-        for sim_param_key in self.kwAS.simulation_params.keys():
-            if sim_param_key in _editable_params_values:
-                self.kwAS.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
-
-    def update_3D_sim_parameters(self):
-        # Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _3dcartesian_domain_acoustic_params
-        armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_3dcartesian_domain_acoustic_params']
-        for sim_param_key in armature_dict_sim_params.keys():
-            self.kw3D.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
-
-        # Overwrite default simulation parameters with editable values
-        _editable_params_values = copy.deepcopy(self._editable_params_values)
-        for sim_param_key in self.kw3D.simulation_params.keys():
-            if sim_param_key in _editable_params_values:
-                self.kw3D.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
+    # --- Armature specific public attributes ---
 
     def run_AS_simulation(self):
+        """ Call to run kwave simulation. Results are contained in kwAS attribute. """
 
         self.kwAS = KwaveHomogeneousAxisymetricBowlSim()
 
-        self.update_AS_sim_parameters()
+        self._update_AS_sim_parameters()
 
         # kWave I/O h5 files location retreival
         if 'kwave_AS_h5_dir' in self.armature_config_csts:
@@ -1000,80 +956,21 @@ mesh = extrusion.to_mesh()
         def run_simulation_threaded_wrapper(*args, **kwargs):
             # Run sim
             self._kwAS_success = self.kwAS.run_simulation(io_h5files_directory_path=kwave_AS_h5_dir)
-            self.render_AS_pfield()
+            self._render_AS_pfield()
 
         self.threaded_kwave_sim = threading.Thread(
             target=run_simulation_threaded_wrapper,
             args=(kwave_AS_h5_dir,))
         self.threaded_kwave_sim.start()
-        
-    def render_AS_pfield(self):
-        if self._kwAS_success:
-            p_amp_AS_xyz, x_AS, y_AS, z_AS = self.kwAS.p_amp_xyz
-
-            if np.any(np.isnan(p_amp_AS_xyz)):
-                raise ValueError('kWave 3D field contains NANs -> recompute sim with higher CFL and/or points per wavelength')
-
-            # Pressure field render opacity
-            if 'pressure_field_render_stride' in self.armature_config_csts:
-                p_field_stride = self.armature_config_csts['pressure_field_render_stride']
-            else:
-                p_field_stride = 1
-
-            p_amp_AS_xyz = p_amp_AS_xyz[p_field_stride//2::p_field_stride, p_field_stride//2::p_field_stride, p_field_stride//2::p_field_stride]
-            x_AS = x_AS[p_field_stride//2::p_field_stride]
-            y_AS = y_AS[p_field_stride//2::p_field_stride]
-            z_AS = z_AS[p_field_stride//2::p_field_stride]
-
-            z_mask = np.where(z_AS < np.abs(self.kwAS.simulation_params['AS_domain_z_size']))[0]
-            p_amp_AS_xyz = p_amp_AS_xyz[:, :, z_mask]
-            z_cart = z_AS[z_mask]
-
-            if np.any(np.isnan(p_amp_AS_xyz)):
-                raise ValueError('kWave AS field contains NANs -> recompute sim with higher CFL and/or points per wavelength')
-
-            # Remove render if it already exists
-            if hasattr(self, 'p_amp_AS_vol'):
-                if self.p_amp_AS_vol in self.parent_viewer.gl_view.items:
-                    self.parent_viewer.gl_view.removeItem(self.p_amp_AS_vol)
-
-            # Colormap max
-            if 'p_max_viz' in self.armature_config_csts:
-                vmax = self.armature_config_csts['p_max_viz']
-            else:
-                vmax = p_amp_AS_xyz.max()
-
-            # Pressure field render opacity
-            if 'pressure_field_render_opacity' in self.armature_config_csts:
-                p_amp_alpha = self.armature_config_csts['pressure_field_render_opacity']
-            else:
-                p_amp_alpha = 20
-
-            p_amp_norm_func = plt.Normalize(vmin=0, vmax=vmax)
-            self.p_amp_rgba = plt.cm.viridis(p_amp_norm_func(p_amp_AS_xyz)) * 255
-
-            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_AS_xyz)).astype(np.ubyte)
-            self.p_amp_AS_vol = gl.GLVolumeItem(self.p_amp_rgba, smooth=True, glOptions='additive')
-            self.parent_viewer.gl_view.addItem(self.p_amp_AS_vol, name=f'k-Wave AS pressure field')
-            self.p_amp_AS_vol.setDepthValue(2)
-
-            self.p_amp_AS_vol_tmat = af_tr.scale_mat(self.kwAS.dx * p_field_stride)
-            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ af_tr.translat_mat('x', x_AS[0])
-            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ af_tr.translat_mat('y', y_AS[0])
-            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ af_tr.translat_mat('z', z_AS[0])
-            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ self.end_transform_mat
-
-            self.p_amp_AS_vol.resetTransform()
-            self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.T.ravel()), local=False)
 
     def run_AS3D_simulation(self):
-
+        """ Call to run coupled kwave simulations. Results are contained in kwAS and kw3D attributes. """
         if not self._kwAS_success:
             warnings.warn('Please run the AS simulation first to perform AS-3D coupling')
         else:
             self.kw3D = Kwave3D()
 
-            self.update_3D_sim_parameters()
+            self._update_3D_sim_parameters()
 
             # kWave I/O h5 files location retreival
             if 'kwave_3D_h5_dir' in self.armature_config_csts:
@@ -1123,7 +1020,7 @@ mesh = extrusion.to_mesh()
                     # KDTree for fast voxel lookup
                     self.voxel_centers[material_index] = voxelized.points
                     voxel_tree = cKDTree(self.voxel_centers[material_index])
-                    # self.render_voxelized_mesh_preview(material_index)
+                    # self.render_voxelized_mesh_debug_preview(material_index)
                     # Only keep points that are within the voxel grid
                     distance_threshold = voxel_size / 2.0  # Adjust based on voxel grid resolution
                     distances, indices = voxel_tree.query(self.kw3D.kgrid_coords, distance_upper_bound=distance_threshold)
@@ -1191,7 +1088,7 @@ mesh = extrusion.to_mesh()
                 # Run sim
                 self._kw3D_success = self.kw3D.run_simulation(io_h5files_directory_path=kwave_3D_h5_dir)
 
-                self.render_3D_pfield()
+                self._render_3D_pfield()
 
                 # Debug
                 # viewer.add_image(self.kw3D.p_amp_xyz[0], name='Pressure field', colormap='viridis', blending='additive', translate=(-self.kw3D.Nx//2, -self.kw3D.Ny//2, -self.kw3D.simulation_params['source_z_offset'] + self.kw3D.simulation_params['AS_domain_z_size']/self.kw3D.dx))
@@ -1200,9 +1097,9 @@ mesh = extrusion.to_mesh()
                 target=run_simulation_threaded_wrapper,
                 args=(kwave_3D_h5_dir,))
             self.threaded_kwave_sim.start()
-
     
-    def render_voxelized_mesh_preview(self, material_index=0):
+    def render_voxelized_mesh_debug_preview(self, material_index=0):
+        """ Render previews of the voxelized meshes used for material parameters map definitions (For debug purposes). """
         # Voxelized mesh gl preview
         if hasattr(self, f'voxelized_material_{material_index}'):
             vox_mat_glpts = getattr(self, f'voxelized_material_{material_index}')
@@ -1224,8 +1121,199 @@ mesh = extrusion.to_mesh()
             vox_mat_glpts.resetTransform()
             vox_mat_glpts.applyTransform(pyqtg.QMatrix4x4(voxmesh_tmat.T.ravel()), local=False)
 
+    @property
+    def axisym_domain_mesh(self):
+        """ Mesh object of the domain boundaries """
+        has_been_updated = False
 
-    def render_3D_pfield(self):
+        # Retreive boolean mask param values
+        bool_mask_params = {mask_param: mask_param_value['args'][1] for (mask_param, mask_param_value) in self.armature_config_dict['_boolean_mask']['_boolean_mask_coords'].items()}
+
+        # Reset mesh if parameters have been updated
+        if self._current_axisym_domain_mesh_params != bool_mask_params:
+            self._axisym_domain_mesh = None
+
+        if self._axisym_domain_mesh is None:
+            accessible_globals_names = [
+                'trimesh', 'np',
+                'dict_to_path_patched'
+            ]
+
+            accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
+            accessible_globals = {**accessible_globals, **bool_mask_params}
+
+            # run trimesh script
+            try:
+                exec(self.armature_config_dict['_kwave_sim']['_axisymmetric_domain_boundary_trimesh_script'], accessible_globals)
+                self._axisym_domain_mesh = accessible_globals['mesh']
+                self._current_axisym_domain_mesh_params = bool_mask_params
+                has_been_updated = True
+            except Exception as e:
+                self._axisym_domain_mesh = None
+                self._current_axisym_domain_mesh_params = None
+                has_been_updated = False
+                self.parent_viewer.show_error_popup(f"Error in {self.armature_display_name} _axisymmetric_domain_boundary_trimesh_script", f'{type(e).__name__}: {str(e)}')
+
+        return (self._axisym_domain_mesh, has_been_updated)
+    
+    # --- Required armature attributes ---
+
+    def add_render(self):
+        """ Called when populating the viewer with the armature rendered objects """
+        super().add_render()
+        if '_kwave_sim' in self.armature_config_dict:
+
+            if self.axisym_domain_mesh is not None:
+                self.axisym_domain_mesh_handler.stl_item_name = 'kwave_axisym_domain_mesh'
+                self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
+                self._is_render_uptodate # Init hash
+                
+                self._update_axisym_domain_transform_matrix()
+
+                # Set StlHandler gl parameters
+                armature_dict_mesh_params = self.uneval_armature_config_dict['_kwave_sim']['_axisym_domain_gl_options']
+                for mesh_param_key in self.axisym_domain_mesh_handler._DEFAULT_PARAMS.keys():
+                    if mesh_param_key in armature_dict_mesh_params:
+                        self.axisym_domain_mesh_handler.set_stl_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
+
+                if self.axisym_domain_mesh_handler.stl_glitem != None or self.visible is False:
+                    self.axisym_domain_mesh_handler.delete_rendered_object()
+                else:
+                    self.axisym_domain_mesh_handler.add_rendered_object()
+
+    def update_render(self, force_update=False):
+        """ Called on render view updates """
+        if not self._is_render_uptodate or force_update:
+            super().update_render(force_update=True)
+            # st_time = time.time()
+            if self.visible is True:
+                if self.axisym_domain_mesh_handler.stl_glitem is None:
+                    self.add_render()
+
+                self._update_axisym_domain_transform_matrix()
+
+                if self.axisym_domain_mesh[1]: # Check if the mesh has been updated
+                    self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
+                self.axisym_domain_mesh_handler.update_rendered_object()
+            else:
+                self.delete_render()
+            # print(f' >> STLMeshBooleanArmature -> {self._is_render_uptodate} | {si_format(time.time() - st_time)}s')
+    
+    def delete_render(self):
+        """ Called on deletion of the armature rendered objects """
+        super().delete_render()
+        self.axisym_domain_mesh_handler.delete_rendered_object()
+    
+    # --- Optionnal armature methods ---
+
+    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
+        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+        # AS simulation button
+        as_sim_btn = pyqtw.QPushButton('Axisymmetric (AS) simulation')
+        as_sim_btn.clicked.connect(self.run_AS_simulation)
+        custom_widgets.append(
+            (as_sim_btn, armature_params_rowcount+1, 0, 1, armature_params_colcount)
+        )
+        # 3D simulation button
+        as_sim_btn = pyqtw.QPushButton('Coupled AS-3D simulation')
+        as_sim_btn.clicked.connect(self.run_AS3D_simulation)
+        custom_widgets.append(
+            (as_sim_btn, armature_params_rowcount+2, 0, 1, armature_params_colcount)
+        )
+        return custom_widgets
+    
+    # --- Armature specific attributes ---
+    
+    def _update_axisym_domain_transform_matrix(self):
+        self.axisym_domain_mesh_handler.stl_item_tmat = self.end_transform_mat #bmask_tmat
+
+    def _update_AS_sim_parameters(self):
+        """ Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _axisymmetric_domain_acoustic_params """
+        armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_axisymmetric_domain_acoustic_params']
+        for sim_param_key in armature_dict_sim_params.keys():
+            self.kwAS.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
+
+        # Overwrite default simulation parameters with editable values
+        _editable_params_values = copy.deepcopy(self._editable_params_values)
+        for sim_param_key in self.kwAS.simulation_params.keys():
+            if sim_param_key in _editable_params_values:
+                self.kwAS.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
+
+    def _update_3D_sim_parameters(self):
+        """ Overwrite default simulation parameters with those specified in the armature parameters dictionary under _kwave_sim and _3dcartesian_domain_acoustic_params """
+        armature_dict_sim_params = self.uneval_armature_config_dict['_kwave_sim']['_3dcartesian_domain_acoustic_params']
+        for sim_param_key in armature_dict_sim_params.keys():
+            self.kw3D.set_simulation_param(sim_param_key, armature_dict_sim_params[sim_param_key])
+
+        # Overwrite default simulation parameters with editable values
+        _editable_params_values = copy.deepcopy(self._editable_params_values)
+        for sim_param_key in self.kw3D.simulation_params.keys():
+            if sim_param_key in _editable_params_values:
+                self.kw3D.set_simulation_param(sim_param_key, _editable_params_values[sim_param_key])
+        
+    def _render_AS_pfield(self):
+        """ Called to render pressure magnitude fields. """
+        if self._kwAS_success:
+            p_amp_AS_xyz, x_AS, y_AS, z_AS = self.kwAS.p_amp_xyz
+
+            if np.any(np.isnan(p_amp_AS_xyz)):
+                raise ValueError('kWave 3D field contains NANs -> recompute sim with higher CFL and/or points per wavelength')
+
+            # Pressure field render opacity
+            if 'pressure_field_render_stride' in self.armature_config_csts:
+                p_field_stride = self.armature_config_csts['pressure_field_render_stride']
+            else:
+                p_field_stride = 1
+
+            p_amp_AS_xyz = p_amp_AS_xyz[p_field_stride//2::p_field_stride, p_field_stride//2::p_field_stride, p_field_stride//2::p_field_stride]
+            x_AS = x_AS[p_field_stride//2::p_field_stride]
+            y_AS = y_AS[p_field_stride//2::p_field_stride]
+            z_AS = z_AS[p_field_stride//2::p_field_stride]
+
+            z_mask = np.where(z_AS < np.abs(self.kwAS.simulation_params['AS_domain_z_size']))[0]
+            p_amp_AS_xyz = p_amp_AS_xyz[:, :, z_mask]
+            z_cart = z_AS[z_mask]
+
+            if np.any(np.isnan(p_amp_AS_xyz)):
+                raise ValueError('kWave AS field contains NANs -> recompute sim with higher CFL and/or points per wavelength')
+
+            # Remove render if it already exists
+            if hasattr(self, 'p_amp_AS_vol'):
+                if self.p_amp_AS_vol in self.parent_viewer.gl_view.items:
+                    self.parent_viewer.gl_view.removeItem(self.p_amp_AS_vol)
+
+            # Colormap max
+            if 'p_max_viz' in self.armature_config_csts:
+                vmax = self.armature_config_csts['p_max_viz']
+            else:
+                vmax = p_amp_AS_xyz.max()
+
+            # Pressure field render opacity
+            if 'pressure_field_render_opacity' in self.armature_config_csts:
+                p_amp_alpha = self.armature_config_csts['pressure_field_render_opacity']
+            else:
+                p_amp_alpha = 20
+
+            p_amp_norm_func = plt.Normalize(vmin=0, vmax=vmax)
+            self.p_amp_rgba = plt.cm.viridis(p_amp_norm_func(p_amp_AS_xyz)) * 255
+
+            self.p_amp_rgba[:, :, :, 3] = (p_amp_alpha * p_amp_norm_func(p_amp_AS_xyz)).astype(np.ubyte)
+            self.p_amp_AS_vol = gl.GLVolumeItem(self.p_amp_rgba, smooth=True, glOptions='additive')
+            self.parent_viewer.gl_view.addItem(self.p_amp_AS_vol, name=f'k-Wave AS pressure field')
+            self.p_amp_AS_vol.setDepthValue(2)
+
+            self.p_amp_AS_vol_tmat = af_tr.scale_mat(self.kwAS.dx * p_field_stride)
+            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ af_tr.translat_mat('x', x_AS[0])
+            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ af_tr.translat_mat('y', y_AS[0])
+            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ af_tr.translat_mat('z', z_AS[0])
+            self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ self.end_transform_mat
+
+            self.p_amp_AS_vol.resetTransform()
+            self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.T.ravel()), local=False)
+
+    def _render_3D_pfield(self):
+        """ Called to render pressure magnitude fields. """
         if self._kw3D_success:
             p_amp_3D_xyz, x_3D, y_3D, z_3D = self.kw3D.p_amp_xyz
 
@@ -1275,47 +1363,3 @@ mesh = extrusion.to_mesh()
 
             self.p_amp_3D_vol.resetTransform()
             self.p_amp_3D_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_3D_vol_tmat.T.ravel()), local=False)
-
-    def add_render(self):
-        super().add_render()
-        if '_kwave_sim' in self.armature_config_dict:
-
-            if self.axisym_domain_mesh is not None:
-                self.axisym_domain_mesh_handler.stl_item_name = 'kwave_axisym_domain_mesh'
-                self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
-                self._is_render_uptodate # Init hash
-                
-                self.update_axisym_domain_transform_matrix()
-
-                # Set StlHandler gl parameters
-                armature_dict_mesh_params = self.uneval_armature_config_dict['_kwave_sim']['_axisym_domain_gl_options']
-                for mesh_param_key in self.axisym_domain_mesh_handler._DEFAULT_PARAMS.keys():
-                    if mesh_param_key in armature_dict_mesh_params:
-                        self.axisym_domain_mesh_handler.set_stl_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
-
-                if self.axisym_domain_mesh_handler.stl_glitem != None or self.visible is False:
-                    self.axisym_domain_mesh_handler.delete_rendered_object()
-                else:
-                    self.axisym_domain_mesh_handler.add_rendered_object()
-
-    def update_render(self, force_update=False):
-        if not self._is_render_uptodate or force_update:
-            super().update_render(force_update=True)
-            # st_time = time.time()
-            if self.visible is True:
-                if self.axisym_domain_mesh_handler.stl_glitem is None:
-                    self.add_render()
-
-                self.update_axisym_domain_transform_matrix()
-
-                if self.axisym_domain_mesh[1]: # Check if the mesh has been updated
-                    self.axisym_domain_mesh_handler.raw_stl_item_mesh = self.axisym_domain_mesh[0]
-                self.axisym_domain_mesh_handler.update_rendered_object()
-            else:
-                self.delete_render()
-            # print(f' >> STLMeshBooleanArmature -> {self._is_render_uptodate} | {si_format(time.time() - st_time)}s')
-    
-    def delete_render(self):
-        super().delete_render()
-        self.axisym_domain_mesh_handler.delete_rendered_object()
-

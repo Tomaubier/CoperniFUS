@@ -58,8 +58,7 @@ class CachedDataHandler:
         if not successful_loading: # Creates a new cached database as a default
             self.cached_settings_fname = 'cached_db.json'
 
-        print(f'Cached data file located at {self.cached_settings_fpath}')
-
+        print(f'\n> Info: Cached configuration file location: {self.cached_settings_fpath}')
 
     def is_cached_filename_existent(self, cache_fname):
         exists = (self.cache_dir / cache_fname).exists()
@@ -516,7 +515,10 @@ class GlItemsToggler:
         self.model = pyqtg.QStandardItemModel()
         self.model.setHorizontalHeaderLabels(["Item Name"])
 
+    # --- Required module attributes ---
+
     def init_dock(self):
+        """ Called on GUI setup to add a module dock """
         # Setting up dock layout
         self.dock = pyqtw.QDockWidget('Viewer Layers', self.parent_viewer)
         self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.LeftDockWidgetArea, self.dock)
@@ -524,8 +526,6 @@ class GlItemsToggler:
         self.dock.setWidget(self.dock_widget)
         self.dock_layout = pyqtw.QGridLayout()
         self.dock_widget.setLayout(self.dock_layout)
-        # self.dock_widget.setContentsMargins(0, 0, 0, 0)
-        # self.dock_layout.setContentsMargins(0, 0, 0, 0)
 
         # Set up the list view
         self.gl_layers_editor = pyqtw.QListView()
@@ -533,9 +533,12 @@ class GlItemsToggler:
         self.gl_layers_editor.setModel(self.model)
         self.update_list_view()
         self.dock_layout.addWidget(self.gl_layers_editor, 0, 0, 1, 1) # Y, X, w, h
-        self.model.itemChanged.connect(self.on_item_changed)
+        self.model.itemChanged.connect(self._on_item_changed)
+
+    # --- Module specific attributes ---
 
     def update_list_view(self):
+        """ Updates the list of objects rendered in the viewer """
         self.model.clear()
         for gl_item_name, gl_item in self.gl_view.gl_items_named_dict.items():
             list_view_item = pyqtg.QStandardItem(gl_item_name)
@@ -546,7 +549,7 @@ class GlItemsToggler:
                 list_view_item.setCheckState(pyqtc.Qt.CheckState.Unchecked)
             self.model.appendRow(list_view_item)
 
-    def on_item_changed(self, list_view_item):
+    def _on_item_changed(self, list_view_item):
         edited_gl_item = self.gl_view.get_gl_item_from_name(list_view_item.text())
         if list_view_item.checkState() == pyqtc.Qt.CheckState.Checked:
             edited_gl_item.show()

@@ -19,6 +19,7 @@ class EmittingStream(pyqtc.QObject):
 class InternalConsoleModule(Module):
 
     FONT_SIZE = 10
+    """ Internal console font size """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         super().__init__(parent_viewer, 'internal_console', **kwargs)
@@ -34,12 +35,20 @@ class InternalConsoleModule(Module):
         self.log_stream = EmittingStream()
         self.log_stream._text_written.connect(self.append_console)
 
+    # --- Module specific public attributes ---
+
     def append_console(self, message):
+        """ Write a message to the internal console """
         self.console_widget.append(message)
+
+    def clear_console(self):
+        """ Clear all messages from the internal console """
+        self.console_widget.clear()
 
     # --- Required module attributes ---
 
     def init_dock(self):
+        """ Called on GUI setup to add a module dock """
         # Setting up dock layout
         self.dock = pyqtw.QDockWidget('Console', self.parent_viewer)
         self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
@@ -56,9 +65,6 @@ class InternalConsoleModule(Module):
         self.dock_layout.addWidget(self.clear_console_btn, 1, 0, 1, 1)
 
     # --- Module specific attributes ---
-    
-    def clear_console(self):
-        self.console_widget.clear()
     
     def _on_console_dock_visibility_change(self, visible):
         if visible:

@@ -38,6 +38,7 @@ class STLMeshArmature(Armature):
             },
         },
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
@@ -48,30 +49,10 @@ class STLMeshArmature(Armature):
 
         self.mesh_handler = StlHandler(parent_viewer)
 
-    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
-        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
-        # # Some widget
-        # apply_boolean_operation_btn = pyqtw.QPushButton('Apply boolean operation')
-        # apply_boolean_operation_btn.clicked.connect(self.compute_boolean_operation)
-        # custom_widgets.append(
-        #     (apply_boolean_operation_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
-        # )
-        return custom_widgets
-
-    def update_stl_item_transform_matrix(self):
-        if 'transform_str' in self.armature_config_dict['_stl_mesh'] and self.armature_config_dict['_stl_mesh']['transform_str'] is not None:
-            transforms_matrices = af_tr_from_str.transform_matrices_from_str(self.armature_config_dict['_stl_mesh']['transform_str'])
-        else:
-            transforms_matrices = [np.eye(4)]
-
-        stl_item_tmat = np.eye(4)
-        for tr_mat in transforms_matrices:
-                stl_item_tmat = stl_item_tmat @ tr_mat
-        stl_item_tmat = stl_item_tmat @ self.end_transform_mat
-
-        self.mesh_handler.stl_item_tmat = stl_item_tmat
+    # --- Armature specific public attributes ---
 
     def add_render(self):
+        """ Called when populating the viewer with the module rendered objects """
         super().add_render()
 
         if '_stl_mesh' in self.armature_config_dict and self.armature_config_dict['_stl_mesh']['file_path'] is not None:
@@ -92,7 +73,7 @@ class STLMeshArmature(Armature):
                 if stl_param_key in armature_dict_stl_params and stl_param_key != 'file_path':
                     self.mesh_handler.set_stl_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
 
-            self.update_stl_item_transform_matrix()
+            self._update_stl_item_transform_matrix()
 
             if self.mesh_handler.stl_glitem != None or self.visible is False:
                 self.mesh_handler.delete_rendered_object()
@@ -100,19 +81,49 @@ class STLMeshArmature(Armature):
                 self.mesh_handler.add_rendered_object()
 
     def update_render(self, force_update=False):
+        """ Called on render view updates """
         if not self._is_render_uptodate or force_update:
             super().update_render(force_update=True)
             if self.visible is True:
                 if self.mesh_handler.stl_glitem is None:
                     self.add_render()
-                self.update_stl_item_transform_matrix()
+                self._update_stl_item_transform_matrix()
                 self.mesh_handler.update_rendered_object() #ignore_plane_slicing=True)
             else:
                 self.delete_render()
     
     def delete_render(self):
+        """ Called on deletion of the module rendered objects """
         super().delete_render()
         self.mesh_handler.delete_rendered_object()
+
+    # --- Optionnal armature methods ---
+
+    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
+        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+        # # Some widget
+        # apply_boolean_operation_btn = pyqtw.QPushButton('Apply boolean operation')
+        # apply_boolean_operation_btn.clicked.connect(self.compute_boolean_operation)
+        # custom_widgets.append(
+        #     (apply_boolean_operation_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
+        # )
+        return custom_widgets
+
+    # --- Armature specific attributes ---
+
+    def _update_stl_item_transform_matrix(self):
+        if 'transform_str' in self.armature_config_dict['_stl_mesh'] and self.armature_config_dict['_stl_mesh']['transform_str'] is not None:
+            transforms_matrices = af_tr_from_str.transform_matrices_from_str(self.armature_config_dict['_stl_mesh']['transform_str'])
+        else:
+            transforms_matrices = [np.eye(4)]
+
+        stl_item_tmat = np.eye(4)
+        for tr_mat in transforms_matrices:
+                stl_item_tmat = stl_item_tmat @ tr_mat
+        stl_item_tmat = stl_item_tmat @ self.end_transform_mat
+
+        self.mesh_handler.stl_item_tmat = stl_item_tmat
 
 
 class TrimeshScriptArmature(Armature):
@@ -138,11 +149,13 @@ class TrimeshScriptArmature(Armature):
                 'gl_mesh_edgeWidth': 5,
             },
             '_trimesh_script': """
+            
 path_2d = trimesh.path.creation.circle(radius=cylinder_diameter/2, segments=64)
 extrusion = path_2d.extrude(z)
 mesh = extrusion.to_mesh()
 z_translate_tmat = trimesh.transformations.compose_matrix(translate=[0, 0, z_offset])
 mesh.apply_transform(z_translate_tmat)
+
         """,
             '_trimesh_script_coords': {
                 'cylinder_diameter': {
@@ -181,7 +194,7 @@ mesh.apply_transform(z_translate_tmat)
             },
         },
     }
-
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
@@ -193,19 +206,12 @@ mesh.apply_transform(z_translate_tmat)
         self._scripted_mesh = None
         self._current_mesh_params = None
         self.mesh_handler = StlHandler(parent_viewer)
-
-    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
-        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
-        # # Some widget
-        # apply_boolean_operation_btn = pyqtw.QPushButton('Apply boolean operation')
-        # apply_boolean_operation_btn.clicked.connect(self.compute_boolean_operation)
-        # custom_widgets.append(
-        #     (apply_boolean_operation_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
-        # )
-        return custom_widgets
     
+    # --- Armature specific public attributes ---
+
     @property
     def scripted_mesh(self):
+        """ Trimesh mesh object constructed from the _trimesh_script string specified in armature_config_dict. Uppon execution, the script should define a 'mesh' object. """
         has_been_updated = False
 
         if '_trimesh_script' in self.armature_config_dict:
@@ -246,20 +252,10 @@ mesh.apply_transform(z_translate_tmat)
 
         return (self._scripted_mesh, has_been_updated)
 
-    def update_stl_item_transform_matrix(self):
-        if 'transform_str' in self.armature_config_dict['_stl_mesh'] and self.armature_config_dict['_stl_mesh']['transform_str'] is not None:
-            transforms_matrices = af_tr_from_str.transform_matrices_from_str(self.armature_config_dict['_stl_mesh']['transform_str'])
-        else:
-            transforms_matrices = [np.eye(4)]
-
-        stl_item_tmat = np.eye(4)
-        for tr_mat in transforms_matrices:
-                stl_item_tmat = stl_item_tmat @ tr_mat
-        stl_item_tmat = stl_item_tmat @ self.end_transform_mat
-
-        self.mesh_handler.stl_item_tmat = stl_item_tmat
+    # --- Required armature attributes ---
 
     def add_render(self):
+        """ Called when populating the viewer with the module rendered objects """
         super().add_render()
         if '_trimesh_script' in self.armature_config_dict:
 
@@ -268,7 +264,7 @@ mesh.apply_transform(z_translate_tmat)
                 self.mesh_handler.raw_stl_item_mesh = self.scripted_mesh[0]
                 self._is_render_uptodate # Init hash
                 
-                self.update_stl_item_transform_matrix()
+                self._update_stl_item_transform_matrix()
 
                 # Set StlHandler gl parameters
                 armature_dict_stl_params = self.uneval_armature_config_dict['_stl_mesh']
@@ -282,13 +278,14 @@ mesh.apply_transform(z_translate_tmat)
                     self.mesh_handler.add_rendered_object()
 
     def update_render(self, force_update=False):
+        """ Called on render view updates """
         if not self._is_render_uptodate or force_update:
             super().update_render(force_update=True)
             if self.visible is True:
                 if self.mesh_handler.stl_glitem is None:
                     self.add_render()
 
-                self.update_stl_item_transform_matrix()
+                self._update_stl_item_transform_matrix()
 
                 if self.scripted_mesh[1]: # Check if the mesh has been updated
                     self.mesh_handler.raw_stl_item_mesh = self.scripted_mesh[0]
@@ -297,8 +294,37 @@ mesh.apply_transform(z_translate_tmat)
                 self.delete_render()
     
     def delete_render(self):
+        """ Called on deletion of the module rendered objects """
         super().delete_render()
         self.mesh_handler.delete_rendered_object()
+
+    # --- Optionnal armature methods ---
+
+    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
+        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+        # # Some widget
+        # apply_boolean_operation_btn = pyqtw.QPushButton('Apply boolean operation')
+        # apply_boolean_operation_btn.clicked.connect(self.compute_boolean_operation)
+        # custom_widgets.append(
+        #     (apply_boolean_operation_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
+        # )
+        return custom_widgets
+    
+    # --- Armature specific attributes ---
+
+    def _update_stl_item_transform_matrix(self):
+        if 'transform_str' in self.armature_config_dict['_stl_mesh'] and self.armature_config_dict['_stl_mesh']['transform_str'] is not None:
+            transforms_matrices = af_tr_from_str.transform_matrices_from_str(self.armature_config_dict['_stl_mesh']['transform_str'])
+        else:
+            transforms_matrices = [np.eye(4)]
+
+        stl_item_tmat = np.eye(4)
+        for tr_mat in transforms_matrices:
+                stl_item_tmat = stl_item_tmat @ tr_mat
+        stl_item_tmat = stl_item_tmat @ self.end_transform_mat
+
+        self.mesh_handler.stl_item_tmat = stl_item_tmat
 
 
 class STLMeshBooleanArmature(STLMeshArmature):
@@ -436,8 +462,9 @@ mesh = extrusion.to_mesh()
                     }
                 }
             }
-        },
+        }
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
@@ -450,17 +477,50 @@ mesh = extrusion.to_mesh()
         self._bmask_mesh = None
         self._current_mesh_bmask_params = None
 
-    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
-        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+    @property
+    def bmask_mesh(self): # TODO check docstr -> other armature mesh as bmask ????
+        """ Mesh object to be used in the boolean operation.
+            The mesh is defined as a trimesh script in armature_config_dict['_boolean_mask']['_boolean_mask_trimesh_script']. Uppon execution, the script should define a 'mesh' object.
+        """
+        has_been_updated = False
 
-        # Boolean operation button
-        apply_boolean_operation_btn = pyqtw.QPushButton('Apply boolean operation')
-        apply_boolean_operation_btn.clicked.connect(self.compute_boolean_operation)
+        if '_boolean_mask' in self.armature_config_dict and '_boolean_mask_trimesh_script' in self.armature_config_dict['_boolean_mask']:
 
-        custom_widgets.append(
-            (apply_boolean_operation_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
-        )
-        return custom_widgets
+            # Retreive boolean mask param values
+            if '_boolean_mask_coords' in self.armature_config_dict['_boolean_mask']:
+                bool_mask_params = {mask_param: mask_param_value['args'][1] for (mask_param, mask_param_value) in self.armature_config_dict['_boolean_mask']['_boolean_mask_coords'].items()}
+            else:
+                bool_mask_params = {}
+            
+            # Reset mesh if parameters have been updated
+            if self._current_mesh_bmask_params != bool_mask_params:
+                self._bmask_mesh = None
+
+            if self._bmask_mesh is None:
+                accessible_globals_names = [
+                    'trimesh', 'np',
+                    'dict_to_path_patched'
+                ]
+
+                accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
+                accessible_globals = {**accessible_globals, **bool_mask_params}
+
+                # run trimesh script
+                try:
+                    exec(self.armature_config_dict['_boolean_mask']['_boolean_mask_trimesh_script'], accessible_globals)
+                    self._bmask_mesh = accessible_globals['mesh']
+                    self._current_mesh_bmask_params = bool_mask_params
+                    has_been_updated = True
+                except Exception as e:
+                    self._bmask_mesh = None
+                    self._current_mesh_bmask_params = None
+                    has_been_updated = False
+                    self.parent_viewer.show_error_popup(f"Error in {self.armature_display_name} _boolean_mask_trimesh_script", f'{type(e).__name__}: {str(e)}')
+
+        else:
+            self._bmask_mesh = None
+
+        return (self._bmask_mesh, has_been_updated)
 
     def compute_boolean_operation(self):
         """ Supported boolean operations:
@@ -549,61 +609,10 @@ mesh = extrusion.to_mesh()
         
         print('Done')
 
-    @property
-    def bmask_mesh(self):
-        has_been_updated = False
-
-        if '_boolean_mask' in self.armature_config_dict and '_boolean_mask_trimesh_script' in self.armature_config_dict['_boolean_mask']:
-
-            # Retreive boolean mask param values
-            if '_boolean_mask_coords' in self.armature_config_dict['_boolean_mask']:
-                bool_mask_params = {mask_param: mask_param_value['args'][1] for (mask_param, mask_param_value) in self.armature_config_dict['_boolean_mask']['_boolean_mask_coords'].items()}
-            else:
-                bool_mask_params = {}
-            
-            # Reset mesh if parameters have been updated
-            if self._current_mesh_bmask_params != bool_mask_params:
-                self._bmask_mesh = None
-
-            if self._bmask_mesh is None:
-                accessible_globals_names = [
-                    'trimesh', 'np',
-                    'dict_to_path_patched'
-                ]
-
-                accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
-                accessible_globals = {**accessible_globals, **bool_mask_params}
-
-                # run trimesh script
-                try:
-                    exec(self.armature_config_dict['_boolean_mask']['_boolean_mask_trimesh_script'], accessible_globals)
-                    self._bmask_mesh = accessible_globals['mesh']
-                    self._current_mesh_bmask_params = bool_mask_params
-                    has_been_updated = True
-                except Exception as e:
-                    self._bmask_mesh = None
-                    self._current_mesh_bmask_params = None
-                    has_been_updated = False
-                    self.parent_viewer.show_error_popup(f"Error in {self.armature_display_name} _boolean_mask_trimesh_script", f'{type(e).__name__}: {str(e)}')
-
-        else:
-            self._bmask_mesh = None
-
-        return (self._bmask_mesh, has_been_updated)
-
-    def update_boolean_mask_transform_matrix(self):
-        if ('_boolean_mask' in self.armature_config_dict) and ('transform_str' in self.armature_config_dict['_boolean_mask']) and (self.armature_config_dict['_boolean_mask']['transform_str'] is not None):
-            transforms_matrices = af_tr_from_str.transform_matrices_from_str(self.armature_config_dict['_boolean_mask']['transform_str'])
-        else:
-            transforms_matrices = [np.eye(4)]
-
-        bmask_tmat = self.end_transform_mat
-        for tr_mat in transforms_matrices:
-                bmask_tmat = bmask_tmat @ tr_mat
-
-        self.bool_mask_mesh_handler.stl_item_tmat = bmask_tmat
+    # --- Required armature attributes ---
 
     def add_render(self):
+        """ Called when populating the viewer with the module rendered objects """
         super().add_render()
         if '_boolean_mask' in self.armature_config_dict:
 
@@ -612,7 +621,7 @@ mesh = extrusion.to_mesh()
                 self.bool_mask_mesh_handler.raw_stl_item_mesh = self.bmask_mesh[0]
                 self._is_render_uptodate # Init hash
                 
-                self.update_boolean_mask_transform_matrix()
+                self._update_boolean_mask_transform_matrix()
 
                 # Set StlHandler gl parameters
                 armature_dict_bmask_params = self.uneval_armature_config_dict['_boolean_mask']['_mask_preview_gl_options']
@@ -626,6 +635,7 @@ mesh = extrusion.to_mesh()
                     self.bool_mask_mesh_handler.add_rendered_object()
 
     def update_render(self, force_update=False):
+        """ Called on render view updates """
         if not self._is_render_uptodate or force_update:
             super().update_render(force_update=True)
             # st_time = time.time()
@@ -633,7 +643,7 @@ mesh = extrusion.to_mesh()
                 if self.bool_mask_mesh_handler.stl_glitem is None:
                     self.add_render()
 
-                self.update_boolean_mask_transform_matrix()
+                self._update_boolean_mask_transform_matrix()
 
                 if self.bmask_mesh[1]: # Check if the mesh has been updated
                     self.bool_mask_mesh_handler.raw_stl_item_mesh = self.bmask_mesh[0]
@@ -643,8 +653,38 @@ mesh = extrusion.to_mesh()
             # print(f' >> STLMeshBooleanArmature -> {self._is_render_uptodate} | {si_format(time.time() - st_time)}s')
     
     def delete_render(self):
+        """ Called on deletion of the module rendered objects """
         super().delete_render()
         self.bool_mask_mesh_handler.delete_rendered_object()
+
+    # --- Optionnal armature methods ---
+
+    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
+        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+
+        # Boolean operation button
+        apply_boolean_operation_btn = pyqtw.QPushButton('Apply boolean operation')
+        apply_boolean_operation_btn.clicked.connect(self.compute_boolean_operation)
+
+        custom_widgets.append(
+            (apply_boolean_operation_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
+        )
+        return custom_widgets
+
+    # --- Armature specific attributes ---
+
+    def _update_boolean_mask_transform_matrix(self):
+        if ('_boolean_mask' in self.armature_config_dict) and ('transform_str' in self.armature_config_dict['_boolean_mask']) and (self.armature_config_dict['_boolean_mask']['transform_str'] is not None):
+            transforms_matrices = af_tr_from_str.transform_matrices_from_str(self.armature_config_dict['_boolean_mask']['transform_str'])
+        else:
+            transforms_matrices = [np.eye(4)]
+
+        bmask_tmat = self.end_transform_mat
+        for tr_mat in transforms_matrices:
+                bmask_tmat = bmask_tmat @ tr_mat
+
+        self.bool_mask_mesh_handler.stl_item_tmat = bmask_tmat
 
 
 class STLMeshConvexHull(STLMeshArmature): # Armature
@@ -681,8 +721,9 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
                     'gl_mesh_edgeWidth': 5,
                 },
             }
-        },
+        }
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
@@ -694,18 +735,8 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
         self._hull_mesh_handler = TrimeshHandler(parent_viewer)
         self._hull_mesh = None
 
-    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
-        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
-
-        # Compute convex hull operation button
-        compute_convex_hull_btn = pyqtw.QPushButton('Compute convex hull')
-        compute_convex_hull_btn.clicked.connect(self.compute_convex_hull)
-
-        custom_widgets.append(
-            (compute_convex_hull_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
-        )
-        return custom_widgets
-
+    # --- Armature specific public attributes ---
+    
     def compute_convex_hull(self):
         """ Implementaion of https://trimesh.org/trimesh.base.html#trimesh.base.Trimesh.convex_hull """
         
@@ -752,3 +783,18 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
         else:
             self.mesh_handler.stl_item_mesh_processed = convex_hull_mesh
             self.mesh_handler.update_rendered_object()
+
+    # --- Optionnal armature methods ---
+
+    def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
+        custom_widgets = super().custom_armature_param_widgets(armature_params_rowcount, armature_params_colcount)
+
+        # Compute convex hull operation button
+        compute_convex_hull_btn = pyqtw.QPushButton('Compute convex hull')
+        compute_convex_hull_btn.clicked.connect(self.compute_convex_hull)
+
+        custom_widgets.append(
+            (compute_convex_hull_btn, armature_params_rowcount, 0, 1, armature_params_colcount)
+        )
+        return custom_widgets

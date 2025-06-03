@@ -76,6 +76,7 @@ class Armature:
             }
         }
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs) -> None:
         self.parent_viewer = parent_viewer
@@ -86,7 +87,7 @@ class Armature:
         self.current_render_hash = None
         self.gl_object = None
 
-        # # Reset aramatures configuration dicts with default ones
+        # # DEBUG -> Reset aramatures configuration dicts with default ones
         # self.armature_config_csts = self._DEFAULT_PARAMS['armature_config_csts']
         # self.uneval_armature_config_dict = self._DEFAULT_PARAMS['uneval_armature_config_dict']
         self.tooltip_on_armature = False
@@ -99,29 +100,94 @@ class Armature:
             armature_object=self
         )
 
-    # --- Armature specific cache wrapper ---
+    # --- Armature specific public attributes ---
 
-    def get_armature_user_param(self, param_name, default_value=None):
-        """ Armature specific cache wrapper """
-        if default_value is None and param_name in self._DEFAULT_PARAMS:
-            default_value = self._DEFAULT_PARAMS[param_name]
-        param_value = self.parent_viewer.cache.get_attr(
-            ['armature', self.armature_name, param_name],
-            default_value = default_value
-        )
-        return param_value
+    @property
+    def uneval_armature_config_dict(self):
+        """ Unevaluated armature configuration dictionary. A non-jsonable copy of the dict with expression strings evaluated is available by calling armature_config_dict """
+        return self.get_armature_user_param('uneval_armature_config_dict')
 
-    def set_armature_user_param(self, param_name, param_value):
-        """ Armature specific cache wrapper """
-        self.parent_viewer.cache.set_attr(
-            ['armature', self.armature_name, param_name],
-            param_value
-        )
+    @uneval_armature_config_dict.setter
+    def uneval_armature_config_dict(self, value):
+        self.set_armature_user_param('uneval_armature_config_dict', value)
+
+    @property
+    def armature_config_dict(self):
+        """ Armature configuration dictionary with expression strings fully evaluated. """
+        if self._armature_config_dict is None:
+            self._armature_config_dict = self._evaluate_armature_config_dict(self.uneval_armature_config_dict, self.armature_config_csts)
+        return self._armature_config_dict
+
+    @armature_config_dict.setter
+    def armature_config_dict(self, value):
+        self._armature_config_dict = value
+
+    @property
+    def armature_config_csts(self):
+        """ Set of constants defined by the user in the armature configuration panel (dictionary). """
+        return self.get_armature_user_param('armature_config_csts')
+
+    @armature_config_csts.setter
+    def armature_config_csts(self, value):
+        self.set_armature_user_param('armature_config_csts', value)
+
+    def get_joints(self, armature_config_dict=None):
+        """ Get the list of joints names defined in the _armature_joints section of the armature_config_dict """
+        if armature_config_dict is None:
+            armature_config_dict = self.armature_config_dict
+        if '_armature_joints' in armature_config_dict:
+            armature_joint_names = [joint_name for joint_name in armature_config_dict['_armature_joints'].keys()]
+        else:
+            armature_joint_names = []
+        return armature_joint_names
+
+    def get_joint_transforms(self, joint_id, armature_config_dict=None):
+        """ Get the affine transmation matrix associated to a given armature joint_id. Joint identifiers can be obtained by calling get_joints(). """
+        if armature_config_dict is None:
+            armature_config_dict = self.armature_config_dict
+        if '_armature_joints' in armature_config_dict:
+            armature_joint_transforms = {kk: vv['args'] for (kk, vv) in armature_config_dict['_armature_joints'][joint_id].items()}
+        else:
+            armature_joint_transforms = {}
+        return armature_joint_transforms
+    
+    @property
+    def end_transform_mat(self):
+        """ Returns the transform matrix of the last joint in the armature """
+        self._compute_armature_coords()
+        self._end_transform_mat = list(self.armature_transf_mat.values())[-1]['transf_mat']
+        if self._end_transform_mat is None:
+            self._end_transform_mat = np.eye(4)
+        return self._end_transform_mat
+
+    @property
+    def armature_tooltip_tmat(self):
+        return self.end_transform_mat
+
+    @property
+    def visible(self):
+        """ Armature visibility in viewer """
+        return self.get_armature_user_param('visible')
+
+    @visible.setter
+    def visible(self, value):
+        self.set_armature_user_param('visible', value)
+
+    @property
+    def rgba_color(self):
+        """ Armature joints color in viewer """
+        return self.get_armature_user_param('rgba_color')
+    
+    @property
+    def glline_width(self):
+        """ Armature joints line width in viewer """
+        return self.get_armature_user_param('glline_width')
 
     # --- Required armature attributes ---
 
     def add_render(self):
-        armature_coords = self.compute_armature_coords()
+        """ Called when populating the viewer with the module rendered objects """
+        armature_coords = self._compute_armature_coords()
         if self.gl_object != None or self.visible is False or len(armature_coords) < 2:
             self.delete_render()
         else:
@@ -136,8 +202,9 @@ class Armature:
             self._is_render_uptodate # Init hash
 
     def update_render(self, force_update=False):
+        """ Called on render view updates """
         if not self._is_render_uptodate or force_update:
-            armature_coords = self.compute_armature_coords()
+            armature_coords = self._compute_armature_coords()
             if self.visible is False or len(armature_coords) < 2:
                 self.delete_render()
             else:
@@ -152,30 +219,38 @@ class Armature:
         self._accept_render_update()
     
     def delete_render(self):
+        """ Called on deletion of the module rendered objects """
         if self.gl_object in self.parent_viewer.gl_view.items:
             self.parent_viewer.gl_view.removeItem(self.gl_object)
             self.gl_object = None
 
+    # --- Armature specific cache wrapper ---
+
+    def get_armature_user_param(self, param_name, default_value=None):
+        """ Get armature configuration parameter stored in cache (or default values if non existant) """
+        if default_value is None and param_name in self._DEFAULT_PARAMS:
+            default_value = self._DEFAULT_PARAMS[param_name]
+        param_value = self.parent_viewer.cache.get_attr(
+            ['armature', self.armature_name, param_name],
+            default_value = default_value
+        )
+        return param_value
+
+    def set_armature_user_param(self, param_name, param_value):
+        """ Set armature configuration parameter to cache """
+        self.parent_viewer.cache.set_attr(
+            ['armature', self.armature_name, param_name],
+            param_value
+        )
+
     # --- Optionnal armature methods ---
 
     def custom_armature_param_widgets(self, armature_params_rowcount, armature_params_colcount):
+        """ List of widgets to be added in the Armature Parameters section of the Stereotaxic Frame Module dock. """
         custom_widgets = []
         return custom_widgets
     
-    # --- Common methods ---
-
-    @property
-    def end_transform_mat(self):
-        """ returns the transform matrix of the last joint in the armature """
-        self.compute_armature_coords()
-        self._end_transform_mat = list(self.armature_transf_mat.values())[-1]['transf_mat']
-        if self._end_transform_mat is None:
-            self._end_transform_mat = np.eye(4)
-        return self._end_transform_mat
-
-    @property
-    def armature_tooltip_tmat(self):
-        return self.end_transform_mat
+    # --- Armature specific attributes ---
     
     @property
     def _editable_params_values(self):
@@ -195,6 +270,7 @@ class Armature:
 
     @property
     def _params_hash(self):
+        """ Tracks changes made to armature parameters -> enable lazy reuse of previously computed results. """
         phash = object_list_hash([ # attributes tracked change
             self.visible,
             self.armature_config_csts,
@@ -212,62 +288,13 @@ class Armature:
 
     @property
     def _is_render_uptodate(self):
+        """ Check status using hash """
         _is_render_uptodate = False
         if self.current_render_hash == self._params_hash:
             _is_render_uptodate = True
         return _is_render_uptodate
-
-    @property
-    def visible(self):
-        return self.get_armature_user_param('visible')
-
-    @visible.setter
-    def visible(self, value):
-        self.set_armature_user_param('visible', value)
-
-    @property
-    def rgba_color(self):
-        return self.get_armature_user_param('rgba_color')
     
-    @property
-    def glline_width(self):
-        return self.get_armature_user_param('glline_width')
-
-    @property
-    def armature_config_csts(self):
-        return self.get_armature_user_param('armature_config_csts')
-
-    @armature_config_csts.setter
-    def armature_config_csts(self, value):
-        self.set_armature_user_param('armature_config_csts', value)
-
-    @property
-    def uneval_armature_config_dict(self):
-        return self.get_armature_user_param('uneval_armature_config_dict')
-
-    @uneval_armature_config_dict.setter
-    def uneval_armature_config_dict(self, value):
-        self.set_armature_user_param('uneval_armature_config_dict', value)
-
-    def get_joints(self, armature_config_dict=None):
-        if armature_config_dict is None:
-            armature_config_dict = self.armature_config_dict
-        if '_armature_joints' in armature_config_dict:
-            armature_joint_names = [joint_name for joint_name in armature_config_dict['_armature_joints'].keys()]
-        else:
-            armature_joint_names = []
-        return armature_joint_names
-
-    def get_joint_transforms(self, joint_id, armature_config_dict=None):
-        if armature_config_dict is None:
-            armature_config_dict = self.armature_config_dict
-        if '_armature_joints' in armature_config_dict:
-            armature_joint_transforms = {kk: vv['args'] for (kk, vv) in armature_config_dict['_armature_joints'][joint_id].items()}
-        else:
-            armature_joint_transforms = {}
-        return armature_joint_transforms
-    
-    def evaluate_armature_config_dict(self, uneval_armature_config_dict, armature_constants_dict, raise_errors=False):
+    def _evaluate_armature_config_dict(self, uneval_armature_config_dict, armature_constants_dict, raise_errors=False):
         evaluated_armature_config_dict = copy.deepcopy(uneval_armature_config_dict) # Deep copy for "inplace" str args evaluation
         args_nested_keys = recursive_key_finder(uneval_armature_config_dict, target_key='args') # Grab all 'args' keys from armature_config_dict
 
@@ -323,18 +350,8 @@ class Armature:
         param_flat_dict['args'][1] = value
         # Update the actual dict
         self.armature_config_dict = armature_config_dict_copy
-    
-    @property
-    def armature_config_dict(self):
-        if self._armature_config_dict is None:
-            self._armature_config_dict = self.evaluate_armature_config_dict(self.uneval_armature_config_dict, self.armature_config_csts)
-        return self._armature_config_dict
 
-    @armature_config_dict.setter
-    def armature_config_dict(self, value):
-        self._armature_config_dict = value
-
-    def compute_armature_coords(self):
+    def _compute_armature_coords(self):
         if self.parent_transform_mat is None:
             origin_transform_mat = np.eye(4) # (0, 0, 0) -> default if no parent armature
         else:

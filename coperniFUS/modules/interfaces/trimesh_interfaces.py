@@ -14,6 +14,7 @@ class TrimeshHandler:
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         self.parent_viewer = parent_viewer
@@ -25,50 +26,11 @@ class TrimeshHandler:
         self._stl_item_mesh = None
         self.stl_glitem = None
 
-    # Img specific cache wrapper
-    def get_stl_user_param(self, param_name, default_value=None):
-        if default_value is None and param_name in self._DEFAULT_PARAMS:
-            default_value = self._DEFAULT_PARAMS[param_name]
-        if self.stl_item_name is not None:
-            param_value = self.parent_viewer.cache.get_attr(
-                ['mesh_handler', self.stl_item_name, param_name],
-                default_value = default_value
-            )
-        else:
-            param_value = default_value
-        return param_value
+    # --- Public attributes ---
 
-    # Img specific cache wrapper
-    def set_stl_user_param(self, param_name, param_value):
-        if self.stl_item_name is not None:
-            self.parent_viewer.cache.set_attr(
-                ['mesh_handler', self.stl_item_name, param_name],
-                param_value
-            )
-
-    @property
-    def stl_item_tmat(self):
-        if self._stl_item_tmat is None:
-            self._stl_item_tmat = np.eye(4) # No transform as default
-        
-        # Apply anatomical landmark calibration transformation if enabled
-        if not self.get_stl_user_param('ignore_anatomical_landmarks_calibration'):
-            anatomically_calibrated_stl_item_tmat = self._stl_item_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
-        else:
-            anatomically_calibrated_stl_item_tmat = self._stl_item_tmat
-
-        return anatomically_calibrated_stl_item_tmat
-    
-    @stl_item_tmat.setter
-    def stl_item_tmat(self, value):
-        if value is not None:
-            if value.shape != (4, 4):
-                raise ValueError('Transformation matrix should be of shape (4, 4)')
-        self._stl_item_tmat = value
-        self.stl_item_mesh = None # Reset processed stl mesh to apply transform
-    
     @property
     def stl_item_mesh_processed(self):
+        """ Mesh object with affine transformation and boolean operations (if applicable) applied """
         if self._stl_item_mesh_processed is None:
             return None
         if np.all(self._stl_item_mesh_processed[0] == self.stl_item_tmat):
@@ -83,17 +45,8 @@ class TrimeshHandler:
         self._stl_item_mesh_processed = (self.stl_item_tmat, mesh)
 
     @property
-    def raw_stl_item_mesh(self):
-        if self._raw_stl_item_mesh is None:
-            self.stl_item_mesh = None # Reset inheriting processed mesh
-        return self._raw_stl_item_mesh
-
-    @raw_stl_item_mesh.setter
-    def raw_stl_item_mesh(self, value):
-        self._raw_stl_item_mesh = value
-
-    @property
     def stl_item_mesh(self):
+        """ Mesh object with affine transformation applied """
         def apply_tr(raw_mesh):
             mesh = copy.deepcopy(raw_mesh)
             mesh.apply_transform(self.stl_item_tmat.T)
@@ -113,19 +66,43 @@ class TrimeshHandler:
     def stl_item_mesh(self, value):
         self._stl_item_mesh = value
 
-    def delete_rendered_object(self):
-        if self.stl_glitem is not None:
-            if isinstance(self.stl_glitem, trimesh.Trimesh):
-                self.parent_viewer.gl_view.removeItem(self.stl_glitem)
-            elif isinstance(self.stl_glitem, list):
-                for mm in self.stl_glitem:
-                    self.parent_viewer.gl_view.removeItem(mm)
-            self.raw_stl_item_mesh = None
-            self.stl_item_mesh = None
-            self.stl_glitem = None
+    @property
+    def raw_stl_item_mesh(self):
+        """ Raw mesh object without any affine transformations or processing applied """
+        if self._raw_stl_item_mesh is None:
+            self.stl_item_mesh = None # Reset inheriting processed mesh
+        return self._raw_stl_item_mesh
+
+    @raw_stl_item_mesh.setter
+    def raw_stl_item_mesh(self, value):
+        self._raw_stl_item_mesh = value
+
+    @property
+    def stl_item_tmat(self):
+        """ Holds the affine transformation matrix for the trimesh object """
+        if self._stl_item_tmat is None:
+            self._stl_item_tmat = np.eye(4) # No transform as default
+        
+        # Apply anatomical landmark calibration transformation if enabled
+        if not self.get_stl_user_param('ignore_anatomical_landmarks_calibration'):
+            anatomically_calibrated_stl_item_tmat = self._stl_item_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
+        else:
+            anatomically_calibrated_stl_item_tmat = self._stl_item_tmat
+
+        return anatomically_calibrated_stl_item_tmat
+    
+    @stl_item_tmat.setter
+    def stl_item_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
+        self._stl_item_tmat = value
+        self.stl_item_mesh = None # Reset processed stl mesh to apply transform
+    
+    # --- Required attributes for rendering ---
 
     def add_rendered_object(self):
-
+        """ Called when populating the viewer with the module rendered objects """
         def add_mesh_render(mesh):
             stl_item_gl_mesh_data = gl.MeshData(vertexes=mesh.vertices, faces=mesh.faces)
             self.stl_glitem.append(
@@ -152,6 +129,7 @@ class TrimeshHandler:
         # Ignore if None
 
     def update_rendered_object(self):
+        """ Called on render view updates """
         def update_rendered_mesh(mesh, sub_mesh_index=0):
             if self.parent_viewer.slicing_plane_normal_vect is None or ignore_plane_slicing:
                 stl_item_gl_mesh_data = gl.MeshData(vertexes=mesh.vertices, faces=mesh.faces)
@@ -166,7 +144,7 @@ class TrimeshHandler:
                 self.stl_glitem[sub_mesh_index].setMeshData(meshdata=stl_item_gl_mesh_data)
 
         ignore_plane_slicing = self.get_stl_user_param('ignore_plane_slicing')
-        if not self.parent_viewer.postpone_slicing_plane_computation or ignore_plane_slicing:
+        if not self.parent_viewer._postpone_slicing_plane_computation or ignore_plane_slicing:
             if self.stl_glitem is None:
                 self.add_rendered_object()
             else:
@@ -176,6 +154,41 @@ class TrimeshHandler:
                     for ii, mm in enumerate(self.stl_item_mesh):
                         update_rendered_mesh(mm, sub_mesh_index=ii)
             # Ignore if None
+
+    def delete_rendered_object(self):
+        """ Called on deletion of the module rendered objects """
+        if self.stl_glitem is not None:
+            if isinstance(self.stl_glitem, trimesh.Trimesh):
+                self.parent_viewer.gl_view.removeItem(self.stl_glitem)
+            elif isinstance(self.stl_glitem, list):
+                for mm in self.stl_glitem:
+                    self.parent_viewer.gl_view.removeItem(mm)
+            self.raw_stl_item_mesh = None
+            self.stl_item_mesh = None
+            self.stl_glitem = None
+
+    # --- cache wrapper for interface parameters ---
+
+    def get_stl_user_param(self, param_name, default_value=None):
+        """ Get module configuration parameter stored in cache (or default values if non existant) """
+        if default_value is None and param_name in self._DEFAULT_PARAMS:
+            default_value = self._DEFAULT_PARAMS[param_name]
+        if self.stl_item_name is not None:
+            param_value = self.parent_viewer.cache.get_attr(
+                ['mesh_handler', self.stl_item_name, param_name],
+                default_value = default_value
+            )
+        else:
+            param_value = default_value
+        return param_value
+
+    def set_stl_user_param(self, param_name, param_value):
+        """ Set module configuration parameter to cache """
+        if self.stl_item_name is not None:
+            self.parent_viewer.cache.set_attr(
+                ['mesh_handler', self.stl_item_name, param_name],
+                param_value
+            )
 
 
 class StlHandler(TrimeshHandler):
@@ -192,12 +205,14 @@ class StlHandler(TrimeshHandler):
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         super().__init__(parent_viewer, **kwargs)
 
     @property
     def raw_stl_item_mesh(self): # Override mesh import for stl
+        """ Raw mesh object without any affine transformations or processing applied """
         if self._raw_stl_item_mesh is None:
             self.stl_item_mesh = None # Reset inheriting processed mesh
             stl_file_path = self.get_stl_user_param('file_path')

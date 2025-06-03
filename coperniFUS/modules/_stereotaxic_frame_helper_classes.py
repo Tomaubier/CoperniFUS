@@ -184,7 +184,7 @@ class ArmatureTextEditPopup(pyqtw.QDialog):
             try:
                 self._edited_uneval_armature_config_dict = eval(uneval_armature_config_dict_str)
                 # check transforms args values str expr validity
-                self.armature_object.evaluate_armature_config_dict(self._edited_uneval_armature_config_dict, self._edited_armature_config_csts, raise_errors=True)
+                self.armature_object._evaluate_armature_config_dict(self._edited_uneval_armature_config_dict, self._edited_armature_config_csts, raise_errors=True)
                 is_data_valid = True
             except Exception as e:
                 is_data_valid = False

@@ -6,14 +6,10 @@ from coperniFUS import *
 from coperniFUS.modules.module_base import Module
 
 
-
 class BrainAtlas(Module):
 
     """
     BrainAtlas module.
-
-    Attributes:
-        bg_atlas: BrainGlobe Atlas API atlas object.
     """
 
     _DEFAULT_N_VOXELS = 1e6 # target number of voxels for default atlas subsampling stride computation
@@ -22,8 +18,9 @@ class BrainAtlas(Module):
         'atlas_transforms_str' : 'Rx0deg Tz0um',
         'subsampling_stride': 10,
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
+    
     _CYCLIC_STRUCTURES_COLORS = [tuple([int(255*cc) for cc in plt.get_cmap('Set1')(ii)]) for ii in range(5)]
-
 
     def __init__(self, parent_viewer, skip_online_atlas_retreival=False, **kwargs) -> None:
         super().__init__(parent_viewer, 'atlas', **kwargs)
@@ -32,14 +29,229 @@ class BrainAtlas(Module):
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self._init_attributes()
 
+    # --- Module specific public attributes ---
+
+    @property
+    def atlas_resolution(self):
+        """ Resultion of the reference altas in meters (x, y, z)
+            Suplampling is accounted for in the returned value. """
+        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
+        atlas_res = subs_stride * np.array(self.bg_atlas.resolution) * 1e-6 # um to meters
+        return atlas_res
+    
+    @property
+    def brain_atlas_tmat(self):
+        """ Holds the atlas volume affine transformation matrix """
+        if self._brain_atlas_tmat is None:
+            resolution = self.atlas_resolution
+            atlas_shape = self.raw_rgba_ndimage_compound.shape
+
+            # Axes ordering correction
+            source_space = bgs.AnatomicalSpace(self.bg_atlas.orientation, shape=atlas_shape[:3])
+            target_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.parent_viewer.ATLAS_SPACE_CONVENTION))
+            axes_order_idx = source_space.map_to(target_space)[0]
+            space_conversion_tmat = source_space.transformation_matrix_to(target_space)
+            self._brain_atlas_tmat = space_conversion_tmat.T
+
+            # Setting atlas scale based on resolution
+            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.scale_mat(resolution)
+
+            # Img space origin to atlas center
+            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('x', -(resolution[0] * atlas_shape[axes_order_idx[0]]) / 2)
+            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('y', -(resolution[1] * atlas_shape[axes_order_idx[1]]) / 2)
+            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('z', -(resolution[2] * atlas_shape[axes_order_idx[2]]) / 2)
+
+            atlas_transforms_matrices = af_tr_from_str.transform_matrices_from_str(
+                self.get_user_param('atlas_transforms_str')
+            )
+
+            for tr_mat in atlas_transforms_matrices:
+                self._brain_atlas_tmat = self._brain_atlas_tmat @ tr_mat
+        
+        # Apply anatomical landmark calibration transformation
+        anatomically_calibrated_brain_atlas_tmat = self._brain_atlas_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
+        
+        return anatomically_calibrated_brain_atlas_tmat
+    
+    @brain_atlas_tmat.setter
+    def brain_atlas_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
+        self._brain_atlas_tmat = value
+
+    @property
+    def atlas_voxel_coordinates(self):
+        """ Holds the coordinates of the brain atlas volume """
+        # Check if tmat has changed since last update
+        if self._tmat_version_hash != object_list_hash([self.brain_atlas_tmat]):
+            self._atlas_voxel_coordinates = None # Recompute if it is
+        if self._atlas_voxel_coordinates is None:
+            atlas_shape = self.raw_rgba_ndimage_compound.shape[:3]
+            voxel_coords = np.mgrid[0:atlas_shape[0], 0:atlas_shape[1], 0:atlas_shape[2]]
+            raveled_coords = voxel_coords.reshape(3, -1).T
+
+            # Apply atlas spatial transformations
+            self._update_atlas_transform()
+            raveled_coords_4by = np.vstack([raveled_coords.T, np.ones(len(raveled_coords))]).T
+            transformed_coords = raveled_coords_4by @ self.brain_atlas_tmat
+            self._atlas_voxel_coordinates = transformed_coords[:, :3]
+            self._tmat_version_hash = object_list_hash([self.brain_atlas_tmat])
+        return self._atlas_voxel_coordinates
+    
+    @atlas_voxel_coordinates.setter
+    def atlas_voxel_coordinates(self, value):
+        self._atlas_voxel_coordinates = value
+
+    @property
+    def bg_atlas(self):
+        """ Holds the Brain Globe instance currently loaded in the module """
+        if self._bg_atlas is None:
+            if 'Reference Atlas' in self.layers:
+                if 'ref_altas_name' not in self.layers['Reference Atlas']:
+                    raise ValueError('"ref_altas_name" missing in "Reference Atlas" layer')
+                
+                offline_atlas_name = self.layers['Reference Atlas']['ref_altas_name']
+
+                if offline_atlas_name not in brainglobe_atlasapi.list_atlases.get_downloaded_atlases():
+                    raise ValueError(f'This atlas is not available locally.\n Run\n\tbrainglobe install -a {offline_atlas_name}\nin a Terminal to do so.\nRestart CoperniFUS once the download is complete.')
+                
+                self._init_attributes()
+                self._bg_atlas = BrainGlobeAtlas(offline_atlas_name, check_latest=False)
+        
+        return self._bg_atlas
+
+    @property
+    def available_atlases(self):
+        """ Get a list of all (online and offline) available atlases in the dictionary form """
+        if self._available_atlases is None:
+            self._offline_atlases_names = brainglobe_atlasapi.list_atlases.get_downloaded_atlases()
+            formatted_offline_atlases = {
+                f'offline_{atlas_name}': f'{atlas_name} | v{brainglobe_atlasapi.list_atlases.get_local_atlas_version(atlas_name)} (DOWNLOADED)'
+                for (ii, atlas_name) in enumerate(self._offline_atlases_names)
+            }
+
+            formatted_online_atlases = None
+            if not self.skip_online_atlas_retreival:
+                self.parent_viewer.statusBar().showMessage('Loading online atlas list')
+                try:
+                    online_atlases = brainglobe_atlasapi.list_atlases.get_all_atlases_lastversions()
+                    self._online_atlases_names = list(online_atlases.keys())
+                    online_atlases_versions = list(online_atlases.values())
+
+                    formatted_online_atlases = {
+                        f'online_{atlas_name}': f'{atlas_name} | v{online_atlases_versions[ii]} (online)'
+                        for (ii, atlas_name) in enumerate(self._online_atlases_names)
+                        if atlas_name not in formatted_offline_atlases
+                    }
+                except:
+                    pass
+            
+            self.parent_viewer.statusBar().clearMessage()
+            if formatted_online_atlases is None:
+                formatted_online_atlases = {
+                    None: 'Offline mode -> Only downloaded atlas are visible'
+                }
+
+            self._available_atlases = {
+                'no_atlas': 'Select Atlas',
+                **formatted_offline_atlases,
+                **formatted_online_atlases
+            }
+        return self._available_atlases
+    
+    @available_atlases.setter
+    def available_atlases(self, value):
+        self._available_atlases = value
+
+    def add_reference_atlas(self, offline_atlas_name):
+        """ Add a reference atlas to the module """
+        if offline_atlas_name not in brainglobe_atlasapi.list_atlases.get_downloaded_atlases():
+            raise ValueError(f'This atlas is not available locally.\n Run\n\tbrainglobe install -a {offline_atlas_name}\nin a Terminal to do so.\nRestart CoperniFUS once the download is complete.')
+
+        self.remove_reference_atlas()
+        
+        layer_name = 'Reference Atlas'
+        self.layers[layer_name] = {
+            '_visible': True,
+            'ref_altas_name': offline_atlas_name,
+            'lut_preset': self._get_ref_atlas_lut_preset(),
+            'levels_preset': (0, 255),
+            'skip_plane_slicing': False,
+        }
+
+        self._reference_atlas_setup(layer_name)
+        self.add_rendered_object()
+
+    def remove_reference_atlas(self):
+        """ Delete the reference atlas currently loaded in the module """
+        self.delete_rendered_object()
+        self._clear_layers_tree_view()
+        self._clear_LUT_editor_floating_dock()
+        self._init_attributes()
+        self.layers = None
+        self._save_layers_state_to_cache()
+
+        self._update_atlas_selector()
+        self.structure_selector.setEnabled(False)
+        self.hemisphere_selector.setEnabled(False)
+        self.add_structure_layer_btn.setEnabled(False)
+        self.rm_structure_layer_btn.setEnabled(False)
+
+    def add_structure_layer(self, structure, hemisphere):
+        """ Add a brain structure layer to the atlas """
+        # Catch parameters errors
+        if structure not in self.bg_atlas_structures:
+            raise ValueError(f'{structure} structure not available for {self.bg_atlas.atlas_name}. Available structures are:\n\t- {"\n\t- ".join(self.bg_atlas_structures.keys())}')
+        if hemisphere not in ['Both Hemispheres', 'Left Hemisphere', 'Right Hemisphere']:
+            raise ValueError('Invalid hemisphere name -> hemisphere_id has to be either "Both Hemispheres", "Left Hemisphere" or "Right Hemisphere"')
+        
+        number_of_existing_struture_layers = len([kk for kk, ll in self.layers.items() if 'atlas_structure_name' in ll])
+        layer_name = f'{structure} ({hemisphere})'
+
+        layer_name_suffix = 1
+        while layer_name in self.layers:
+            layer_name = f'{layer_name} {layer_name_suffix}'
+            layer_name_suffix += 1
+
+        self.layers[layer_name] = {
+            '_visible': True,
+            'atlas_structure_name': structure,
+            'atlas_structure_hemisphere': hemisphere,
+            'ndimage_from_layer_name': 'Reference Atlas',
+            'lut_preset': self._get_highlighted_structure_lut_preset(
+                structure_index=number_of_existing_struture_layers
+            ),
+            'levels_preset': (0, 255),
+            'skip_plane_slicing': True,
+        }
+        self._structure_layer_setup(layer_name)
+
+    def remove_altas_layer(self, layer_name=None, tree_viewer_layer_index=None):
+        """ Delete one of the currently loaded brain structure layer from the rendered atlas """
+        if layer_name is None:
+            if tree_viewer_layer_index is None:
+                raise ValueError('Please provide either tree_viewer_layer_index or layer_name.')
+            layer_name = self._get_layer_name_by_tree_viewer_layer_index(tree_viewer_layer_index)
+            
+        if layer_name not in self.layers:
+            raise IndexError('{layer_name} not in atlas layers -> cannot be removed')
+        
+        if layer_name == 'Reference Atlas':
+            self.remove_reference_atlas()
+        else: # Rm individual structure layer
+            self._remove_lut_editor_from_dock(layer_name)
+            self._remove_layer_from_layers_tree_view(layer_name=layer_name, tree_viewer_layer_index=tree_viewer_layer_index)
+
+            _ = self.layers.pop(layer_name)
+        self._on_layers_update()
+
     @property
     def layers(self):
         """ Atlas layer dict, keys starting with an underscore corresponds to large data that will be omitted in the version saved in cache. Make sure than other keys contain jsonable data
         
         General dict structure:
-        'layer_name': {
-            'ndimage': data, OR 'ndimage_from_layer_name': 'src_layer_name', OR 'atlas_structure_name' AND 'atlas_structure_hemisphere'
-        }
+        'layer_name': {'ndimage': data, OR 'ndimage_from_layer_name': 'src_layer_name', OR 'atlas_structure_name' AND 'atlas_structure_hemisphere'}
         """
         if self._layers is None:
             self._layers = json.loads(self.parent_viewer.cache.get_attr(
@@ -49,15 +261,97 @@ class BrainAtlas(Module):
     
     @layers.setter
     def layers(self, value):
+        """ Holds the altas layers to be rendered """
         if value is None:
             value = {}
         self._layers = value
 
     @property
+    def raw_rgba_ndimage_compound(self):
+        """ Holds the RGBA n-dimension image of the atlas compounded layers before plane slicing operations (raw) """
+        def apply_plane_slicing_on_layer(layer):
+            apply_plane_slicing = not layer['skip_plane_slicing'] if 'skip_plane_slicing' in layer else False
+            return apply_plane_slicing
+        
+        def layer_visible(layer):
+            visible = layer['_visible'] if '_visible' in layer else True
+            return visible
+
+        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
+        ndimage_params_id = f'{subs_stride}'
+
+        # Compute if undefined or subsampling stride has changed
+        if self._raw_rgba_ndimage_compound is None or self._raw_rgba_ndimage_compound[0] != ndimage_params_id:
+
+            base_layer_name = list(self.layers.keys())[0]
+            layer = self.layers[base_layer_name]
+
+            # Get ndimage data
+            ndimage_data = self._get_layer_ndimage_data(base_layer_name, apply_mask=False)
+
+            # Evaluate plane slicing binary mask for layer
+            self._ndimage_plane_slicing_application_mask = apply_plane_slicing_on_layer(layer) * np.ones(ndimage_data.shape[:3], dtype=bool)
+            
+            # Get LUT from widget
+            lut = layer['_lut_widgets'].item.getLookupTable(n=256, alpha=True)
+            levels = layer['_lut_widgets'].item.getLevels()
+
+            # Compute rgba ndimage
+            _raw_rgba_ndimage_compound = self._apply_lut_to_ndimage(ndimage_data, lut, levels)
+            if not layer_visible(layer):
+                _raw_rgba_ndimage_compound[..., 3] = 0 # Make fully transparent
+
+            for layer_ii, (layer_name, layer) in enumerate(self.layers.items()):
+                if layer_ii > 0 and layer_visible(layer): # Skip base layer -> already processed AND invisible layers
+                    # Get ndimage data
+                    ndimage_data = self._get_layer_ndimage_data(layer_name, apply_mask=True)
+
+                    # Get LUT from widget
+                    lut = layer['_lut_widgets'].item.getLookupTable(n=256, alpha=True)
+                    levels = layer['_lut_widgets'].item.getLevels()
+
+                    # Compute rgba ndimage
+                    rgba_ndimage = self._apply_lut_to_ndimage(ndimage_data, lut, levels)
+
+                    if '_ndimage_mask' in layer:
+                        _raw_rgba_ndimage_compound[layer['_ndimage_mask']] = self._alpha_blend(
+                            _raw_rgba_ndimage_compound[layer['_ndimage_mask']], rgba_ndimage
+                        )
+
+                        # Evaluate plane slicing binary mask for layer
+                        self._ndimage_plane_slicing_application_mask[layer['_ndimage_mask']] = apply_plane_slicing_on_layer(layer)
+
+                    else:
+                        _raw_rgba_ndimage_compound = self._alpha_blend(_raw_rgba_ndimage_compound, rgba_ndimage)
+
+                        # Evaluate plane slicing binary mask for layer
+                        self._ndimage_plane_slicing_application_mask = np.logical_and(
+                            self._ndimage_plane_slicing_application_mask,
+                            apply_plane_slicing_on_layer(layer) * np.ones(ndimage_data.shape[:3], dtype=bool)
+                        )
+
+            self._raw_rgba_ndimage_compound = (ndimage_params_id, _raw_rgba_ndimage_compound)
+
+        return self._raw_rgba_ndimage_compound[1]
+    
+    @property
+    def rgba_ndimage_compound(self):
+        """ Holds the RGBA n-dimension image of the atlas compounded layers with plane slicing applied """
+        self._rgba_ndimage_compound = self.raw_rgba_ndimage_compound.copy()
+        self._compute_slicing_plane()
+
+        return self._rgba_ndimage_compound
+    
+    @property
+    def ndimage_plane_slicing_application_mask(self):
+        """ Holds a boolean mask indicating atlas voxels where plane silicing is ignored """
+        if self._ndimage_plane_slicing_application_mask is None:
+            self._ndimage_plane_slicing_application_mask = np.ones(self.raw_rgba_ndimage_compound.shape[:3], dtype=bool)
+        return self._ndimage_plane_slicing_application_mask
+
+    @property
     def jsonable_layers_dict(self):
-
-        """ Provides a copy of the layers dict omitting non-jsonable data keys (starting with an underscore) """
-
+        """ Provides a copy of the layers dict omitting non-jsonable data keys (starting with an underscore) for caching purposes """
         def private_keys_free_dict(d):
             if isinstance(d, dict):
                 return {
@@ -82,49 +376,50 @@ class BrainAtlas(Module):
             raise ValueError(f'Error when attempting to cache jsonable_layers_dict:\n{str(e)}\n\nPlease create an issue on GitHub with the content of the data that needed to be cached:\n{nested_dict_formatter(private_keys_free_dict(self.layers))}')
 
         return json_layers
-
-    def _init_attributes(self):
-        self._loaded_structure_mask = {}
-        self._ndimage_plane_slicing_application_mask = None
-        self._tooltip_to_layer_centroid = None
-        self._raw_rgba_ndimage_compound = None
-        self._rgba_ndimage_compound = None
-        self._available_atlases = None
-        self._tmat_version_hash = None
-        self._brain_atlas_tmat = None
-        self.atlas_glvol = None
-        self._bg_atlas = None
-        self.bg_atlas_structures = {'Select Structure': None}
-
-        self._atlas_voxel_coordinates = None
-        self._slicing_plane_mask = None
-
-    # --- Atlas specific cache wrapper ---
     
-    def get_user_param(self, param_name, default_value=None):
-        if self.bg_atlas is not None:
-            param_value = super().get_user_param(
-                param_name,
-                additional_identifiers=[self.bg_atlas.atlas_name],
-                default_value=default_value)
-        else:
-            param_value = self._DEFAULT_PARAMS[param_name]
-            # if default_value is not None:
-            #     param_value = default_value
-            # else:
-            #     param_value = self._DEFAULT_PARAMS[param_name]
-        return param_value
+    def update_tooltip_to_layer_centroid(self):
+        """ Updates the Tooltip location according to the checkbox selection in the module dock """
+        if self._tooltip_to_layer_centroid is not None and self._tooltip_to_layer_centroid in self.layers:
+            layer = self.layers[self._tooltip_to_layer_centroid]
 
-    def set_user_param(self, param_name, param_value):
-        if self.bg_atlas is not None:
-            super().set_user_param(
-                param_name,
-                additional_identifiers=[self.bg_atlas.atlas_name],
-                param_value=param_value)
+            # Layer mask retreival
+            if '_ndimage_mask' in layer:
+                layer_mask = layer['_ndimage_mask']
+            else:
+                atlas_shape = self.raw_rgba_ndimage_compound.shape[:3]
+                layer_mask = np.ones(atlas_shape)
+            
+            # Get coordinates of all voxels in the structure
+            coords = np.argwhere(layer_mask)
+
+            # Convert voxel coordinates to physical space (microns)
+            centroid_voxel = coords.mean(axis=0)
+            centroid_physical_tmat = np.eye(4)
+            centroid_physical_tmat[3, :3] = centroid_voxel
+            centroid_physical_tmat = centroid_physical_tmat @ self.brain_atlas_tmat
+
+            # Keep translation component only
+            translation_only_centroid_tmat = np.eye(4)
+            translation_only_centroid_tmat[3, :3] = centroid_physical_tmat[3, :3]
+
+            # Apply tmat to tooltip
+            self.parent_viewer.tooltip.release_from_modules(sender_module=self)
+            self.parent_viewer.tooltip.tooltip_tmat = translation_only_centroid_tmat
+            
+        else: # Tooltip NOT on layer centroid
+            self.parent_viewer.tooltip.tooltip_tmat = None
+        
+        self.parent_viewer.tooltip.update_rendered_object()
+            
+    def release_tooltip(self):
+        """ Releases the tooltip location from the selected location in the module. Please call CoperniFUS viewer release_from_modules method to release the tooltip from all loaded modules. """
+        self._tooltip_to_layer_centroid = None
+        uncheck_all_checkboxes_in_qtree_column(self.atlas_layers_model, checkbox_column=1)
             
     # --- Required module attributes ---
     
     def init_dock(self):
+        """ Called on GUI setup to add a module dock """
         # Setting up dock layout
         self.dock = pyqtw.QDockWidget('Brain Atlas', self.parent_viewer)
         self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.BottomDockWidgetArea, self.dock)
@@ -197,12 +492,79 @@ class BrainAtlas(Module):
         self.dock_layout.setColumnStretch(5, 2)
 
         self._init_LUT_editor_floating_dock()
-        self.update_atlas_selector()
+        self._update_atlas_selector()
         self._init_module_from_cached_layers_dict()
+
+    def add_rendered_object(self):
+        """ Called when populating the viewer with the module rendered objects """
+        self.delete_rendered_object()
+        # self._new_reference_atlas_selected()
+
+        if self.bg_atlas is not None:
+
+            self._update_atlas_user_params_editors()
+
+            self.atlas_glvol = gl.GLVolumeItem(self.rgba_ndimage_compound, smooth=True, glOptions='translucent')
+            self.parent_viewer.gl_view.addItem(self.atlas_glvol, name='Brain atlas compound')
+            self.atlas_glvol.setDepthValue(1) # GL volumes -> render tree foreground
+            self._update_atlas_transform()
+
+        self._update_atlas_selector()
+
+    def update_rendered_object(self):
+        """ Called on render view updates """
+        if self.atlas_glvol is not None:
+            self._update_atlas_transform()
+            self.atlas_glvol.setData(self.rgba_ndimage_compound)
+
+    def delete_rendered_object(self):
+        """ Called on deletion of the module rendered objects """
+        if self.atlas_glvol in self.parent_viewer.gl_view.items:
+            self.parent_viewer.gl_view.removeItem(self.atlas_glvol)
+            self.atlas_glvol = None
+
+    # --- Atlas specific cache wrapper ---
+    
+    def get_user_param(self, param_name, default_value=None):
+        """ Get module configuration parameter stored in cache (or default values if non existant) """
+        if self.bg_atlas is not None:
+            param_value = super().get_user_param(
+                param_name,
+                additional_identifiers=[self.bg_atlas.atlas_name],
+                default_value=default_value)
+        else:
+            param_value = self._DEFAULT_PARAMS[param_name]
+        return param_value
+
+    def set_user_param(self, param_name, param_value):
+        """ Set module configuration parameter to cache """
+        if self.bg_atlas is not None:
+            super().set_user_param(
+                param_name,
+                additional_identifiers=[self.bg_atlas.atlas_name],
+                param_value=param_value)
+            
+    # --- Module specific attributes ---
 
     def _on_tree_view_resize(self):
         self.atlas_layers_tree_view.setColumnWidth(0, self.atlas_layers_tree_view.width() - 50)
         self.atlas_layers_tree_view.setColumnWidth(1, 50-30)
+            
+    def _init_attributes(self):
+        self._loaded_structure_mask = {}
+        self._ndimage_plane_slicing_application_mask = None
+        self._tooltip_to_layer_centroid = None
+        self._raw_rgba_ndimage_compound = None
+        self._rgba_ndimage_compound = None
+        self._available_atlases = None
+        self._tmat_version_hash = None
+        self._brain_atlas_tmat = None
+        self.atlas_glvol = None
+        self._bg_atlas = None
+        self.bg_atlas_structures = {'Select Structure': None}
+
+        self._atlas_voxel_coordinates = None
+        self._slicing_plane_mask = None
     
     def _init_LUT_editor_floating_dock(self):
         # Create dock widget
@@ -259,7 +621,7 @@ class BrainAtlas(Module):
         layer['_lut_widgets'] = pg.HistogramLUTWidget(orientation='horizontal', fillHistogram=False)
 
         # Set HistogramLUTWidget with a dummy image with proper dynamic range for LUT control
-        ndimage_data = self.get_layer_ndimage_data(layer_name, apply_mask=False)
+        ndimage_data = self._get_layer_ndimage_data(layer_name, apply_mask=False)
         data_min, data_max = np.min(ndimage_data), np.max(ndimage_data)
         dummy_img = pg.ImageItem(np.array([[data_min], [data_max]]), dtype=np.ubyte)
         layer['_lut_widgets'].setImageItem(dummy_img)
@@ -353,96 +715,10 @@ class BrainAtlas(Module):
                 self._tooltip_to_layer_centroid = layer_name
             
             self.update_tooltip_to_layer_centroid()
-
-    def update_tooltip_to_layer_centroid(self):
-        if self._tooltip_to_layer_centroid is not None and self._tooltip_to_layer_centroid in self.layers:
-            layer = self.layers[self._tooltip_to_layer_centroid]
-
-            # Layer mask retreival
-            if '_ndimage_mask' in layer:
-                layer_mask = layer['_ndimage_mask']
-            else:
-                atlas_shape = self.raw_rgba_ndimage_compound.shape[:3]
-                layer_mask = np.ones(atlas_shape)
-            
-            # Get coordinates of all voxels in the structure
-            coords = np.argwhere(layer_mask)
-
-            # Convert voxel coordinates to physical space (microns)
-            centroid_voxel = coords.mean(axis=0)
-            centroid_physical_tmat = np.eye(4)
-            centroid_physical_tmat[3, :3] = centroid_voxel
-            centroid_physical_tmat = centroid_physical_tmat @ self.brain_atlas_tmat
-
-            # Keep translation component only
-            translation_only_centroid_tmat = np.eye(4)
-            translation_only_centroid_tmat[3, :3] = centroid_physical_tmat[3, :3]
-
-            # Apply tmat to tooltip
-            self.parent_viewer.tooltip.release_from_modules(sender_module=self)
-            self.parent_viewer.tooltip.tooltip_tmat = translation_only_centroid_tmat
-            
-        else: # Tooltip NOT on layer centroid
-            self.parent_viewer.tooltip.tooltip_tmat = None
-        
-        self.parent_viewer.tooltip.update_rendered_object()
-            
-    def release_tooltip(self):
-        self._tooltip_to_layer_centroid = None
-        uncheck_all_checkboxes_in_qtree_column(self.atlas_layers_model, checkbox_column=1)
     
     def _structure_layer_setup(self, layer_name):
         self._add_layer_to_layers_tree_view(layer_name)
         self._add_lut_editor_to_dock(layer_name)
-        self._on_layers_update()
-
-    def add_structure_layer(self, structure, hemisphere):
-
-        # Catch parameters errors
-        if structure not in self.bg_atlas_structures:
-            raise ValueError(f'{structure} structure not available for {self.bg_atlas.atlas_name}. Available structures are:\n\t- {"\n\t- ".join(self.bg_atlas_structures.keys())}')
-        if hemisphere not in ['Both Hemispheres', 'Left Hemisphere', 'Right Hemisphere']:
-            raise ValueError('Invalid hemisphere name -> hemisphere_id has to be either "Both Hemispheres", "Left Hemisphere" or "Right Hemisphere"')
-        
-        number_of_existing_struture_layers = len([kk for kk, ll in self.layers.items() if 'atlas_structure_name' in ll])
-        layer_name = f'{structure} ({hemisphere})'
-
-        layer_name_suffix = 1
-        while layer_name in self.layers:
-            layer_name = f'{layer_name} {layer_name_suffix}'
-            layer_name_suffix += 1
-
-        self.layers[layer_name] = {
-            '_visible': True,
-            'atlas_structure_name': structure,
-            'atlas_structure_hemisphere': hemisphere,
-            'ndimage_from_layer_name': 'Reference Atlas',
-            'lut_preset': self.get_highlighted_structure_lut_preset(
-                structure_index=number_of_existing_struture_layers
-            ),
-            'levels_preset': (0, 255),
-            'skip_plane_slicing': True,
-        }
-        self._structure_layer_setup(layer_name)
-        
-    
-    def remove_altas_layer(self, layer_name=None, tree_viewer_layer_index=None):
-        
-        if layer_name is None:
-            if tree_viewer_layer_index is None:
-                raise ValueError('Please provide either tree_viewer_layer_index or layer_name.')
-            layer_name = self._get_layer_name_by_tree_viewer_layer_index(tree_viewer_layer_index)
-            
-        if layer_name not in self.layers:
-            raise IndexError('{layer_name} not in atlas layers -> cannot be removed')
-        
-        if layer_name == 'Reference Atlas':
-            self.remove_reference_atlas()
-        else: # Rm individual structure layer
-            self._remove_lut_editor_from_dock(layer_name)
-            self._remove_layer_from_layers_tree_view(layer_name=layer_name, tree_viewer_layer_index=tree_viewer_layer_index)
-
-            _ = self.layers.pop(layer_name)
         self._on_layers_update()
 
     def _add_structure_layer_btn_pressed(self):
@@ -464,26 +740,9 @@ class BrainAtlas(Module):
             return
 
         self.remove_altas_layer(tree_viewer_layer_index=tree_viewer_layer_index)
-
-    @property
-    def bg_atlas(self):
-        if self._bg_atlas is None:
-            if 'Reference Atlas' in self.layers:
-                if 'ref_altas_name' not in self.layers['Reference Atlas']:
-                    raise ValueError('"ref_altas_name" missing in "Reference Atlas" layer')
-                
-                offline_atlas_name = self.layers['Reference Atlas']['ref_altas_name']
-
-                if offline_atlas_name not in brainglobe_atlasapi.list_atlases.get_downloaded_atlases():
-                    raise ValueError(f'This atlas is not available locally.\n Run\n\tbrainglobe install -a {offline_atlas_name}\nin a Terminal to do so.\nRestart CoperniFUS once the download is complete.')
-                
-                self._init_attributes()
-                self._bg_atlas = BrainGlobeAtlas(offline_atlas_name, check_latest=False)
-        
-        return self._bg_atlas
     
     def _reference_atlas_setup(self, layer_name):
-        self.update_structure_selector()
+        self._update_structure_selector()
         self._add_layer_to_layers_tree_view(layer_name)
         self._add_lut_editor_to_dock(layer_name)
 
@@ -493,39 +752,6 @@ class BrainAtlas(Module):
         self.rm_structure_layer_btn.setEnabled(True)
 
         self._save_layers_state_to_cache()
-
-    def add_reference_atlas(self, offline_atlas_name):
-        
-        if offline_atlas_name not in brainglobe_atlasapi.list_atlases.get_downloaded_atlases():
-            raise ValueError(f'This atlas is not available locally.\n Run\n\tbrainglobe install -a {offline_atlas_name}\nin a Terminal to do so.\nRestart CoperniFUS once the download is complete.')
-
-        self.remove_reference_atlas()
-        
-        layer_name = 'Reference Atlas'
-        self.layers[layer_name] = {
-            '_visible': True,
-            'ref_altas_name': offline_atlas_name,
-            'lut_preset': self.get_ref_atlas_lut_preset(),
-            'levels_preset': (0, 255),
-            'skip_plane_slicing': False,
-        }
-
-        self._reference_atlas_setup(layer_name)
-        self.add_rendered_object()
-
-    def remove_reference_atlas(self):
-        self.delete_rendered_object()
-        self._clear_layers_tree_view()
-        self._clear_LUT_editor_floating_dock()
-        self._init_attributes()
-        self.layers = None
-        self._save_layers_state_to_cache()
-
-        self.update_atlas_selector()
-        self.structure_selector.setEnabled(False)
-        self.hemisphere_selector.setEnabled(False)
-        self.add_structure_layer_btn.setEnabled(False)
-        self.rm_structure_layer_btn.setEnabled(False)
 
     def _new_reference_atlas_selected(self):
         """ Triggered whenever atlas_selector selection changes """
@@ -552,35 +778,6 @@ class BrainAtlas(Module):
             else:
                 self.parent_viewer.statusBar().showMessage('Proceeding with offline atlases', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
 
-    # === RENDER FUNCS ===
-
-    def add_rendered_object(self):
-        self.delete_rendered_object()
-        # self._new_reference_atlas_selected()
-
-        if self.bg_atlas is not None:
-
-            self.update_atlas_user_params_editors()
-
-            self.atlas_glvol = gl.GLVolumeItem(self.rgba_ndimage_compound, smooth=True, glOptions='translucent')
-            self.parent_viewer.gl_view.addItem(self.atlas_glvol, name='Brain atlas compound')
-            self.atlas_glvol.setDepthValue(1) # GL volumes -> render tree foreground
-            self.update_atlas_transform()
-
-        self.update_atlas_selector()
-
-    def delete_rendered_object(self):
-        if self.atlas_glvol in self.parent_viewer.gl_view.items:
-            self.parent_viewer.gl_view.removeItem(self.atlas_glvol)
-            self.atlas_glvol = None
-
-    def update_rendered_object(self):
-        if self.atlas_glvol is not None:
-            self.update_atlas_transform()
-            self.atlas_glvol.setData(self.rgba_ndimage_compound)
-
-    # --- Module specific attributes ---
-
     def _parse_editor(self, src_editor, param_name, unit='', param_type='float'):
         if param_type == 'int':
             edited_value = int(src_editor.text())
@@ -594,98 +791,10 @@ class BrainAtlas(Module):
         self.parent_viewer.update_rendered_view()
 
     @property
-    def available_atlases(self):
-        if self._available_atlases is None:
-            self._offline_atlases_names = brainglobe_atlasapi.list_atlases.get_downloaded_atlases()
-            formatted_offline_atlases = {
-                f'offline_{atlas_name}': f'{atlas_name} | v{brainglobe_atlasapi.list_atlases.get_local_atlas_version(atlas_name)} (DOWNLOADED)'
-                for (ii, atlas_name) in enumerate(self._offline_atlases_names)
-            }
-
-            formatted_online_atlases = None
-            if not self.skip_online_atlas_retreival:
-                self.parent_viewer.statusBar().showMessage('Loading online atlas list')
-                try:
-                    online_atlases = brainglobe_atlasapi.list_atlases.get_all_atlases_lastversions()
-                    self._online_atlases_names = list(online_atlases.keys())
-                    online_atlases_versions = list(online_atlases.values())
-
-                    formatted_online_atlases = {
-                        f'online_{atlas_name}': f'{atlas_name} | v{online_atlases_versions[ii]} (online)'
-                        for (ii, atlas_name) in enumerate(self._online_atlases_names)
-                        if atlas_name not in formatted_offline_atlases
-                    }
-                except:
-                    pass
-            
-            self.parent_viewer.statusBar().clearMessage()
-            if formatted_online_atlases is None:
-                formatted_online_atlases = {
-                    None: 'Offline mode -> Only downloaded atlas are visible'
-                }
-
-            self._available_atlases = {
-                'no_atlas': 'Select Atlas',
-                **formatted_offline_atlases,
-                **formatted_online_atlases
-            }
-        return self._available_atlases
-    
-    @available_atlases.setter
-    def available_atlases(self, value):
-        self._available_atlases = value
-
-    @property
     def _default_subsampling_stride(self):
         return int((np.prod(self.bg_atlas.shape) / self._DEFAULT_N_VOXELS)**(1/3))
 
-    @property
-    def atlas_resolution(self):
-        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
-        atlas_res = subs_stride * np.array(self.bg_atlas.resolution) * 1e-6 # um to meters
-        return atlas_res
-    
-    @property
-    def brain_atlas_tmat(self):
-        if self._brain_atlas_tmat is None:
-            resolution = self.atlas_resolution
-            atlas_shape = self.raw_rgba_ndimage_compound.shape
-
-            # Axes ordering correction
-            source_space = bgs.AnatomicalSpace(self.bg_atlas.orientation, shape=atlas_shape[:3])
-            target_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.parent_viewer.ATLAS_SPACE_CONVENTION))
-            axes_order_idx = source_space.map_to(target_space)[0]
-            space_conversion_tmat = source_space.transformation_matrix_to(target_space)
-            self._brain_atlas_tmat = space_conversion_tmat.T
-
-            # Setting atlas scale based on resolution
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.scale_mat(resolution)
-
-            # Img space origin to atlas center
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('x', -(resolution[0] * atlas_shape[axes_order_idx[0]]) / 2)
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('y', -(resolution[1] * atlas_shape[axes_order_idx[1]]) / 2)
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('z', -(resolution[2] * atlas_shape[axes_order_idx[2]]) / 2)
-
-            atlas_transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_user_param('atlas_transforms_str')
-            )
-
-            for tr_mat in atlas_transforms_matrices:
-                self._brain_atlas_tmat = self._brain_atlas_tmat @ tr_mat
-        
-        # Apply anatomical landmark calibration transformation
-        anatomically_calibrated_brain_atlas_tmat = self._brain_atlas_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
-        
-        return anatomically_calibrated_brain_atlas_tmat
-    
-    @brain_atlas_tmat.setter
-    def brain_atlas_tmat(self, value):
-        if value is not None:
-            if value.shape != (4, 4):
-                raise ValueError('Transformation matrix should be of shape (4, 4)')
-        self._brain_atlas_tmat = value
-
-    def update_atlas_selector(self):
+    def _update_atlas_selector(self):
         try: self.atlas_selector.currentIndexChanged.disconnect() 
         except Exception: pass
 
@@ -706,7 +815,7 @@ class BrainAtlas(Module):
 
         self.atlas_selector.currentIndexChanged.connect(self._new_reference_atlas_selected)
 
-    def update_structure_selector(self):
+    def _update_structure_selector(self):
         if self.bg_atlas is None:
             self.bg_atlas_structures = {'Select Structure': None}
         else:
@@ -726,43 +835,22 @@ class BrainAtlas(Module):
         self.hemisphere_selector.setCurrentText('Both Hemispheres')
         self.hemisphere_selector.setEnabled(True)
 
-    def update_atlas_user_params_editors(self):
+    def _update_atlas_user_params_editors(self):
         self.subsampling_stride_editor.setText(str(self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)))
         self.atlas_transform_editor.setText(self.get_user_param('atlas_transforms_str'))
 
-    def update_atlas_transform(self):
+    def _update_atlas_transform(self):
         self.brain_atlas_tmat = None
         self.atlas_voxel_coordinates = None # Reset voxels coordinates
         if self.atlas_glvol is not None:
             self.atlas_glvol.resetTransform()
             self.atlas_glvol.applyTransform(pyqtg.QMatrix4x4(self.brain_atlas_tmat.T.ravel()), local=False)
 
-    @property
-    def atlas_voxel_coordinates(self):
-        # Check if tmat has changed since last update
-        if self._tmat_version_hash != object_list_hash([self.brain_atlas_tmat]):
-            self._atlas_voxel_coordinates = None # Recompute if it is
-        if self._atlas_voxel_coordinates is None:
-            atlas_shape = self.raw_rgba_ndimage_compound.shape[:3]
-            voxel_coords = np.mgrid[0:atlas_shape[0], 0:atlas_shape[1], 0:atlas_shape[2]]
-            raveled_coords = voxel_coords.reshape(3, -1).T
-
-            # Apply atlas spatial transformations
-            self.update_atlas_transform()
-            raveled_coords_4by = np.vstack([raveled_coords.T, np.ones(len(raveled_coords))]).T
-            transformed_coords = raveled_coords_4by @ self.brain_atlas_tmat
-            self._atlas_voxel_coordinates = transformed_coords[:, :3]
-            self._tmat_version_hash = object_list_hash([self.brain_atlas_tmat])
-        return self._atlas_voxel_coordinates
-    
-    @atlas_voxel_coordinates.setter
-    def atlas_voxel_coordinates(self, value):
-        self._atlas_voxel_coordinates = value
-
-    def compute_slicing_plane(self):
+    def _compute_slicing_plane(self):
+        """ Computes a binary mask based on the slicing plane location and hides (opacity=0) voxels affected by the slicing """
         slicing_plane_pts = self.parent_viewer.slicing_plane_3pts
         if slicing_plane_pts is not None:
-            if not self.parent_viewer.postpone_slicing_plane_computation or self._slicing_plane_mask is None:
+            if not self.parent_viewer._postpone_slicing_plane_computation or self._slicing_plane_mask is None:
                 raveled_mask = np.dot(
                     self.atlas_voxel_coordinates - slicing_plane_pts[0],
                     np.cross(
@@ -777,9 +865,7 @@ class BrainAtlas(Module):
 
             self._rgba_ndimage_compound[self._slicing_plane_mask, 3] = 0
 
-    # ========== Multi layer compound atlas eval ==========
-
-    def get_highlighted_structure_lut_preset(self, structure_index=0):
+    def _get_highlighted_structure_lut_preset(self, structure_index=0):
         rgb_color = self._CYCLIC_STRUCTURES_COLORS[structure_index%len(self._CYCLIC_STRUCTURES_COLORS)][:3]
         lut_state = {
             'mode': 'rgb',
@@ -790,7 +876,7 @@ class BrainAtlas(Module):
         }
         return lut_state
 
-    def get_ref_atlas_lut_preset(self):
+    def _get_ref_atlas_lut_preset(self):
         ALTAS_OPACITY = 20
         lut_state = {
             'mode': 'rgb',
@@ -804,7 +890,7 @@ class BrainAtlas(Module):
         }
         return lut_state
     
-    def apply_lut_to_ndimage(self, ndimage_data, lut, levels):
+    def _apply_lut_to_ndimage(self, ndimage_data, lut, levels):
         """ Converts ndim image data to ndim RGBA based on a lookup table (LUT) """
         # Normalize data to levels
         min_val, max_val = levels
@@ -813,7 +899,7 @@ class BrainAtlas(Module):
         rgba = lut[indices]  # shape: (..., 4)
         return rgba
 
-    def alpha_blend(self, background, foreground):
+    def _alpha_blend(self, background, foreground):
         """
         Alpha blending of two N-dimensional uint8 RGBA images.
 
@@ -836,7 +922,7 @@ class BrainAtlas(Module):
         out = np.concatenate((out_rgb, out_a), axis=-1).astype(np.uint8)
         return out
     
-    def reference_atlas_ndimage_data(self, ref_altas_name, subsampling_stride):
+    def _reference_atlas_ndimage_data(self, ref_altas_name, subsampling_stride):
         if self.bg_atlas.atlas_name != ref_altas_name:
             self._bg_atlas = None
 
@@ -846,8 +932,11 @@ class BrainAtlas(Module):
         subsampled_ref_atlas_uint8 = ref_atlas_uint8[::subsampling_stride, ::subsampling_stride, ::subsampling_stride]
 
         return  subsampled_ref_atlas_uint8
+    
+# ===
 
-    def get_struct_mask(self, structure_name, hemisphere_id, subsampling_stride):
+    def _get_struct_mask(self, structure_name, hemisphere_id, subsampling_stride):
+        
 
         # Structure acronym retreival from name displayed in selector
         if structure_name not in self.bg_atlas_structures:
@@ -873,7 +962,7 @@ class BrainAtlas(Module):
 
         return subsampled_struct_mask
 
-    def get_layer_ndimage_data(self, layer_name, apply_mask=True):
+    def _get_layer_ndimage_data(self, layer_name, apply_mask=True):
         """
         layers: dictionary of all the layers
         layer_name: dict key of the layer from which ndimage data has to be retreived
@@ -885,9 +974,9 @@ class BrainAtlas(Module):
             ndimage_data = self.layers[layer_name]['_ndimage_data']
         else: # Evaluate data content if '_ndimage_data' not in dict
             if 'ref_altas_name' in self.layers[layer_name]:
-                ndimage_data = self.reference_atlas_ndimage_data(self.layers[layer_name]['ref_altas_name'], subsampling_stride=subs_stride)
+                ndimage_data = self._reference_atlas_ndimage_data(self.layers[layer_name]['ref_altas_name'], subsampling_stride=subs_stride)
             elif 'ndimage_from_layer_name'in self.layers[layer_name]:
-                ndimage_data = self.get_layer_ndimage_data(self.layers[layer_name]['ndimage_from_layer_name'], apply_mask=False)
+                ndimage_data = self._get_layer_ndimage_data(self.layers[layer_name]['ndimage_from_layer_name'], apply_mask=False)
             else:
                 raise ValueError(f'ndimage data reference not provided in layer {layer_name}')
 
@@ -900,7 +989,7 @@ class BrainAtlas(Module):
                 ndimage_mask = self.layers[layer_name]['_ndimage_mask']
             else: # Evaluate mask data content if '_ndimage_mask' not in dict
                 if 'atlas_structure_name' in self.layers[layer_name] and 'atlas_structure_hemisphere' in self.layers[layer_name]:
-                    ndimage_mask = self.get_struct_mask(
+                    ndimage_mask = self._get_struct_mask(
                         self.layers[layer_name]['atlas_structure_name'],
                         self.layers[layer_name]['atlas_structure_hemisphere'],
                         subsampling_stride=subs_stride
@@ -915,87 +1004,6 @@ class BrainAtlas(Module):
             ndimage_data = ndimage_data[ndimage_mask] # Apply mask
 
         return ndimage_data
-    
-    @property
-    def ndimage_plane_slicing_application_mask(self):
-        if self._ndimage_plane_slicing_application_mask is None:
-            self._ndimage_plane_slicing_application_mask = np.ones(self.raw_rgba_ndimage_compound.shape[:3], dtype=bool)
-        return self._ndimage_plane_slicing_application_mask
-    
-    @property
-    def raw_rgba_ndimage_compound(self):
-
-        def apply_plane_slicing_on_layer(layer):
-            apply_plane_slicing = not layer['skip_plane_slicing'] if 'skip_plane_slicing' in layer else False
-            return apply_plane_slicing
-        
-        def layer_visible(layer):
-            visible = layer['_visible'] if '_visible' in layer else True
-            return visible
-
-        subs_stride = self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)
-        ndimage_params_id = f'{subs_stride}'
-
-        # Compute if undefined or subsampling stride has changed
-        if self._raw_rgba_ndimage_compound is None or self._raw_rgba_ndimage_compound[0] != ndimage_params_id:
-
-            base_layer_name = list(self.layers.keys())[0]
-            layer = self.layers[base_layer_name]
-
-            # Get ndimage data
-            ndimage_data = self.get_layer_ndimage_data(base_layer_name, apply_mask=False)
-
-            # Evaluate plane slicing binary mask for layer
-            self._ndimage_plane_slicing_application_mask = apply_plane_slicing_on_layer(layer) * np.ones(ndimage_data.shape[:3], dtype=bool)
-            
-            # Get LUT from widget
-            lut = layer['_lut_widgets'].item.getLookupTable(n=256, alpha=True)
-            levels = layer['_lut_widgets'].item.getLevels()
-
-            # Compute rgba ndimage
-            _raw_rgba_ndimage_compound = self.apply_lut_to_ndimage(ndimage_data, lut, levels)
-            if not layer_visible(layer):
-                _raw_rgba_ndimage_compound[..., 3] = 0 # Make fully transparent
-
-            for layer_ii, (layer_name, layer) in enumerate(self.layers.items()):
-                if layer_ii > 0 and layer_visible(layer): # Skip base layer -> already processed AND invisible layers
-                    # Get ndimage data
-                    ndimage_data = self.get_layer_ndimage_data(layer_name, apply_mask=True)
-
-                    # Get LUT from widget
-                    lut = layer['_lut_widgets'].item.getLookupTable(n=256, alpha=True)
-                    levels = layer['_lut_widgets'].item.getLevels()
-
-                    # Compute rgba ndimage
-                    rgba_ndimage = self.apply_lut_to_ndimage(ndimage_data, lut, levels)
-
-                    if '_ndimage_mask' in layer:
-                        _raw_rgba_ndimage_compound[layer['_ndimage_mask']] = self.alpha_blend(
-                            _raw_rgba_ndimage_compound[layer['_ndimage_mask']], rgba_ndimage
-                        )
-
-                        # Evaluate plane slicing binary mask for layer
-                        self._ndimage_plane_slicing_application_mask[layer['_ndimage_mask']] = apply_plane_slicing_on_layer(layer)
-
-                    else:
-                        _raw_rgba_ndimage_compound = self.alpha_blend(_raw_rgba_ndimage_compound, rgba_ndimage)
-
-                        # Evaluate plane slicing binary mask for layer
-                        self._ndimage_plane_slicing_application_mask = np.logical_and(
-                            self._ndimage_plane_slicing_application_mask,
-                            apply_plane_slicing_on_layer(layer) * np.ones(ndimage_data.shape[:3], dtype=bool)
-                        )
-
-            self._raw_rgba_ndimage_compound = (ndimage_params_id, _raw_rgba_ndimage_compound)
-
-        return self._raw_rgba_ndimage_compound[1]
-    
-    @property
-    def rgba_ndimage_compound(self):
-        self._rgba_ndimage_compound = self.raw_rgba_ndimage_compound.copy()
-        self.compute_slicing_plane()
-
-        return self._rgba_ndimage_compound
     
     def _on_layers_update(self):
         """ Callback to update RGBA volume on LUT edition """

@@ -1,0 +1,5 @@
+Assets provided for tutorials were sourced from the following publications:
+
+- Rat skull mesh (Pohl2013_coarse.stl) -> Modified from https://doi.org/10.6084/m9.figshare.777745.v1 which supplements the conference proceedings Pohl, Bernd M., Fernando Gasca, Olaf Christ, and Ulrich G. Hofmann. “3D Printers May Reduce Animal Numbers to Train Neuroengineering Procedures.” In 2013 6th International IEEE/EMBS Conference on Neural Engineering (NER), 887–90. San Diego, CA, USA: IEEE, 2013. https://doi.org/10.1109/NER.2013.6696077.
+
+- Rat Bregma / Lambda location template (Papp2014_bregma_loc_mirrored.png) -> Figure excerpt from Papp, Eszter A., Trygve B. Leergaard, Evan Calabrese, G. Allan Johnson, and Jan G. Bjaalie. “Waxholm Space Atlas of the Sprague Dawley Rat Brain.” NeuroImage 97 (August 2014): 374–86. https://doi.org/10.1016/j.neuroimage.2014.04.001.

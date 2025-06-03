@@ -13,6 +13,7 @@ class RefImageAsPlane(Module):
         'origin_px_xloc': 0, # [px]
         'origin_px_yloc': 0, # [px]
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         super().__init__(parent_viewer, 'ref_image_as_plane_params', **kwargs)
@@ -22,28 +23,66 @@ class RefImageAsPlane(Module):
         self.ref_image_name = None
         self.ref_image = None
     
-    # --- Atlas specific cache wrapper ---
-    
-    def get_user_param(self, param_name, default_value=None):
-        if self.ref_image_name is not None:
-            param_value = super().get_user_param(
-                param_name,
-                additional_identifiers=[self.ref_image_name],
-                default_value=default_value)
-        else:
-            param_value = self._DEFAULT_PARAMS[param_name]
-        return param_value
+    # --- Module specific public attributes ---
 
-    def set_user_param(self, param_name, param_value):
-        if self.ref_image_name is not None:
-            super().set_user_param(
-                param_name,
-                additional_identifiers=[self.ref_image_name],
-                param_value=param_value)
+    def import_image(self, image_path):
+        """ Import a reference image to the viewer by providing the image_path.
+            Loaded image can be removed by calling the delete_rendered_object method """
+        if image_path == '':
+            raise ValueError('Invalid file path')
+        else:
+            if self._load_img(image_path):
+                self.ref_image_name = pathlib.Path(image_path).stem
+                self.parent_viewer.cache.set_attr(
+                    ['ref_image_as_plane_params', 'last_used_img_name'],
+                    self.ref_image_name
+                )
+                self.set_user_param('file_path', image_path)
+
+    @property
+    def ref_image_tmat(self):
+        """ Holds the reference image affine transformation matrix """
+        if self._ref_image_tmat is None:
+            px_size = self.get_user_param('px_size')
+            self._ref_image_tmat = af_tr.scale_mat(px_size)
+
+            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('x', -self.get_user_param('origin_px_xloc') * px_size)
+            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('y', -self.get_user_param('origin_px_yloc') * px_size)
+
+            if self.get_user_param('plane') == 'X':
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
+            if self.get_user_param('plane') == '-X':
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 180)
+            if self.get_user_param('plane') == 'Y':
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
+            if self.get_user_param('plane') == '-Y':
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 180)
+            if self.get_user_param('plane') == '-Z':
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('x', 180)
+        
+        # Apply anatomical landmark calibration transformation if enabled
+        if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
+            anatomically_calibrated_img_tmat = self._ref_image_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
+        else:
+            anatomically_calibrated_img_tmat = self._ref_image_tmat
+
+        return anatomically_calibrated_img_tmat
+    
+    @ref_image_tmat.setter
+    def ref_image_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
+        self._ref_image_tmat = value
 
     # --- Required module attributes ---
 
     def init_dock(self):
+        """ Called on GUI setup to add a module dock """
         # Setting up dock layout
         self.dock = pyqtw.QDockWidget('Reference Image As Plane', self.parent_viewer)
         self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.LeftDockWidgetArea, self.dock)
@@ -54,7 +93,7 @@ class RefImageAsPlane(Module):
 
         # Import button
         self.select_ref_img_btn = pyqtw.QPushButton('Select Image')
-        self.select_ref_img_btn.clicked.connect(self._import_image)
+        self.select_ref_img_btn.clicked.connect(self._on_import_image_btn_press)
         self.dock_layout.addWidget(self.select_ref_img_btn, 0, 0, 1, 3) # Y, X, w, h
 
         # Pixel size setter
@@ -94,15 +133,8 @@ class RefImageAsPlane(Module):
 
         self._enable_disable_editors(False)
 
-    def delete_rendered_object(self):
-        if self.ref_image_glitem is not None:
-            self.parent_viewer.gl_view.removeItem(self.ref_image_glitem)
-            self.parent_viewer.cache.set_attr(['ref_image_as_plane_params', 'last_used_img_name'], None)
-        self.select_ref_img_btn.setText('Select Image')
-        self.select_ref_img_btn.clicked.disconnect()
-        self.select_ref_img_btn.clicked.connect(self._import_image)
-
     def add_rendered_object(self):
+        """ Called when populating the viewer with the module rendered objects """
         try: # Load previous ref image if valid path
             self.ref_image_name = self.parent_viewer.cache.get_attr(
                 ['ref_image_as_plane_params', 'last_used_img_name'])
@@ -113,9 +145,40 @@ class RefImageAsPlane(Module):
             pass
 
     def update_rendered_object(self):
+        """ Called on render view updates """
         if self.ref_image_glitem is not None:
             self.ref_image_glitem.resetTransform()
             self.ref_image_glitem.applyTransform(pyqtg.QMatrix4x4(self.ref_image_tmat.T.ravel()), local=False)
+
+    def delete_rendered_object(self):
+        """ Called on deletion of the module rendered objects """
+        if self.ref_image_glitem is not None:
+            self.parent_viewer.gl_view.removeItem(self.ref_image_glitem)
+            self.parent_viewer.cache.set_attr(['ref_image_as_plane_params', 'last_used_img_name'], None)
+        self.select_ref_img_btn.setText('Select Image')
+        self.select_ref_img_btn.clicked.disconnect()
+        self.select_ref_img_btn.clicked.connect(self._on_import_image_btn_press)
+    
+    # --- Atlas specific cache wrapper ---
+    
+    def get_user_param(self, param_name, default_value=None):
+        """ Get module configuration parameter stored in cache (or default values if non existant) """
+        if self.ref_image_name is not None:
+            param_value = super().get_user_param(
+                param_name,
+                additional_identifiers=[self.ref_image_name],
+                default_value=default_value)
+        else:
+            param_value = self._DEFAULT_PARAMS[param_name]
+        return param_value
+
+    def set_user_param(self, param_name, param_value):
+        """ Set module configuration parameter to cache """
+        if self.ref_image_name is not None:
+            super().set_user_param(
+                param_name,
+                additional_identifiers=[self.ref_image_name],
+                param_value=param_value)
     
     # --- Module specific attributes ---
 
@@ -124,7 +187,7 @@ class RefImageAsPlane(Module):
         edited_text_nounit = edited_text[:-len(unit)]
         edited_value = si_parse(edited_text_nounit.replace('u', 'µ'))
         self.set_user_param(param_name, edited_value)
-        self.update_img_transform()
+        self._update_img_transform()
 
     def _update_editors(self):
         self.px_size_editor.setText(si_format(
@@ -148,19 +211,12 @@ class RefImageAsPlane(Module):
         self.origin_px_xloc_editor.setEnabled(enable)
         self.origin_px_yloc_editor.setEnabled(enable)
 
-    def _import_image(self):
+    def _on_import_image_btn_press(self):
         import_path = pyqtw.QFileDialog.getOpenFileName(parent=self.parent_viewer, caption=self.parent_viewer.tr("Select an image"), filter=self.parent_viewer.tr('Image (*.png)'))
-
-        if import_path[0] == '':
-            self.parent_viewer.statusBar().showMessage('Invalid file path', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
-        else:
-            if self._load_img(import_path[0]):
-                self.ref_image_name = pathlib.Path(import_path[0]).stem
-                self.parent_viewer.cache.set_attr(
-                    ['ref_image_as_plane_params', 'last_used_img_name'],
-                    self.ref_image_name
-                )
-                self.set_user_param('file_path', import_path[0])
+        try:
+            self.import_image(import_path[0])
+        except Exception as e:
+            self.parent_viewer.show_error_popup('Reference image import', error_description=str(e))
             
     def _load_img(self, img_path):
         success = False
@@ -173,7 +229,7 @@ class RefImageAsPlane(Module):
             self._show_image()
             success = True
         else:
-            self.parent_viewer.statusBar().showMessage('Ref img file not found', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
+            raise ValueError('Reference image file not found')
         return success
 
     def _show_image(self):
@@ -193,49 +249,10 @@ class RefImageAsPlane(Module):
         self.parent_viewer.gl_view.addItem(self.ref_image_glitem, name=f'Ref. image {self.ref_image_name}')
         self.ref_image_glitem.setDepthValue(-1) # GL images -> render tree background
         self._enable_disable_editors(True)
-        self.update_img_transform()
+        self._update_img_transform()
         self._update_editors()
 
-    @property
-    def ref_image_tmat(self):
-        if self._ref_image_tmat is None:
-            px_size = self.get_user_param('px_size')
-            self._ref_image_tmat = af_tr.scale_mat(px_size)
-
-            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('x', -self.get_user_param('origin_px_xloc') * px_size)
-            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('y', -self.get_user_param('origin_px_yloc') * px_size)
-
-            if self.get_user_param('plane') == 'X':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
-            if self.get_user_param('plane') == '-X':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 180)
-            if self.get_user_param('plane') == 'Y':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
-            if self.get_user_param('plane') == '-Y':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 180)
-            if self.get_user_param('plane') == '-Z':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('x', 180)
-        
-        # Apply anatomical landmark calibration transformation if enabled
-        if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
-            anatomically_calibrated_img_tmat = self._ref_image_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
-        else:
-            anatomically_calibrated_img_tmat = self._ref_image_tmat
-
-        return anatomically_calibrated_img_tmat
-    
-    @ref_image_tmat.setter
-    def ref_image_tmat(self, value):
-        if value is not None:
-            if value.shape != (4, 4):
-                raise ValueError('Transformation matrix should be of shape (4, 4)')
-        self._ref_image_tmat = value
-
-    def update_img_transform(self):
+    def _update_img_transform(self):
         self.ref_image_tmat = None # Reset
         self.update_rendered_object()
 
@@ -259,4 +276,4 @@ class RefImageAsPlane(Module):
         self._update_plane_button_ui(btn_normal_axis, reverse)
 
         self.set_user_param('plane', normal_axis)
-        self.update_img_transform()
+        self._update_img_transform()

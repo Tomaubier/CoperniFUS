@@ -5,6 +5,7 @@ class Module:
     """
 
     _DEFAULT_PARAMS = {}
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, module_id, **kwargs) -> None:
         self.module_kwargs = kwargs
@@ -13,6 +14,7 @@ class Module:
     
     @property
     def module_id(self):
+        """ Holds the module identifier for reference in get_module_object_from_name """
         if not isinstance(self._module_id, str):
             raise ValueError('Please make sure that self.module_id is defined in the __init__ of the module. module_id should be a string without any dot characters.')
         elif isinstance(self._module_id, str) and '.' in self._module_id:

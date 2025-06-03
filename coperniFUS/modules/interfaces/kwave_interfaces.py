@@ -49,6 +49,9 @@ def axisymmetric_interpolation(f_rz, r_axisymm, z_axisymm, x_cart, y_cart, z_car
 
 
 class KwaveHomogeneousAxisymetricBowlSim():
+    """ Handles axisymmetric (AS) kWave simulations involving a spherical transducer in an homogeneous media
+        -> mostly used for domain size reduction using coupled AS-3D simulation (IN BETA -> COUPLING MIGHT LEAD TO INCONSISTENT PRESSURES ACCROSS DOMAINS)
+    """
 
     KWAVE_CPP_CMD_TYPE = 'powershell'
 
@@ -116,6 +119,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
         return dir_path
 
     def get_kwave_cpp_cmd(self, kw_hash):
+        """ Returns the command that needs to be executed to run a simulation using C++ kwave scripts from a terminal """
         if self.KWAVE_CPP_CMD_TYPE == 'powershell':
             cmd = f"""$kwave_params_hash = '{kw_hash}'\n$t_sensor_start = {self.sensor.record_start_index}\n$kwave_io_dirpath = '{self.cpp_io_files_dir_path}'\n$input_fpath = $kwave_io_dirpath + 'kwave_AS_input_' + $kwave_params_hash + '.h5'\n$output_fpath = $kwave_io_dirpath + 'kwave_AS_output_' + $kwave_params_hash + '.h5'\nZ:\\kwave_python\\k-wave-toolbox-version-1.3-cpp-windows-executables/kspaceFirstOrder-{self.cpp_engine} -i $input_fpath -o $output_fpath -s $t_sensor_start --p_final --p_max -p -u"""
         else:
@@ -145,6 +149,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
     @property
     def simulation_params(self):
+        """ Holds the simulation parameters """
         if self._simulation_params is None:
             self._simulation_params = self.DEFAULT_SIM_PARAMS
             self._simulation_hash = object_list_hash(self._simulation_params)[:8]
@@ -163,12 +168,14 @@ class KwaveHomogeneousAxisymetricBowlSim():
                 self._init_quantities() # Reset quantities for re-computation with new input params
     
     def set_simulation_param(self, param_name, value):
+        """ Call to set simulation parameters """
         sim_params = copy.deepcopy(self.simulation_params)
         sim_params[param_name] = value
         self.simulation_params = sim_params
 
     @property
     def dx(self):
+        """ Kgrid spatial sampling in the x and y directions. """
         if self._dx is None:
             self.kgrid # dx computation in kgrid definition
         return self._dx
@@ -178,8 +185,8 @@ class KwaveHomogeneousAxisymetricBowlSim():
         self._dx = value
 
     @property
-    def Nx(self): 
-        """ Acoustic axis (z) """
+    def Nx(self):
+        """ Number of spatial sampling points in the x direction. Acoustic axis (z) in the usual kwave convention. """
         if self._Nx is None:
             self.kgrid # Nx computation in kgrid definition
         return self._Nx
@@ -190,7 +197,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
     @property
     def Ny(self):
-        """ Lateral axis (r) """
+        """ Number of spatial sampling points in the y direction. Lateral axis (r) in the usual kwave convention. """
         if self._Ny is None:
             self.kgrid # Ny computation in kgrid definition
         return self._Ny
@@ -201,8 +208,9 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
     @property
     def ppp(self):
+        """ Number of points per periods """
         if self._ppp is None:
-            self.kgrid # Ny computation in kgrid definition
+            self.kgrid # ppp computation in kgrid definition
         return self._ppp
     
     @ppp.setter
@@ -211,6 +219,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
     
     @property
     def dt(self):
+        """ Temporal sampling duration """
         if self._dt is None:
             self.kgrid # Ny computation in kgrid definition
         return self._dt
@@ -221,6 +230,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
     
     @property
     def Nt(self):
+        """ Number of temporal sampling steps """
         if self._Nt is None:
             self.kgrid # Ny computation in kgrid definition
         return self._Nt
@@ -231,7 +241,9 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
     @property
     def alpha_corrected(self):
-        """ Evaluating pseudo-alpha coeficient with k-Wave's AS constraint of alpha_power=2 """
+        """ Evaluating pseudo-alpha coeficient with k-Wave's AS constraint of alpha_power=2
+            alpha_0 and alpha_power are defined such that attenuation_coef = alpha * f^alpha_power
+        """
         if self._alpha_corrected is None:
             self._alpha_corrected = self.simulation_params['alpha_0'] * ((self.simulation_params['source_f0']*1e-6) ** self.simulation_params['alpha_power_0']) / ((self.simulation_params['source_f0']*1e-6) ** self.kwave_AS_alpha_power) # [dB/(MHz^y cm)]
         return self._alpha_corrected
@@ -242,6 +254,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
     @property
     def kgrid(self):
+        """ Wrapper for k-wave's kgrid object """
         if self._kgrid is None:
             # calculate the grid spacing based on the PPW and F0
             self.dx = self.simulation_params['c_0'] / (self.simulation_params['ppw'] * self.simulation_params['source_f0']) # [m]
@@ -282,6 +295,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
     
     @property
     def medium(self):
+        """ Wrapper for k-wave's medium object """
         if self._medium is None:
             self._medium = kWaveMedium(
                 sound_speed=self.simulation_params['c_0'],
@@ -294,6 +308,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
     
     @property
     def source(self):
+        """ Wrapper for k-wave's source object """
         if self._source is None:
             self._source = kSource()
 
@@ -338,6 +353,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
     @property
     def sensor(self):
+        """ Wrapper for k-wave's sensor object """
         if self._sensor is None:
             self._sensor = kSensor()
 
@@ -353,7 +369,9 @@ class KwaveHomogeneousAxisymetricBowlSim():
         return self._sensor
 
     def run_simulation(self, io_h5files_directory_path=None) -> bool:
-        """ Returns success bool """
+        """ Call to run simulation.
+            Returns True if computation / previous results loading successfull.
+        """
         success = False
         save_to_disk_exit = False
 
@@ -430,6 +448,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
         
     @property
     def pamp_phase_freq_zr(self):
+        """ Pressure magnitude and phase in the whole domain (ZR). """
         if self._p_amp_zr is None or self._phase_zr is None or self._freq is None or self._z_as is None or self._r_as is None:
             self._p_amp_zr, self._phase_zr, self._freq  = extract_amp_phase(
                 self.sensor_data['p'].T, 1.0 / self.kgrid.dt,
@@ -448,12 +467,15 @@ class KwaveHomogeneousAxisymetricBowlSim():
     
     @property
     def p_amp_zr(self):
+        """ Pressure magnitude in the whole domain (ZR). Call     def pamp_phase_freq_zr(self):
+ to get the phase """
         if self._p_amp_zr is None or self._z_as is None or self._r_as is None:
             self.pamp_phase_freq_zr
         return (self._p_amp_zr, self._z_as, self._r_as)
     
     @property
     def p_amp_xyz(self):
+        """ Pressure magnitude interpolated to the XYZ domain. """
         if self._p_amp_xyz is None:
             p_amp_zr, z_as, r_as = self.p_amp_zr
             x_cart = np.linspace(-r_as[-1], r_as[-1], (len(r_as)*2-1))
@@ -468,6 +490,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
 
 
 class Kwave3D():
+    """ Handles 3D kWave simulations in complex medias """
 
     KWAVE_CPP_CMD_TYPE = 'powershell'
 
@@ -540,6 +563,7 @@ class Kwave3D():
         return dir_path
 
     def get_kwave_cpp_cmd(self, kw_hash):
+        """ Returns the command that needs to be executed to run a simulation using C++ kwave scripts from a terminal """
         if self.KWAVE_CPP_CMD_TYPE == 'powershell':
             cmd = f"""$kwave_params_hash = '{kw_hash}'\n$t_sensor_start = {self.sensor.record_start_index}\n$kwave_io_dirpath = '{self.cpp_io_files_dir_path}'\n$input_fpath = $kwave_io_dirpath + 'kwave_3D_input_' + $kwave_params_hash + '.h5'\n$output_fpath = $kwave_io_dirpath + 'kwave_3D_output_' + $kwave_params_hash + '.h5'\nZ:\\kwave_python\\k-wave-toolbox-version-1.3-cpp-windows-executables/kspaceFirstOrder-{self.cpp_engine} -i $input_fpath -o $output_fpath -s $t_sensor_start --p_final --p_max -p -u"""
         else:
@@ -566,6 +590,7 @@ class Kwave3D():
 
     @property
     def simulation_params(self):
+        """ Holds the simulation parameters """
         if self._simulation_params is None:
             self._simulation_params = self.DEFAULT_SIM_PARAMS
             self._simulation_hash = object_list_hash(self._simulation_params)[:8]
@@ -584,12 +609,14 @@ class Kwave3D():
                 self._init_quantities() # Reset quantities for re-computation with new input params
     
     def set_simulation_param(self, param_name, value):
+        """ Call to set simulation parameters """
         sim_params = copy.deepcopy(self.simulation_params)
         sim_params[param_name] = value
         self.simulation_params = sim_params
 
     @property
     def dx(self):
+        """ Kgrid spatial sampling in the x, y, z directions """
         if self._dx is None:
             self.kgrid # dx computation in kgrid definition
         return self._dx
@@ -599,7 +626,8 @@ class Kwave3D():
         self._dx = value
 
     @property
-    def Nx(self): 
+    def Nx(self):
+        """ Number of spatial sampling points in the x direction """
         if self._Nx is None:
             self.kgrid # Nx computation in kgrid definition
         return self._Nx
@@ -610,6 +638,7 @@ class Kwave3D():
 
     @property
     def Ny(self):
+        """ Number of spatial sampling points in the y direction. """
         if self._Ny is None:
             self.kgrid # Ny computation in kgrid definition
         return self._Ny
@@ -620,6 +649,7 @@ class Kwave3D():
 
     @property
     def Nz(self):
+        """ Number of spatial sampling points in the z direction. """
         if self._Nz is None:
             self.kgrid # Nz computation in kgrid definition
         return self._Nz
@@ -630,6 +660,7 @@ class Kwave3D():
 
     @property
     def ppp(self):
+        """ Number of points per periods """
         if self._ppp is None:
             self.kgrid # Ny computation in kgrid definition
         return self._ppp
@@ -640,6 +671,7 @@ class Kwave3D():
     
     @property
     def dt(self):
+        """ Temporal sampling duration """
         if self._dt is None:
             self.kgrid # Ny computation in kgrid definition
         return self._dt
@@ -650,6 +682,7 @@ class Kwave3D():
     
     @property
     def Nt(self):
+        """ Number of temporal sampling steps """
         if self._Nt is None:
             self.kgrid # Ny computation in kgrid definition
         return self._Nt
@@ -659,6 +692,7 @@ class Kwave3D():
         self._Nt = value
 
     def c(self, material_index=0):
+        """ Map of material speeds of sound """
         key = f'c_{material_index}'
         if key in self.simulation_params:
             return self.simulation_params[key]
@@ -666,6 +700,7 @@ class Kwave3D():
             raise ValueError(f'kWave AS-3D: No sound speed value found for material #{material_index}. Should be declared as {key}')
     
     def rho(self, material_index=0):
+        """ Map of material densities """
         key = f'rho_{material_index}'
         if key in self.simulation_params:
             return self.simulation_params[key]
@@ -673,6 +708,7 @@ class Kwave3D():
             raise ValueError(f'kWave AS-3D: No density value found for material #{material_index}. Should be declared as {key}')
     
     def alpha(self, material_index=0):
+        """ alpha_0 term of the attenuation coeficient -> attenuation_coef = alpha * f^alpha_power """
         key = f'alpha_{material_index}'
         if key in self.simulation_params:
             return self.simulation_params[key]
@@ -680,6 +716,7 @@ class Kwave3D():
             raise ValueError(f'kWave AS-3D: No attenuation found for material #{material_index}. Should be declared as {key}')
         
     def alpha_power(self, material_index=0):
+        """ Frequency dependance of the attenuation coeficient -> attenuation_coef = alpha * f^alpha_power """
         key = f'alpha_power_{material_index}'
         if key in self.simulation_params:
             return self.simulation_params[key]
@@ -693,6 +730,7 @@ class Kwave3D():
 
     @property
     def kgrid(self):
+        """ Wrapper for k-wave's kgrid object """
         if self._kgrid is None:
             # calculate the grid spacing based on the PPW and F0
             self.dx = self.simulation_params['c_0'] / (self.simulation_params['ppw'] * self.simulation_params['source_f0']) # [m]
@@ -726,7 +764,8 @@ class Kwave3D():
         return self._kgrid
 
     @property
-    def kgrid_coords(self): # kWave grid coordinates
+    def kgrid_coords(self):
+        """ kWave grid coordinates """
         if self._kgrid_coords is None: # Defaults to homogeneous medium
             x_grid, y_grid, z_grid = np.meshgrid(
                 np.squeeze(self.kgrid.x_vec),
@@ -742,6 +781,7 @@ class Kwave3D():
     
     @property
     def medium(self):
+        """ Wrapper for k-wave's medium object """
         if self._medium is None: # Defaults to homogeneous medium
             self._medium = kWaveMedium(
                 sound_speed=self.c(0),
@@ -754,6 +794,7 @@ class Kwave3D():
     
     @property
     def source(self):
+        """ Wrapper for k-wave's source object """
         if self._source is None:  # Defaults to shperical bowl src
             self._source = kSource()
 
@@ -793,6 +834,7 @@ class Kwave3D():
 
     @property
     def sensor(self):
+        """ Wrapper for k-wave's sensor object """
         if self._sensor is None:
             self._sensor = kSensor()
 
@@ -808,7 +850,9 @@ class Kwave3D():
         return self._sensor
 
     def run_simulation(self, io_h5files_directory_path=None) -> bool:
-        """ Returns success bool """
+        """ Call to run simulation.
+            Returns True if computation / previous results loading successfull.
+        """
         success = False
 
         if io_h5files_directory_path is None:
@@ -885,6 +929,7 @@ class Kwave3D():
         
     @property
     def pamp_phase_freq_xyz(self):
+        """ Pressure magnitude and phase in the whole domain (XYZ). """
         if self._p_amp_xyz is None or self._phase_xyz is None or self._freq is None or self._x_3d is None or self._y_3d is None or self._z_3d is None:
             p_amp_xyz_flat, phase_xyz_flat, self._freq  = extract_amp_phase(
                 self.sensor_data['p'].T, 1.0 / self.kgrid.dt,
@@ -910,6 +955,7 @@ class Kwave3D():
     
     @property
     def p_amp_xyz(self):
+        """ Pressure magnitude in the whole domain (XYZ). Call pamp_phase_freq_xyz to get the phase """
         if self._p_amp_xyz is None or self._x_3d is None or self._y_3d is None or self._z_3d is None:
             self.pamp_phase_freq_xyz
         return (self._p_amp_xyz, self._x_3d, self._y_3d, self._z_3d)

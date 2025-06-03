@@ -8,6 +8,7 @@ class Tooltip(Module):
         'tooltip_transforms_str' : 'Rx0deg Tz0um',
         'axes_length': 1e-3
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         super().__init__(parent_viewer, 'tooltip', **kwargs)
@@ -17,9 +18,52 @@ class Tooltip(Module):
         self.y_glaxis = None
         self.z_glaxis = None
 
+    # --- Module specific public attributes ---
+
+    def release_from_modules(self, sender_module=None):
+        """ All modules allowing Tooltip capture have to implement the release_tooltip method """
+        # Builtin modules
+        if sender_module is not self.parent_viewer.stereotaxic_frame:
+            self.parent_viewer.stereotaxic_frame.release_tooltip()
+        if sender_module is not self.parent_viewer.anat_calib:
+            self.parent_viewer.anat_calib.release_tooltip()
+        # Optionnal modules
+        for mm in self.parent_viewer._modules:
+            if hasattr(mm, 'release_tooltip') and sender_module is not mm:
+                mm.release_tooltip()
+
+    @property
+    def tooltip_coordinates(self):
+        """ Returns the current Tooltip 3D coordinates (x, y, z) """
+        _tooltip_coordinates = None
+        if self.tooltip_tmat is not None:
+            _tooltip_coordinates = self.tooltip_tmat[3, :3]
+        return _tooltip_coordinates
+
+    @property
+    def tooltip_tmat(self):
+        """ Holds the current Tooltip affine transformation matrix """
+        if self._tooltip_tmat is None:
+            # Compute tooltip transform matrix from tooltip_transforms_str (status bar qedit)
+            transforms_matrices = af_tr_from_str.transform_matrices_from_str(
+                self.get_user_param('tooltip_transforms_str')
+            )
+            self._tooltip_tmat = af_tr.scale_mat(1)
+            for tr_mat in transforms_matrices:
+                self._tooltip_tmat = self._tooltip_tmat @ tr_mat
+        return self._tooltip_tmat
+    
+    @tooltip_tmat.setter
+    def tooltip_tmat(self, value):
+        if value is not None:
+            if value.shape != (4, 4):
+                raise ValueError('Transformation matrix should be of shape (4, 4)')
+        self._tooltip_tmat = value
+
     # --- Required module attributes ---
 
     def add_rendered_object(self):
+        """ Called when populating the viewer with the module rendered objects """
         self.x_glaxis = gl.GLLinePlotItem(pos=[[0,0,0], [self.get_user_param('axes_length'),0,0]], width=6, color=self.parent_viewer.x_RED, antialias=True, glOptions='additive')
         self.y_glaxis = gl.GLLinePlotItem(pos=[[0,0,0], [0,self.get_user_param('axes_length'),0]], width=6, color=self.parent_viewer.y_GREEN, antialias=True, glOptions='additive')
         self.z_glaxis = gl.GLLinePlotItem(pos=[[0,0,0], [0,0,self.get_user_param('axes_length')]], width=6, color=self.parent_viewer.z_BLUE, antialias=True, glOptions='additive')
@@ -35,10 +79,12 @@ class Tooltip(Module):
         self._update_transform()
 
     def update_rendered_object(self):
+        """ Called on render view updates """
         if self.x_glaxis is not None:
             self._update_transform()
 
     def delete_rendered_object(self):
+        """ Called on deletion of the module rendered objects """
         if self.x_glaxis in self.parent_viewer.gl_view.items:
             self.parent_viewer.gl_view.removeItem(self.x_glaxis)
             self.x_glaxis = None
@@ -49,6 +95,23 @@ class Tooltip(Module):
             self.parent_viewer.gl_view.removeItem(self.z_glaxis)
             self.z_glaxis = None
     
+    # --- Module specific attributes ---
+
+    def _on_editor_parsed(self, param_name, edited_value):
+        self.set_user_param(param_name, edited_value)
+        self.parent_viewer.update_rendered_view()
+
+    def _parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to Module base class?
+        if param_type == 'int':
+            edited_value = int(src_editor.text())
+        elif param_type == 'float':
+            edited_text = src_editor.text().replace(' ', '') # remove spaces
+            edited_text_nounit = edited_text[:-len(unit)]
+            edited_value = si_parse(edited_text_nounit.replace('u', 'µ'))
+        else: # raw str
+            edited_value = src_editor.text()
+        self._on_editor_parsed(param_name, edited_value)
+
     def _init_status_bar_widget(self):
         seperator_ui_label = pyqtw.QLabel(' |')
         self.parent_viewer.statusBar().addPermanentWidget(seperator_ui_label)
@@ -76,7 +139,7 @@ class Tooltip(Module):
         self.tooltip_transform_editor.setFixedWidth(500)
         self.tooltip_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
 
-    def update_statusbar_coordinates(self):
+    def _update_statusbar_coordinates(self):
         coords = self.tooltip_coordinates
         if coords is not None:
             space_conv = self.parent_viewer.ATLAS_SPACE_CONVENTION
@@ -84,61 +147,6 @@ class Tooltip(Module):
             self.statusbar_x_coord_label.setText(f"{space_conv[0][:4]}. (x): {formated_coords[0]}")
             self.statusbar_y_coord_label.setText(f"{space_conv[1][:4]}. (y): {formated_coords[1]}")
             self.statusbar_z_coord_label.setText(f"{space_conv[2][:4]}. (z): {formated_coords[2]}")
-
-    def _on_editor_parsed(self, param_name, edited_value):
-        self.set_user_param(param_name, edited_value)
-        self.parent_viewer.update_rendered_view()
-
-    def _parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to Module base class?
-        if param_type == 'int':
-            edited_value = int(src_editor.text())
-        elif param_type == 'float':
-            edited_text = src_editor.text().replace(' ', '') # remove spaces
-            edited_text_nounit = edited_text[:-len(unit)]
-            edited_value = si_parse(edited_text_nounit.replace('u', 'µ'))
-        else: # raw str
-            edited_value = src_editor.text()
-        self._on_editor_parsed(param_name, edited_value)
-    
-    # --- Module specific attributes ---
-
-    def release_from_modules(self, sender_module=None):
-        """ All modules allowing Tooltip capture have to implement the release_tooltip method """
-        # Builtin modules
-        if sender_module is not self.parent_viewer.stereotaxic_frame:
-            self.parent_viewer.stereotaxic_frame.release_tooltip()
-        if sender_module is not self.parent_viewer.anat_calib:
-            self.parent_viewer.anat_calib.release_tooltip()
-        # Optionnal modules
-        for mm in self.parent_viewer._modules:
-            if hasattr(mm, 'release_tooltip') and sender_module is not mm:
-                mm.release_tooltip()
-
-    @property
-    def tooltip_coordinates(self):
-        _tooltip_coordinates = None
-        if self.tooltip_tmat is not None:
-            _tooltip_coordinates = self.tooltip_tmat[3, :3]
-        return _tooltip_coordinates
-
-    @property
-    def tooltip_tmat(self):
-        if self._tooltip_tmat is None:
-            # Compute tooltip transform matrix from tooltip_transforms_str (status bar qedit)
-            transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_user_param('tooltip_transforms_str')
-            )
-            self._tooltip_tmat = af_tr.scale_mat(1)
-            for tr_mat in transforms_matrices:
-                self._tooltip_tmat = self._tooltip_tmat @ tr_mat
-        return self._tooltip_tmat
-    
-    @tooltip_tmat.setter
-    def tooltip_tmat(self, value):
-        if value is not None:
-            if value.shape != (4, 4):
-                raise ValueError('Transformation matrix should be of shape (4, 4)')
-        self._tooltip_tmat = value
     
     def _update_transform(self):
         self.x_glaxis.resetTransform()
@@ -147,4 +155,4 @@ class Tooltip(Module):
         self.y_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
         self.z_glaxis.resetTransform()
         self.z_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
-        self.update_statusbar_coordinates()
+        self._update_statusbar_coordinates()

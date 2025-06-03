@@ -19,4 +19,5 @@ Alternative installation procedure for development purposes
 0. Same as in the regular installation procedure. Although creating a dedicated environment for development would be recommanded. Feel free to create it using ``conda create -n coperniFUS_DEV_env python=3.12``.
 1. `Fork CoperniFUS's repository <https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/working-with-forks/fork-a-repo>`_
 2. Clone your forked repository locally and proceed with the installation by running ``pip install -e .`` from the base directory.
+
 This way, changes made to the source code will directly take effect when relauching CoperniFUS.

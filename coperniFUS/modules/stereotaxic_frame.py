@@ -9,7 +9,7 @@ from coperniFUS.modules.armatures.kwave_armatures import KwaveAShomogeneousSimul
 class StereotaxicFrame(Module):
 
     """ --- Stereotaxic Frame posHelper Module ---
-    Armatures objects can be found in _armatures_objects attribute.
+    Armatures objects can be found in armatures_objects attribute.
     """
 
     AVAILABLE_ARMATURES = [
@@ -22,22 +22,13 @@ class StereotaxicFrame(Module):
         'KWave3dSimulationArmature',
         'KWaveAS3dSimulationArmature',
     ]
+    """ List of Armature Classes available for use """
 
     _DEFAULT_PARAMS = {
-        '_steframe_arch_dict': {
-            'Main frame': {
-                'kWave 3D simulation': None,
-            },
-            'Skull acoustic window': None,
-            'Brain mesh (skull convex Hull)': None,
-        },
-        '_steframe_armatures_objects_clsnames': {
-            'Skull acoustic window': 'STLMeshBooleanArmature',
-            'Brain mesh (skull convex Hull)': 'STLMeshConvexHull',
-            'kWave 3D simulation': 'KWave3dSimulationArmature',
-            'Main frame': 'Armature',
-        }
+        '_steframe_arch_dict': {},
+        '_steframe_armatures_objects_clsnames': {}
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         super().__init__(parent_viewer, 'sterotax_frame', **kwargs)
@@ -50,9 +41,64 @@ class StereotaxicFrame(Module):
             for armature_display_name, armature_cls_name in self.get_user_param('_steframe_armatures_objects_clsnames').items()
         }
 
+    # --- Module specific public attributes ---
+
+    @property
+    def armatures_objects(self):
+        """ Returns armatures objects loaded in the stereotaxic module """
+        return self._armatures_objects
+    
+    def release_tooltip(self):
+        """ Releases the tooltip location from the selected location in the module. Please call CoperniFUS viewer release_from_modules method to release the tooltip from all loaded modules. """
+        uncheck_all_checkboxes_in_qtree_column(self.model, checkbox_column=1)
+
+    def update_tooltip_on_armature(self):
+        """ Updates the Tooltip location according to the checkbox selection in the Stereotaxic Frame Module dock """
+        default_tooltip_loc = True
+        self.parent_viewer.tooltip.release_from_modules(sender_module=self)
+        for arm_name, arm_obj in self._armatures_objects.items():
+            if arm_obj.tooltip_on_armature is True:
+                self.parent_viewer.tooltip.tooltip_tmat = arm_obj.armature_tooltip_tmat
+                default_tooltip_loc = False
+                break
+        if default_tooltip_loc: # If no tooltip on arm checkbox are checked
+            self.parent_viewer.tooltip.tooltip_tmat = None
+
+    def get_armature_tree_as_dict(self):
+        """ Returns the stereotaxic frame armatures tree structure as a Python dictionary. """
+
+        def _qtree_to_dict(item):
+            """Recursively converts a QStandardItem back to a Python dictionary."""
+            if item.hasChildren():
+                result = {}
+                for i in range(item.rowCount()):
+                    child_item = item.child(i)
+                    if child_item is not None:
+                        child_key = child_item.text()
+                        child_value = _qtree_to_dict(child_item)
+                        result[child_key] = child_value
+                    else:
+                        result = None
+                return result
+            else:
+                return None
+        
+        root_item = self.model.invisibleRootItem()
+        try:
+            qtree_as_dict = _qtree_to_dict(root_item)
+        except TypeError:
+            qtree_as_dict = None
+        return qtree_as_dict
+
+    def reset_highlighted_armatures(self):
+        """ Disable highlighting for all loaded armatures """
+        for arm_name, arm_obj in self._armatures_objects.items():
+            arm_obj.highlighted_in_render = False
+
     # --- Required module attributes ---
 
     def init_dock(self):
+        """ Called on GUI setup to add a module dock """
         # Setting up dock layout
         self.dock = pyqtw.QDockWidget('Stereotaxic Frame', self.parent_viewer)
         self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
@@ -61,14 +107,14 @@ class StereotaxicFrame(Module):
         self.dock_layout = pyqtw.QGridLayout()
         self.dock_widget.setLayout(self.dock_layout)
 
-        # Rm button
-        self.remove_armature_btn = pyqtw.QPushButton('Remove armature')
-        self.remove_armature_btn.clicked.connect(self._remove_selected_armature_from_tree)
-        self.dock_layout.addWidget(self.remove_armature_btn, 0, 0, 1, 1) # Y, X, h, w
         # Add button
         self.add_armature_btn = pyqtw.QPushButton('Add armature')
         self.add_armature_btn.clicked.connect(self._add_armature_to_qtree)
-        self.dock_layout.addWidget(self.add_armature_btn, 0, 1, 1, 1) # Y, X, h, w
+        self.dock_layout.addWidget(self.add_armature_btn, 0, 0, 1, 1) # Y, X, h, w
+        # Rm button
+        self.remove_armature_btn = pyqtw.QPushButton('Remove armature')
+        self.remove_armature_btn.clicked.connect(self._remove_selected_armature_from_tree)
+        self.dock_layout.addWidget(self.remove_armature_btn, 0, 1, 1, 1) # Y, X, h, w
 
         # Set up the tree view
         self.tree_view = CustomTreeView()
@@ -110,33 +156,31 @@ class StereotaxicFrame(Module):
         self.armature_parameters_stacked_widget.setContentsMargins(0, 0, 0, 0)
         armature_parameters_layout.setContentsMargins(0, 0, 0, 0)
     
-    def _on_tree_view_resize(self):
-        self.tree_view.setColumnWidth(0, self.tree_view.width() - 50)
-        self.tree_view.setColumnWidth(1, 50-30)
-
     def add_rendered_object(self):
-        self.populate_armature_parameters_stacked_widget()
+        """ Called when populating the viewer with the module rendered objects """
+        self._populate_armature_parameters_stacked_widget()
         self.update_armature_inheritance(gl_objects_exist=False)
         for arm_name, arm_obj in self._armatures_objects.items():
             arm_obj.add_render()
-
-    def delete_rendered_object(self):
-        for arm_name, arm_obj in self._armatures_objects.items():
-            arm_obj.delete_render()
-
+    
     def update_rendered_object(self):
+        """ Called on render view updates """
         self.update_armature_inheritance()
         for arm_name, arm_obj in self._armatures_objects.items():
 
             arm_obj.update_render()
         self.update_tooltip_on_armature()
 
+    def delete_rendered_object(self):
+        """ Called on deletion of the module rendered objects """
+        for arm_name, arm_obj in self._armatures_objects.items():
+            arm_obj.delete_render()
+
     # --- Module specific attributes ---
 
-    @property
-    def armatures_objects(self):
-        """ Returns armatures objects loaded in the stereotaxic module """
-        return self._armatures_objects
+    def _on_tree_view_resize(self):
+        self.tree_view.setColumnWidth(0, self.tree_view.width() - 50)
+        self.tree_view.setColumnWidth(1, 50-30)
 
     def _update_armatures_qtree(self):
         # Disconnect signals if they exist
@@ -360,7 +404,6 @@ class StereotaxicFrame(Module):
         self.stereotaxic_frame_hierarchy = {k: v[0] for k, v in sorted(unsorted_hierarchy_dict.items(), key=lambda item: item[1][1])}
 
         for child_armature_name, parent_armature_name in self.stereotaxic_frame_hierarchy.items():
-            # stime = time.time()
             if child_armature_name in self._armatures_objects:
                 if parent_armature_name is not None and parent_armature_name in self._armatures_objects:
                     self._armatures_objects[child_armature_name].parent_transform_mat = self._armatures_objects[parent_armature_name].end_transform_mat
@@ -390,7 +433,7 @@ class StereotaxicFrame(Module):
                     checkbox_column=tooltip_column)
             
             # Setting Tooltip to armature
-            self.reset_tooltip_on_armatures()
+            self._reset_tooltip_on_armatures()
             selected_armature_tooltips = [armature_name for armature_name, tooltip_checkbox_state in self._tooltip_checkbox_states.items() if tooltip_checkbox_state is True]
             if len(selected_armature_tooltips) > 0:
                 armature_object = self._armatures_objects[selected_armature_tooltips[0]]
@@ -398,41 +441,23 @@ class StereotaxicFrame(Module):
 
             self.parent_viewer.update_rendered_view()
 
-    def release_tooltip(self):
-        uncheck_all_checkboxes_in_qtree_column(self.model, checkbox_column=1)
-
-    def reset_tooltip_on_armatures(self):
+    def _reset_tooltip_on_armatures(self):
         for arm_name, arm_obj in self._armatures_objects.items():
             arm_obj.tooltip_on_armature = False
 
-    def update_tooltip_on_armature(self):
-        default_tooltip_loc = True
-        self.parent_viewer.tooltip.release_from_modules(sender_module=self)
-        for arm_name, arm_obj in self._armatures_objects.items():
-            if arm_obj.tooltip_on_armature is True:
-                self.parent_viewer.tooltip.tooltip_tmat = arm_obj.armature_tooltip_tmat
-                default_tooltip_loc = False
-                break
-        if default_tooltip_loc: # If no tooltip on arm checkbox are checked
-            self.parent_viewer.tooltip.tooltip_tmat = None
-
-    def populate_armature_parameters_stacked_widget(self):
+    def _populate_armature_parameters_stacked_widget(self):
         placeholder_armature_parameters = pyqtw.QWidget()
         self.armature_parameters_stacked_widget.addWidget(placeholder_armature_parameters)
         for arm_name, arm_obj in self._armatures_objects.items():
             self.armature_parameters_stacked_widget.addWidget(
                 arm_obj.params_editor_widget.armature_params_editor_widget)
 
-    def update_armature_parameters_groupbox(self, armature_object):
+    def _update_armature_parameters_groupbox(self, armature_object):
         if armature_object is None or armature_object.armature_display_name not in self._armatures_objects:
             self.armature_parameters_stacked_widget.setCurrentIndex(0)
         else:
             stacked_widget_index = list(self._armatures_objects.keys()).index(armature_object.armature_display_name) + 1
             self.armature_parameters_stacked_widget.setCurrentIndex(stacked_widget_index)
-
-    def reset_highlighted_armatures(self):
-        for arm_name, arm_obj in self._armatures_objects.items():
-            arm_obj.highlighted_in_render = False
 
     def _on_item_selected(self, selected):
         self.reset_highlighted_armatures()
@@ -448,39 +473,13 @@ class StereotaxicFrame(Module):
             armature_object.highlighted_in_render = True
             self.update_rendered_object()
 
-            self.update_armature_parameters_groupbox(
+            self._update_armature_parameters_groupbox(
                 armature_object=armature_object,
             )
         else:
-            self.update_armature_parameters_groupbox(armature_object=None)
+            self._update_armature_parameters_groupbox(armature_object=None)
             self.edit_armature_configuration_btn.setText('Edit armature configuration')
             self.edit_armature_configuration_btn.setEnabled(False)
-    
-    def get_armature_tree_as_dict(self):
-        """ Returns stereotaxic frame the armatures tree structure as a Python dictionary. """
-
-        def _qtree_to_dict(item):
-            """Recursively converts a QStandardItem back to a Python dictionary."""
-            if item.hasChildren():
-                result = {}
-                for i in range(item.rowCount()):
-                    child_item = item.child(i)
-                    if child_item is not None:
-                        child_key = child_item.text()
-                        child_value = _qtree_to_dict(child_item)
-                        result[child_key] = child_value
-                    else:
-                        result = None
-                return result
-            else:
-                return None
-        
-        root_item = self.model.invisibleRootItem()
-        try:
-            qtree_as_dict = _qtree_to_dict(root_item)
-        except TypeError:
-            qtree_as_dict = None
-        return qtree_as_dict
 
     def _populate_qtree(self, parent, data):
         """ Recursively adds dictionary elements to the tree view. """

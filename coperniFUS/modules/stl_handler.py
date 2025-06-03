@@ -2,7 +2,7 @@ from coperniFUS import *
 from coperniFUS.modules.interfaces.trimesh_interfaces import StlHandler
 
 
-class StlHandlerGUI(StlHandler): # TODO Subclass Module
+class StlHandlerGUI(StlHandler):
 
     _DEFAULT_PARAMS = {
         'file_path': 'None',
@@ -17,74 +17,16 @@ class StlHandlerGUI(StlHandler): # TODO Subclass Module
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,
     }
+    """ Default configuration parameters used when a parameter value is not yet cached """
 
     def __init__(self, parent_viewer, **kwargs) -> None:
         super().__init__(parent_viewer, **kwargs)
 
-    # --- Required module attributes ---
-
-    def init_dock(self):
-        # Setting up dock layout
-        self.dock = pyqtw.QDockWidget('STL Handler', self.parent_viewer)
-        self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.LeftDockWidgetArea, self.dock)
-        self.dock_widget = pyqtw.QWidget(self.dock)
-        self.dock.setWidget(self.dock_widget)
-        self.dock_layout = pyqtw.QGridLayout()
-        self.dock_widget.setLayout(self.dock_layout)
-
-        # Import button
-        self.select_stl_file_btn = pyqtw.QPushButton('Select STL file')
-        self.select_stl_file_btn.clicked.connect(self._import_stl)
-        self.dock_layout.addWidget(self.select_stl_file_btn, 0, 0, 1, 1) # Y, X, w, h
-
-        # Transform matrix str editor
-        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_stl_user_param('stl_item_transforms_str')), 'Mesh transform')
-        self.stl_item_transform_editor.editingFinished.connect(functools.partial(self.parse_editor, self.stl_item_transform_editor, 'stl_item_transforms_str', '', 'str'))
-        self.stl_item_transform_editor.editingFinished.connect(self.reset_stl_item_tmat)
-        self.stl_item_transform_editor.setEnabled(False)
-        self.dock_layout.addWidget(self.stl_item_transform_editor, 1, 0, 1, 1) # Y, X, w, h
-        self.stl_item_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
-
-    def add_rendered_object(self,):
-        if self.stl_item_name is None:
-            self.stl_item_name = self.parent_viewer.cache.get_attr(['mesh_handler', 'last_used_stl_item_name'])
-        super().add_rendered_object()
-        if isinstance(self.stl_glitem, pg.opengl.items.GLMeshItem.GLMeshItem) or (isinstance(self.stl_glitem, list) and len(self.stl_glitem) > 0):
-            self._update_item_transform_editor()
-            self.stl_item_transform_editor.setEnabled(True)
-
-            # Setup dock button for image deletion
-            self.select_stl_file_btn.setText('Remove STL')
-            self.select_stl_file_btn.clicked.disconnect()
-            self.select_stl_file_btn.clicked.connect(self.delete_rendered_object)
-
-    def delete_rendered_object(self):
-        if self.stl_glitem is not None:
-            self.parent_viewer.cache.set_attr(['mesh_handler', 'last_used_stl_item_name'], None)
-        super().delete_rendered_object()
-        self.select_stl_file_btn.setText('Select STL file')
-        self.select_stl_file_btn.clicked.disconnect()
-        self.select_stl_file_btn.clicked.connect(self._import_stl)
-
-        self.stl_item_transform_editor.setText(str(self._DEFAULT_PARAMS['stl_item_transforms_str']))
-        self.stl_item_transform_editor.setEnabled(False)
-
-    # --- Module specific attributes ---
-
-    def parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to base Module?
-        if param_type == 'int':
-            edited_value = int(src_editor.text())
-        elif param_type == 'float':
-            edited_text = src_editor.text().replace(' ', '') # remove spaces
-            edited_text_nounit = edited_text[:-len(unit)]
-            edited_value = si_parse(edited_text_nounit.replace('u', 'µ'))
-        else: # raw str
-            edited_value = src_editor.text()
-        self.set_stl_user_param(param_name, edited_value)
-        self.parent_viewer.update_rendered_view()
+    # --- Module specific public attributes ---
 
     @property
     def stl_item_tmat(self):
+        """ Holds the atlas volume affine transformation matrix """
         if self._stl_item_tmat is None:
             # Compute transform matrix from transforms str
             transforms_matrices = af_tr_from_str.transform_matrices_from_str(
@@ -110,7 +52,72 @@ class StlHandlerGUI(StlHandler): # TODO Subclass Module
         self._stl_item_tmat = value
         self.stl_item_mesh = None # Reset processed stl mesh to apply transform
 
-    def reset_stl_item_tmat(self):
+    # --- Required module attributes ---
+
+    def init_dock(self):
+        """ Called on GUI setup to add a module dock """
+        # Setting up dock layout
+        self.dock = pyqtw.QDockWidget('STL Handler', self.parent_viewer)
+        self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.LeftDockWidgetArea, self.dock)
+        self.dock_widget = pyqtw.QWidget(self.dock)
+        self.dock.setWidget(self.dock_widget)
+        self.dock_layout = pyqtw.QGridLayout()
+        self.dock_widget.setLayout(self.dock_layout)
+
+        # Import button
+        self.select_stl_file_btn = pyqtw.QPushButton('Select STL file')
+        self.select_stl_file_btn.clicked.connect(self._import_stl)
+        self.dock_layout.addWidget(self.select_stl_file_btn, 0, 0, 1, 1) # Y, X, w, h
+
+        # Transform matrix str editor
+        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_stl_user_param('stl_item_transforms_str')), 'Mesh transform')
+        self.stl_item_transform_editor.editingFinished.connect(functools.partial(self.parse_editor, self.stl_item_transform_editor, 'stl_item_transforms_str', '', 'str'))
+        self.stl_item_transform_editor.editingFinished.connect(self._on_stl_item_transform_editing_finished)
+        self.stl_item_transform_editor.setEnabled(False)
+        self.dock_layout.addWidget(self.stl_item_transform_editor, 1, 0, 1, 1) # Y, X, w, h
+        self.stl_item_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
+
+    def add_rendered_object(self,):
+        """ Called when populating the viewer with the module rendered objects """
+        if self.stl_item_name is None:
+            self.stl_item_name = self.parent_viewer.cache.get_attr(['mesh_handler', 'last_used_stl_item_name'])
+        super().add_rendered_object()
+        if isinstance(self.stl_glitem, pg.opengl.items.GLMeshItem.GLMeshItem) or (isinstance(self.stl_glitem, list) and len(self.stl_glitem) > 0):
+            self._update_item_transform_editor()
+            self.stl_item_transform_editor.setEnabled(True)
+
+            # Setup dock button for image deletion
+            self.select_stl_file_btn.setText('Remove STL')
+            self.select_stl_file_btn.clicked.disconnect()
+            self.select_stl_file_btn.clicked.connect(self.delete_rendered_object)
+
+    def delete_rendered_object(self):
+        """ Called on deletion of the module rendered objects """
+        if self.stl_glitem is not None:
+            self.parent_viewer.cache.set_attr(['mesh_handler', 'last_used_stl_item_name'], None)
+        super().delete_rendered_object()
+        self.select_stl_file_btn.setText('Select STL file')
+        self.select_stl_file_btn.clicked.disconnect()
+        self.select_stl_file_btn.clicked.connect(self._import_stl)
+
+        self.stl_item_transform_editor.setText(str(self._DEFAULT_PARAMS['stl_item_transforms_str']))
+        self.stl_item_transform_editor.setEnabled(False)
+
+    # --- Module specific attributes ---
+
+    def parse_editor(self, src_editor, param_name, unit='', param_type='float'): # TODO move to base Module?
+        if param_type == 'int':
+            edited_value = int(src_editor.text())
+        elif param_type == 'float':
+            edited_text = src_editor.text().replace(' ', '') # remove spaces
+            edited_text_nounit = edited_text[:-len(unit)]
+            edited_value = si_parse(edited_text_nounit.replace('u', 'µ'))
+        else: # raw str
+            edited_value = src_editor.text()
+        self.set_stl_user_param(param_name, edited_value)
+        self.parent_viewer.update_rendered_view()
+
+    def _on_stl_item_transform_editing_finished(self):
         self.stl_item_tmat = None
 
     def _update_item_transform_editor(self):
