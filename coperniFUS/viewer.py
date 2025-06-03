@@ -20,7 +20,7 @@ class Window(pyqtw.QMainWindow):
     """ Defaut z axis color (blue) """
 
     ATLAS_SPACE_CONVENTION = ['Anterior', 'Left', 'Superior']
-    """ Atlas space convention defined according to https://brainglobe.info/documentation/brainglobe-space/index.html """
+    """ Atlas space convention defined according to `the brainglobe-space <https://brainglobe.info/documentation/brainglobe-space/index.html>`_ """
 
     _STATUS_BAR_MSG_TIMEOUT = 5000
 
