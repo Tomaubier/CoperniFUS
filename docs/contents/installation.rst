@@ -11,7 +11,7 @@ Tested on macOS 15, Ubuntu 24.04.2 LTS, Linux Mint 21.1, Windows 10 & 11 using P
 
     1a. *For Linux users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
 
-2. Launch ``coperniFUS`` by running ``coperniFUS`` in a terminal. Checkout `this section <contents/usage.rst>`_ for detailed usage instructions.
+2. Launch ``coperniFUS`` by running ``coperniFUS`` in a terminal. Checkout `this section <usage.rst>`_ for detailed usage instructions.
 
 Alternative installation procedure for development purposes
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
