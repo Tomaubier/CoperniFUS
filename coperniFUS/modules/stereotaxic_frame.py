@@ -48,6 +48,81 @@ class StereotaxicFrame(Module):
         """ Returns armatures objects loaded in the stereotaxic module """
         return self._armatures_objects
     
+    def add_armature(self, new_armature_class, new_armature_display_name):
+        """ Call to add an Armature of type new_armature_class to the StereataxicFrame module (provide the class name as a string).
+        The list of available armature types can be obtained in AVAILABLE_ARMATURES.
+        Please provide an armature name in new_armature_display_name.
+        """
+        if new_armature_display_name in self.armatures_objects:
+            raise ValueError(f'{new_armature_display_name} already exist in armatures_objects')
+
+        # --- Add armature to _armatures_objects
+        armature_obj = eval(new_armature_class)(
+            armature_display_name=new_armature_display_name,
+            parent_viewer=self.parent_viewer,
+            stereotax_frame_instance=self)
+        self.armatures_objects[new_armature_display_name] = armature_obj
+
+        # --- Add to stacked parameter editor widgets ---
+        self.armature_parameters_stacked_widget.addWidget(
+            armature_obj.params_editor_widget.armature_params_editor_widget)
+
+        # --- Add armature to _steframe_armatures_objects_clsnames ---
+        armatures_objects_clsnames = self.get_user_param('_steframe_armatures_objects_clsnames')
+        armatures_objects_clsnames[new_armature_display_name] = new_armature_class
+        self.set_user_param('_steframe_armatures_objects_clsnames', armatures_objects_clsnames)
+
+        # --- Add armature to _steframe_arch_dict ---
+        arch_dict = self.get_user_param('_steframe_arch_dict')
+        arch_dict[new_armature_display_name] = None
+        self.set_user_param('_steframe_arch_dict', arch_dict)
+
+        self._update_armatures_qtree()
+
+    def delete_armature(self, armature_name):
+        """ Call to delete 'armature_name' from the StereataxicFrame module. """
+        if not armature_name in self.armatures_objects:
+            raise ValueError(f'{armature_name} does not exist in armatures_objects')
+
+        # --- Pop armature from _steframe_arch_dict ---
+        def pop_nested_key(d, key, popped_armature_childs=None):
+            if isinstance(d, dict):
+                if key in d:
+                    popped_armature_childs = d[key]
+                    d.pop(key, None)
+                for k, v in d.items():
+                    popped_armature_childs = pop_nested_key(v, key, popped_armature_childs)
+            return popped_armature_childs
+
+        arch_dict = self.get_user_param('_steframe_arch_dict')
+        popped_armature_childs = pop_nested_key(arch_dict, armature_name)
+        if isinstance(popped_armature_childs, dict):
+            arch_dict = {**arch_dict, **popped_armature_childs} # Add childs to the end of dict
+        self.set_user_param('_steframe_arch_dict', arch_dict)
+
+        # --- Pop armature from _steframe_armatures_objects_clsnames ---
+        armatures_objects_clsnames = self.get_user_param('_steframe_armatures_objects_clsnames')
+        if armature_name in armatures_objects_clsnames:
+            armatures_objects_clsnames.pop(armature_name)
+        self.set_user_param('_steframe_armatures_objects_clsnames', armatures_objects_clsnames)
+
+        # --- Remove from stacked parameter editor widgets ---
+        try:
+            popped_armature_index = list(self.armatures_objects.keys()).index(armature_name)
+            widget_to_remove = self.armature_parameters_stacked_widget.widget(popped_armature_index)
+            self.armature_parameters_stacked_widget.removeWidget(widget_to_remove)
+            widget_to_remove.deleteLater()
+            self.armature_parameters_stacked_widget.setCurrentIndex(0)
+        except ValueError as e:
+            print('armature_name not in self.armatures_objects')
+
+        # --- Pop armature from _armatures_objects ---
+        if armature_name in self.armatures_objects:
+            popped_armature_obj = self.armatures_objects.pop(armature_name)
+            popped_armature_obj.delete_render()
+
+        self._update_armatures_qtree()
+    
     def release_tooltip(self):
         """ Releases the tooltip location from the selected location in the module. Please call CoperniFUS viewer release_from_modules method to release the tooltip from all loaded modules. """
         uncheck_all_checkboxes_in_qtree_column(self.model, checkbox_column=1)
@@ -56,7 +131,7 @@ class StereotaxicFrame(Module):
         """ Updates the Tooltip location according to the checkbox selection in the Stereotaxic Frame Module dock """
         default_tooltip_loc = True
         self.parent_viewer.tooltip.release_from_modules(sender_module=self)
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
             if arm_obj.tooltip_on_armature is True:
                 self.parent_viewer.tooltip.tooltip_tmat = arm_obj.armature_tooltip_tmat
                 default_tooltip_loc = False
@@ -89,10 +164,51 @@ class StereotaxicFrame(Module):
         except TypeError:
             qtree_as_dict = None
         return qtree_as_dict
+    
+    def update_armature_inheritance(self, gl_objects_exist=True, steframe_arch_dict=None):
+        """ Updates the armature architecture based on structure defined in the qtree.
+            Providing a steframe_arch_dict overide qtree content """
+        if not isinstance(gl_objects_exist, bool):
+            raise TypeError('gl_objects_exist argument should be a boolean.')
+        if steframe_arch_dict is not None and isinstance(steframe_arch_dict, dict):
+            self.set_user_param('_steframe_arch_dict', steframe_arch_dict)
+            self._update_armatures_qtree()
+        else:
+            qtree_as_dict = self.get_armature_tree_as_dict()
+            if qtree_as_dict is not None:
+                self.set_user_param('_steframe_arch_dict', qtree_as_dict)
+
+        unsorted_hierarchy_dict = self._get_nested_dict_inheritance(self.get_user_param('_steframe_arch_dict'))
+        self.stereotaxic_frame_hierarchy = {k: v[0] for k, v in sorted(unsorted_hierarchy_dict.items(), key=lambda item: item[1][1])}
+
+        for child_armature_name, parent_armature_name in self.stereotaxic_frame_hierarchy.items():
+            if child_armature_name in self.armatures_objects:
+                if parent_armature_name is not None and parent_armature_name in self.armatures_objects:
+                    self.armatures_objects[child_armature_name].parent_transform_mat = self.armatures_objects[parent_armature_name].end_transform_mat
+                else:
+                    self.armatures_objects[child_armature_name].parent_transform_mat = None
+
+    @property
+    def qtree_selected_armature(self):
+        """ Get the name of the armature selected in the qtree """
+        selected_armature = None
+        indexes = self.tree_view.selectedIndexes()
+        if indexes:
+            selected_armature = indexes[0].data()
+        return selected_armature
+    
+    @property
+    def qtree_selected_armature_object(self):
+        """ Get the object handle for the armature selected in the qtree """
+        selected_armature_obj = None
+        selected_armature_name = self.qtree_selected_armature
+        if selected_armature_name:
+            selected_armature_obj = self.armatures_objects[self.qtree_selected_armature]
+        return selected_armature_obj
 
     def reset_highlighted_armatures(self):
         """ Disable highlighting for all loaded armatures """
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
             arm_obj.highlighted_in_render = False
 
     # --- Required module attributes ---
@@ -160,20 +276,20 @@ class StereotaxicFrame(Module):
         """ Called when populating the viewer with the module rendered objects """
         self._populate_armature_parameters_stacked_widget()
         self.update_armature_inheritance(gl_objects_exist=False)
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
             arm_obj.add_render()
     
     def update_rendered_object(self):
         """ Called on render view updates """
         self.update_armature_inheritance()
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
 
             arm_obj.update_render()
         self.update_tooltip_on_armature()
 
     def delete_rendered_object(self):
         """ Called on deletion of the module rendered objects """
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
             arm_obj.delete_render()
 
     # --- Module specific attributes ---
@@ -206,78 +322,22 @@ class StereotaxicFrame(Module):
 
         # Set column widths
         self.tree_view.setColumnWidth(0, self.tree_view.width() - 50)
-        self.tree_view.setColumnWidth(1, 50-10)
+        self.tree_view.setColumnWidth(1, 50-10)    
     
     def _add_armature_to_qtree(self):
         self.new_armature_popup = NewArmaturePopup(
             self.parent_viewer, sterotaxframe_obj=self,
         )
         if self.new_armature_popup.exec():
-
-            # --- Add armature to _armatures_objects
-            armature_obj = eval(self.new_armature_popup.new_armature_class)(
-                armature_display_name=self.new_armature_popup.new_armature_display_name,
-                parent_viewer=self.parent_viewer,
-                stereotax_frame_instance=self)
-            self._armatures_objects[self.new_armature_popup.new_armature_display_name] = armature_obj
-
-            # --- Add to stacked parameter editor widgets ---
-            self.armature_parameters_stacked_widget.addWidget(
-                armature_obj.params_editor_widget.armature_params_editor_widget)
-
-            # --- Add armature to _steframe_armatures_objects_clsnames ---
-            armatures_objects_clsnames = self.get_user_param('_steframe_armatures_objects_clsnames')
-            armatures_objects_clsnames[self.new_armature_popup.new_armature_display_name] = self.new_armature_popup.new_armature_class
-            self.set_user_param('_steframe_armatures_objects_clsnames', armatures_objects_clsnames)
-
-            # --- Add armature to _steframe_arch_dict ---
-            arch_dict = self.get_user_param('_steframe_arch_dict')
-            arch_dict[self.new_armature_popup.new_armature_display_name] = None
-            self.set_user_param('_steframe_arch_dict', arch_dict)
-
-            self._update_armatures_qtree()
+            self.add_armature(
+                self.new_armature_popup.new_armature_class,
+                self.new_armature_popup.new_armature_display_name
+            )
 
     def _remove_selected_armature_from_tree(self):
         selected_armature = self.qtree_selected_armature
         if selected_armature is not None:
-
-            # --- Pop armature from _steframe_arch_dict ---
-            def pop_nested_key(d, key, popped_armature_childs=None):
-                if isinstance(d, dict):
-                    if key in d:
-                        popped_armature_childs = d[key]
-                        d.pop(key, None)
-                    for k, v in d.items():
-                        popped_armature_childs = pop_nested_key(v, key, popped_armature_childs)
-                return popped_armature_childs
-
-            arch_dict = self.get_user_param('_steframe_arch_dict')
-            popped_armature_childs = pop_nested_key(arch_dict, selected_armature)
-            if isinstance(popped_armature_childs, dict):
-                arch_dict = {**arch_dict, **popped_armature_childs} # Add childs to the end of dict
-            self.set_user_param('_steframe_arch_dict', arch_dict)
-
-            # --- Pop armature from _steframe_armatures_objects_clsnames ---
-            armatures_objects_clsnames = self.get_user_param('_steframe_armatures_objects_clsnames')
-            if selected_armature in armatures_objects_clsnames:
-                armatures_objects_clsnames.pop(selected_armature)
-            self.set_user_param('_steframe_armatures_objects_clsnames', armatures_objects_clsnames)
-
-            # --- Remove from stacked parameter editor widgets ---
-            try:
-                popped_armature_index = list(self._armatures_objects.keys()).index(selected_armature)
-                widget_to_remove = self.armature_parameters_stacked_widget.widget(popped_armature_index)
-                self.armature_parameters_stacked_widget.removeWidget(widget_to_remove)
-                widget_to_remove.deleteLater()
-            except ValueError as e: # selected_armature not in self._armatures_objects
-                print('selected_armature not in self._armatures_objects')
-
-            # --- Pop armature from _armatures_objects ---
-            if selected_armature in self._armatures_objects:
-                popped_armature_obj = self._armatures_objects.pop(selected_armature)
-                popped_armature_obj.delete_render()
-
-            self._update_armatures_qtree()
+            self.delete_armature(selected_armature)
 
     def _set_checkbox_states(self, item, value_dict, checkbox_column=0):
         if item.hasChildren():
@@ -293,24 +353,8 @@ class StereotaxicFrame(Module):
 
     def _init_armatures_visibility_checkboxes(self):
         root_item = self.model.invisibleRootItem()
-        armature_visibility = {arm_name: arm_obj.visible for arm_name, arm_obj in self._armatures_objects.items()}
+        armature_visibility = {arm_name: arm_obj.visible for arm_name, arm_obj in self.armatures_objects.items()}
         self._set_checkbox_states(root_item, armature_visibility, checkbox_column=0)
-
-    @property
-    def qtree_selected_armature(self):
-        selected_armature = None
-        indexes = self.tree_view.selectedIndexes()
-        if indexes:
-            selected_armature = indexes[0].data()
-        return selected_armature
-    
-    @property
-    def qtree_selected_armature_object(self):
-        selected_armature_obj = None
-        selected_armature_name = self.qtree_selected_armature
-        if selected_armature_name:
-            selected_armature_obj = self._armatures_objects[self.qtree_selected_armature]
-        return selected_armature_obj
 
     def _edit_armature_configuration(self):
         armature_object = self.qtree_selected_armature_object
@@ -337,7 +381,7 @@ class StereotaxicFrame(Module):
                 self.parent_viewer.statusBar().showMessage('Armature configuration edition canceled', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
 
     def _update_armature_parameters_widgets_on_configuration_change(self, armature_object):
-        stacked_widget_index = list(self._armatures_objects.keys()).index(armature_object.armature_display_name) + 1
+        stacked_widget_index = list(self.armatures_objects.keys()).index(armature_object.armature_display_name) + 1
 
         # Remove current param widget
         current_params_widget = self.armature_parameters_stacked_widget.widget(stacked_widget_index)
@@ -395,20 +439,6 @@ class StereotaxicFrame(Module):
                     # Recurse into nested dictionary
                     self._get_nested_dict_inheritance(value, key, depth + 1, result)
         return result
-        
-    def update_armature_inheritance(self, gl_objects_exist=True):
-        qtree_as_dict = self.get_armature_tree_as_dict()
-        if qtree_as_dict is not None:
-            self.set_user_param('_steframe_arch_dict', qtree_as_dict)
-        unsorted_hierarchy_dict = self._get_nested_dict_inheritance(self.get_user_param('_steframe_arch_dict'))
-        self.stereotaxic_frame_hierarchy = {k: v[0] for k, v in sorted(unsorted_hierarchy_dict.items(), key=lambda item: item[1][1])}
-
-        for child_armature_name, parent_armature_name in self.stereotaxic_frame_hierarchy.items():
-            if child_armature_name in self._armatures_objects:
-                if parent_armature_name is not None and parent_armature_name in self._armatures_objects:
-                    self._armatures_objects[child_armature_name].parent_transform_mat = self._armatures_objects[parent_armature_name].end_transform_mat
-                else:
-                    self._armatures_objects[child_armature_name].parent_transform_mat = None
 
     def _on_checkbox_checked(self, item):
         # Armature column
@@ -416,7 +446,7 @@ class StereotaxicFrame(Module):
         if item.column() == armature_column:
             _visible_armatures_checkbox_states = self._get_checkbox_states_dict(
                 checkbox_column=armature_column)
-            for arm_name, arm_obj in self._armatures_objects.items():
+            for arm_name, arm_obj in self.armatures_objects.items():
                 if arm_name in _visible_armatures_checkbox_states:
                     arm_obj.visible = _visible_armatures_checkbox_states[arm_name]
             self.update_rendered_object()
@@ -436,27 +466,27 @@ class StereotaxicFrame(Module):
             self._reset_tooltip_on_armatures()
             selected_armature_tooltips = [armature_name for armature_name, tooltip_checkbox_state in self._tooltip_checkbox_states.items() if tooltip_checkbox_state is True]
             if len(selected_armature_tooltips) > 0:
-                armature_object = self._armatures_objects[selected_armature_tooltips[0]]
+                armature_object = self.armatures_objects[selected_armature_tooltips[0]]
                 armature_object.tooltip_on_armature = True
 
             self.parent_viewer.update_rendered_view()
 
     def _reset_tooltip_on_armatures(self):
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
             arm_obj.tooltip_on_armature = False
 
     def _populate_armature_parameters_stacked_widget(self):
         placeholder_armature_parameters = pyqtw.QWidget()
         self.armature_parameters_stacked_widget.addWidget(placeholder_armature_parameters)
-        for arm_name, arm_obj in self._armatures_objects.items():
+        for arm_name, arm_obj in self.armatures_objects.items():
             self.armature_parameters_stacked_widget.addWidget(
                 arm_obj.params_editor_widget.armature_params_editor_widget)
 
     def _update_armature_parameters_groupbox(self, armature_object):
-        if armature_object is None or armature_object.armature_display_name not in self._armatures_objects:
+        if armature_object is None or armature_object.armature_display_name not in self.armatures_objects:
             self.armature_parameters_stacked_widget.setCurrentIndex(0)
         else:
-            stacked_widget_index = list(self._armatures_objects.keys()).index(armature_object.armature_display_name) + 1
+            stacked_widget_index = list(self.armatures_objects.keys()).index(armature_object.armature_display_name) + 1
             self.armature_parameters_stacked_widget.setCurrentIndex(stacked_widget_index)
 
     def _on_item_selected(self, selected):
@@ -465,7 +495,7 @@ class StereotaxicFrame(Module):
         indexes = selected.indexes()
         if indexes:
             selected_armature_name = indexes[0].data() # Get the first selected index
-            armature_object = self._armatures_objects[selected_armature_name]
+            armature_object = self.armatures_objects[selected_armature_name]
             self.edit_armature_configuration_btn.setText(f'Edit {selected_armature_name} configuration')
             self.edit_armature_configuration_btn.setEnabled(True)
 

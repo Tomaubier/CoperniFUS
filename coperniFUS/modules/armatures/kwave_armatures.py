@@ -151,10 +151,13 @@ mesh = extrusion.to_mesh()
             self._kwAS_success = self.kwAS.run_simulation(io_h5files_directory_path=kwave_AS_h5_dir)
             self._render_AS_pfield()
 
-        self.threaded_kwave_sim = threading.Thread(
-            target=run_simulation_threaded_wrapper,
-            args=(kwave_AS_h5_dir,))
-        self.threaded_kwave_sim.start()
+        if self.parent_viewer.disable_threaded_wrappers:
+            run_simulation_threaded_wrapper(kwave_AS_h5_dir)
+        else:
+            self.threaded_kwave_sim = threading.Thread(
+                target=run_simulation_threaded_wrapper,
+                args=(kwave_AS_h5_dir,))
+            self.threaded_kwave_sim.start()
 
     @property
     def axisym_domain_mesh(self):
@@ -210,7 +213,7 @@ mesh = extrusion.to_mesh()
                 armature_dict_mesh_params = self.uneval_armature_config_dict['_kwave_sim']['_axisym_domain_gl_options']
                 for mesh_param_key in self.axisym_domain_mesh_handler._DEFAULT_PARAMS.keys():
                     if mesh_param_key in armature_dict_mesh_params:
-                        self.axisym_domain_mesh_handler.set_stl_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
+                        self.axisym_domain_mesh_handler.set_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
 
                 if self.axisym_domain_mesh_handler.stl_glitem != None or self.visible is False:
                     self.axisym_domain_mesh_handler.delete_rendered_object()
@@ -595,10 +598,13 @@ mesh = extrusion.to_mesh()
             # Debug
             # viewer.add_image(self.kw3D.p_amp_xyz[0], name='Pressure field', colormap='viridis', blending='additive', translate=(-self.kw3D.Nx//2, -self.kw3D.Ny//2, -self.kw3D.simulation_params['source_z_offset']))
 
-        self.threaded_kwave_sim = threading.Thread(
-            target=run_simulation_threaded_wrapper,
-            args=(kwave_3D_h5_dir,))
-        self.threaded_kwave_sim.start()
+        if self.parent_viewer.disable_threaded_wrappers:
+            run_simulation_threaded_wrapper(kwave_3D_h5_dir)
+        else:
+            self.threaded_kwave_sim = threading.Thread(
+                target=run_simulation_threaded_wrapper,
+                args=(kwave_3D_h5_dir,))
+            self.threaded_kwave_sim.start()
 
     def render_voxelized_mesh_debug_preview(self, material_index=0):
         # Voxelized mesh gl preview
@@ -958,10 +964,13 @@ mesh = extrusion.to_mesh()
             self._kwAS_success = self.kwAS.run_simulation(io_h5files_directory_path=kwave_AS_h5_dir)
             self._render_AS_pfield()
 
-        self.threaded_kwave_sim = threading.Thread(
-            target=run_simulation_threaded_wrapper,
-            args=(kwave_AS_h5_dir,))
-        self.threaded_kwave_sim.start()
+        if self.parent_viewer.disable_threaded_wrappers:
+            run_simulation_threaded_wrapper(kwave_AS_h5_dir)
+        else:
+            self.threaded_kwave_sim = threading.Thread(
+                target=run_simulation_threaded_wrapper,
+                args=(kwave_AS_h5_dir,))
+            self.threaded_kwave_sim.start()
 
     def run_AS3D_simulation(self):
         """ Call to run coupled kwave simulations. Results are contained in kwAS and kw3D attributes. """
@@ -1174,7 +1183,7 @@ mesh = extrusion.to_mesh()
                 armature_dict_mesh_params = self.uneval_armature_config_dict['_kwave_sim']['_axisym_domain_gl_options']
                 for mesh_param_key in self.axisym_domain_mesh_handler._DEFAULT_PARAMS.keys():
                     if mesh_param_key in armature_dict_mesh_params:
-                        self.axisym_domain_mesh_handler.set_stl_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
+                        self.axisym_domain_mesh_handler.set_user_param(mesh_param_key, armature_dict_mesh_params[mesh_param_key])
 
                 if self.axisym_domain_mesh_handler.stl_glitem != None or self.visible is False:
                     self.axisym_domain_mesh_handler.delete_rendered_object()

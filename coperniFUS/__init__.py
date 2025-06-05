@@ -35,7 +35,7 @@ class CachedDataHandler:
         successful_loading = False
 
         self.cached_settings_fname = None
-        if cached_settings_fname is not None and self.is_cached_filename_existent(cached_settings_fname):
+        if cached_settings_fname is not None and self.is_cached_filename_already_defined(cached_settings_fname):
             self.cached_settings_fname = cached_settings_fname
         else:
             # .json file loading trial
@@ -56,16 +56,18 @@ class CachedDataHandler:
                 print(f'\nFailed to load .json cached settings file\n{db_cached_fpaths[0]}\n{type(e).__name__}: {str(e)}')
 
         if not successful_loading: # Creates a new cached database as a default
-            self.cached_settings_fname = 'cached_db.json'
+            self.cached_settings_fname = 'untitled_cached_config.json'
 
         print(f'\n> Info: Cached configuration file location: {self.cached_settings_fpath}')
 
-    def is_cached_filename_existent(self, cache_fname):
+    def is_cached_filename_already_defined(self, cache_fname):
+        """ Checks the availibility of a cache_fname """
         exists = (self.cache_dir / cache_fname).exists()
         return exists
 
     @property
     def cached_settings_fpath(self):
+        """ FIle path of the cached file. """
         return self.cache_dir / self.cached_settings_fname
 
     def _attribute_str_id(self, attribute_id):
@@ -76,6 +78,7 @@ class CachedDataHandler:
         return attribute_str_id
 
     def set_attr(self, attribute_id, value):
+        """ Set the value of an attribute. """
         attribute_str_id = self._attribute_str_id(attribute_id)
 
         cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
@@ -84,6 +87,7 @@ class CachedDataHandler:
         cached_db.close()
 
     def get_attr(self, attribute_id, default_value=None):
+        """ Get the value of an attribute. default_value will be returned if the attribute does not exist in cache. """
         attribute_str_id = self._attribute_str_id(attribute_id)
 
         cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
@@ -97,7 +101,7 @@ class CachedDataHandler:
         return value
             
     def get_attr_unique_childs(self, attribute_prefix):
-        
+        """ Garanties attribute name unicity. """
         cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
         with cached_db:
             attributes_keys = list(cached_db.keys())
@@ -113,6 +117,7 @@ class AffineTransforms:
     """ Collection of affine transform function (Scale, Translate, Rotate)"""
 
     def scale_mat(self, scaling_ratio):
+        """ Scale affine transformation matrix. """
         scale_mat = np.eye(4, dtype=float)
         if isinstance(scaling_ratio, int) or isinstance(scaling_ratio, float):
             scale_mat *= scaling_ratio
@@ -122,6 +127,7 @@ class AffineTransforms:
         return scale_mat
         
     def rot_mat(self, rot_axis='x', theta=0, angular_units='degrees'):
+        """ Rotation affine transformation matrix. """
         rot_axis=rot_axis.lower(); angular_units=angular_units.lower() # Force args in lowercase
 
         # Convert to radians if necessary
@@ -153,6 +159,7 @@ class AffineTransforms:
         return rotmat
 
     def translat_mat(self, translation_axis='x', translation_norm=1):
+        """ Translation affine transformation matrix. """
         axii = 0 if translation_axis=='x' else 1 if translation_axis=='y' else 2 if translation_axis=='z' else None
         if axii is None:
             raise ValueError('translation_axis must contain x, y, or z characters')
@@ -232,6 +239,14 @@ class AffineTransformsFromStr(AffineTransforms):
                 if scale_mat is not None:
                     transform_matrices.append(scale_mat)
         return transform_matrices
+    
+    def transform_matrix_from_str(self, ef_tr_str):
+        tmat = np.eye(4)
+        str_tmatrices = self.transform_matrices_from_str(ef_tr_str)
+        for str_tmat in str_tmatrices:
+            tmat = tmat @ str_tmat
+        tmat
+        return tmat
 
 
 af_tr = AffineTransforms()
@@ -453,6 +468,12 @@ def dict_to_path_patched(as_dict):
 def ensure_mesh_is_a_volume_manifold(mesh):
     """ Ensures that the mesh  """
     is_mesh_valid = lambda mesh: mesh.is_watertight and mesh.is_volume
+
+    if not is_mesh_valid(mesh): # Attempt with trimesh built-in functions first
+        mesh_charac_dimension = mesh.bounding_box.extents.max()
+        mesh.update_faces(mesh.nondegenerate_faces(height=mesh_charac_dimension * 1e-5))
+        mesh.update_faces(mesh.unique_faces())
+        mesh.fill_holes()
 
     if not is_mesh_valid(mesh): # Run meshfix on your mesh if needed
         warnings.warn('Mesh is not valid for boolean operations (not a volume manifold) -> Attempting automatic repair..')

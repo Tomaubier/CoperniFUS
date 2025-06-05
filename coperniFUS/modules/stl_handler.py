@@ -30,14 +30,14 @@ class StlHandlerGUI(StlHandler):
         if self._stl_item_tmat is None:
             # Compute transform matrix from transforms str
             transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_stl_user_param('stl_item_transforms_str')
+                self.get_user_param('stl_item_transforms_str')
             )
             self._stl_item_tmat = af_tr.scale_mat(1)
             for tr_mat in transforms_matrices:
                 self._stl_item_tmat = self._stl_item_tmat @ tr_mat
 
         # Apply anatomical landmark calibration transformation if enabled
-        if not self.get_stl_user_param('ignore_anatomical_landmarks_calibration'):
+        if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
             anatomically_calibrated_stl_item_tmat = self._stl_item_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
         else:
             anatomically_calibrated_stl_item_tmat = self._stl_item_tmat
@@ -70,7 +70,7 @@ class StlHandlerGUI(StlHandler):
         self.dock_layout.addWidget(self.select_stl_file_btn, 0, 0, 1, 1) # Y, X, w, h
 
         # Transform matrix str editor
-        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_stl_user_param('stl_item_transforms_str')), 'Mesh transform')
+        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_user_param('stl_item_transforms_str')), 'Mesh transform')
         self.stl_item_transform_editor.editingFinished.connect(functools.partial(self.parse_editor, self.stl_item_transform_editor, 'stl_item_transforms_str', '', 'str'))
         self.stl_item_transform_editor.editingFinished.connect(self._on_stl_item_transform_editing_finished)
         self.stl_item_transform_editor.setEnabled(False)
@@ -114,14 +114,14 @@ class StlHandlerGUI(StlHandler):
             edited_value = si_parse(edited_text_nounit.replace('u', 'µ'))
         else: # raw str
             edited_value = src_editor.text()
-        self.set_stl_user_param(param_name, edited_value)
+        self.set_user_param(param_name, edited_value)
         self.parent_viewer.update_rendered_view()
 
     def _on_stl_item_transform_editing_finished(self):
         self.stl_item_tmat = None
 
     def _update_item_transform_editor(self):
-        self.stl_item_transform_editor.setText(str(self.get_stl_user_param('stl_item_transforms_str')))
+        self.stl_item_transform_editor.setText(str(self.get_user_param('stl_item_transforms_str')))
 
     def _import_stl(self):
         import_path = pyqtw.QFileDialog.getOpenFileName(parent=self.parent_viewer, caption=self.parent_viewer.tr("Select an STL"), filter=self.parent_viewer.tr('STL file (*.stl)'))
@@ -131,10 +131,10 @@ class StlHandlerGUI(StlHandler):
         else:
             self.raw_stl_item_mesh = None # Reset before reload
             self.stl_item_name = pathlib.Path(import_path[0]).stem
-            self.set_stl_user_param('file_path', import_path[0])
+            self.set_user_param('file_path', import_path[0])
             if self.raw_stl_item_mesh is None: # If import has failed
                 self.parent_viewer.statusBar().showMessage('STL file import fail', self.parent_viewer._STATUS_BAR_MSG_TIMEOUT)
-                self.set_stl_user_param('file_path') # Reset to default
+                self.set_user_param('file_path') # Reset to default
                 self.stl_item_name = None
             else: # On success -> save for future use
                 self.add_rendered_object()

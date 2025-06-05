@@ -1,5 +1,5 @@
 from coperniFUS import *
-from coperniFUS.modules.interfaces.trimesh_interfaces import StlHandler, TrimeshHandler
+from coperniFUS.modules.interfaces.trimesh_interfaces import TrimeshHandler, TrimeshScriptHandler, StlHandler
 from coperniFUS.modules.armatures.base_armature import Armature
 
 
@@ -65,13 +65,13 @@ class STLMeshArmature(Armature):
             if pathlib.Path(stl_fpath).exists():
                 self._is_render_uptodate # Init hash
                 self.mesh_handler.stl_item_name = pathlib.Path(stl_fpath).stem
-                self.mesh_handler.set_stl_user_param('file_path', str(stl_fpath))
+                self.mesh_handler.set_user_param('file_path', str(stl_fpath))
                 
             # Set StlHandler gl parameters
             armature_dict_stl_params = self.uneval_armature_config_dict['_stl_mesh']
             for stl_param_key in self.mesh_handler._DEFAULT_PARAMS.keys():
                 if stl_param_key in armature_dict_stl_params and stl_param_key != 'file_path':
-                    self.mesh_handler.set_stl_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
+                    self.mesh_handler.set_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
 
             self._update_stl_item_transform_matrix()
 
@@ -124,7 +124,7 @@ class STLMeshArmature(Armature):
         stl_item_tmat = stl_item_tmat @ self.end_transform_mat
 
         self.mesh_handler.stl_item_tmat = stl_item_tmat
-
+          
 
 class TrimeshScriptArmature(Armature):
 
@@ -150,44 +150,45 @@ class TrimeshScriptArmature(Armature):
             },
             '_trimesh_script': """
             
-path_2d = trimesh.path.creation.circle(radius=cylinder_diameter/2, segments=64)
-extrusion = path_2d.extrude(z)
+outer_circle = trimesh.path.creation.circle(radius=tube_diameter/2, segments=64)
+inner_circle = trimesh.path.creation.circle(radius=tube_diameter/2 - tube_thickness, segments=64)
+path_2d = outer_circle + inner_circle
+extrusion = path_2d.extrude(tube_length)
 mesh = extrusion.to_mesh()
-z_translate_tmat = trimesh.transformations.compose_matrix(translate=[0, 0, z_offset])
-mesh.apply_transform(z_translate_tmat)
+tmat = tmat @ trimesh.transformations.compose_matrix(translate=[0, 0, z_offset])
+mesh.apply_transform(tmat)
 
         """,
             '_trimesh_script_coords': {
-                'cylinder_diameter': {
-                    'args': [
-                        'diameter',
-                        0.015
-                    ],
+                'tube_diameter': {
+                    'args': ['diameter', 0.01],
                     '_is_editable': True,
                     '_edit_increment': 0.0005,
-                    '_param_label': 'Ac. domain diameter',
+                    '_param_label': 'Tube diameter',
                     '_color': 'grey',
                     '_unit': 'm'
                 },
-                'z': {
-                    'args': [
-                        'x',
-                        -0.012500000000000002
-                    ],
+                'tube_thickness': {
+                    'args': ['diameter', 0.001],
                     '_is_editable': True,
                     '_edit_increment': 0.0005,
-                    '_param_label': 'Ac. domain (z)',
+                    '_param_label': 'Tube thickness',
+                    '_color': 'grey',
+                    '_unit': 'm'
+                },
+                'tube_length': {
+                    'args': ['x', 0.02],
+                    '_is_editable': True,
+                    '_edit_increment': 0.0005,
+                    '_param_label': 'Tube length',
                     '_color': 'z_BLUE',
                     '_unit': 'm'
                 },
                 'z_offset': {
-                    'args': [
-                        'z',
-                        0.0
-                    ],
+                    'args': ['z', -0.01],
                     '_is_editable': True,
                     '_edit_increment': 0.0005,
-                    '_param_label': 'Axisym. domain height',
+                    '_param_label': 'Tube offset',
                     '_color': 'grey',
                     '_unit': 'm'
                 },
@@ -203,79 +204,34 @@ mesh.apply_transform(z_translate_tmat)
         # self.armature_config_csts = self._DEFAULT_PARAMS['armature_config_csts']
         # self.uneval_armature_config_dict = self._DEFAULT_PARAMS['uneval_armature_config_dict']
 
-        self._scripted_mesh = None
-        self._current_mesh_params = None
-        self.mesh_handler = StlHandler(parent_viewer)
+        self.mesh_handler = TrimeshScriptHandler(parent_viewer)
     
     # --- Armature specific public attributes ---
-
-    @property
-    def scripted_mesh(self):
-        """ Trimesh mesh object constructed from the _trimesh_script string specified in armature_config_dict. Uppon execution, the script should define a 'mesh' object. """
-        has_been_updated = False
-
-        if '_trimesh_script' in self.armature_config_dict:
-
-            # Retreive scripted mesh param values
-            if '_trimesh_script_coords' in self.armature_config_dict:
-                mesh_params = {mask_param: mask_param_value['args'][1] for (mask_param, mask_param_value) in self.armature_config_dict['_trimesh_script_coords'].items()}
-            else:
-                mesh_params = {}
-            
-            # Reset mesh if parameters have been updated
-            if self._current_mesh_params != mesh_params:
-                self._scripted_mesh = None
-
-            if self._scripted_mesh is None:
-                accessible_globals_names = [
-                    'trimesh', 'np',
-                    'dict_to_path_patched'
-                ]
-
-                accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
-                accessible_globals = {**accessible_globals, **mesh_params}
-
-                # run trimesh script
-                try:
-                    exec(self.armature_config_dict['_trimesh_script'], accessible_globals)
-                    self._scripted_mesh = accessible_globals['mesh']
-                    self._current_mesh_bmask_params = mesh_params
-                    has_been_updated = True
-                except Exception as e:
-                    self._scripted_mesh = None
-                    self._current_mesh_bmask_params = None
-                    has_been_updated = False
-                    self.parent_viewer.show_error_popup("Error in {self.armature_display_name} _trimesh_script", f'{type(e).__name__}: {str(e)}')
-
-        else:
-            self._scripted_mesh = None
-
-        return (self._scripted_mesh, has_been_updated)
-
-    # --- Required armature attributes ---
 
     def add_render(self):
         """ Called when populating the viewer with the module rendered objects """
         super().add_render()
         if '_trimesh_script' in self.armature_config_dict:
 
-            if self.scripted_mesh is not None:
-                self.mesh_handler.stl_item_name = 'trimesh_scripted_mesh'
-                self.mesh_handler.raw_stl_item_mesh = self.scripted_mesh[0]
-                self._is_render_uptodate # Init hash
-                
-                self._update_stl_item_transform_matrix()
+            if '_trimesh_script_coords' in self.armature_config_dict:
+                self.mesh_handler.trimesh_script_constants_dict = {mask_param: mask_param_value['args'][1] for (mask_param, mask_param_value) in self.armature_config_dict['_trimesh_script_coords'].items()}
+            self.mesh_handler.trimesh_script = self.armature_config_dict['_trimesh_script']
 
-                # Set StlHandler gl parameters
-                armature_dict_stl_params = self.uneval_armature_config_dict['_stl_mesh']
-                for stl_param_key in self.mesh_handler._DEFAULT_PARAMS.keys():
-                    if stl_param_key in armature_dict_stl_params:
-                        self.mesh_handler.set_stl_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
+            self.mesh_handler.stl_item_name = 'trimesh_scripted_mesh'
+            self._is_render_uptodate # Init hash
+            
+            self._update_stl_item_transform_matrix()
 
-                if self.mesh_handler.stl_glitem != None or self.visible is False:
-                    self.mesh_handler.delete_rendered_object()
-                else:
-                    self.mesh_handler.add_rendered_object()
+            # Set StlHandler gl parameters
+            armature_dict_stl_params = self.uneval_armature_config_dict['_stl_mesh']
+            for stl_param_key in self.mesh_handler._DEFAULT_PARAMS.keys():
+                if stl_param_key in armature_dict_stl_params:
+                    self.mesh_handler.set_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
+
+            if self.mesh_handler.stl_glitem != None or self.visible is False:
+                self.mesh_handler.delete_rendered_object()
+            else:
+                self.mesh_handler.add_rendered_object()
 
     def update_render(self, force_update=False):
         """ Called on render view updates """
@@ -286,9 +242,6 @@ mesh.apply_transform(z_translate_tmat)
                     self.add_render()
 
                 self._update_stl_item_transform_matrix()
-
-                if self.scripted_mesh[1]: # Check if the mesh has been updated
-                    self.mesh_handler.raw_stl_item_mesh = self.scripted_mesh[0]
                 self.mesh_handler.update_rendered_object()
             else:
                 self.delete_render()
@@ -478,8 +431,8 @@ mesh = extrusion.to_mesh()
         self._current_mesh_bmask_params = None
 
     @property
-    def bmask_mesh(self): # TODO check docstr -> other armature mesh as bmask ????
-        """ Mesh object to be used in the boolean operation.
+    def bmask_mesh(self):
+        """ Mesh object to be used as a boolean mask.
             The mesh is defined as a trimesh script in armature_config_dict['_boolean_mask']['_boolean_mask_trimesh_script']. Uppon execution, the script should define a 'mesh' object.
         """
         has_been_updated = False
@@ -540,10 +493,11 @@ mesh = extrusion.to_mesh()
                 elif b_mesh_name == '_boolean_mask':
                     self.bool_mask_mesh_handler.stl_item_mesh_processed = None # Reset boolean operations
                     b_mesh = self.bool_mask_mesh_handler.stl_item_mesh
-                elif b_mesh_name in self.stereotax_frame_instance._armatures_objects:
-                    arma_obj = self.stereotax_frame_instance._armatures_objects[b_mesh_name]
-                    if '_stl_mesh' in arma_obj.armature_config_dict:
-                        b_mesh = copy.deepcopy(arma_obj.mesh_handler.stl_item_mesh)
+                elif b_mesh_name in self.stereotax_frame_instance.armatures_objects:
+                    arma_obj = self.stereotax_frame_instance.armatures_objects[b_mesh_name]
+
+                    if hasattr(arma_obj, 'mesh_handler') and arma_obj.mesh_handler.stl_item_mesh is not None:
+                        b_mesh = copy.deepcopy(arma_obj.mesh_handler.stl_item_mesh)                
                     else:
                         raise ValueError(f'Unsupported boolean mesh from armature -> {b_mesh_name}')
                 else:
@@ -553,7 +507,7 @@ mesh = extrusion.to_mesh()
                     b_mesh = ensure_mesh_is_a_volume_manifold(b_mesh)
                     b_meshes.append(b_mesh)
                 else:
-                    available_stl_armatures_formated = "\n\t".join([arma_obj_name for arma_obj_name, arma_obj in self.stereotax_frame_instance._armatures_objects.items() if '_stl_mesh' in arma_obj.armature_config_dict])
+                    available_stl_armatures_formated = "\n\t".join([arma_obj_name for arma_obj_name, arma_obj in self.stereotax_frame_instance.armatures_objects.items() if '_stl_mesh' in arma_obj.armature_config_dict])
                     warnings.warn(f'Skipping {b_mesh_name} as it does not exist -> Please make sure that the mesh has been succesfully loaded or computed in the case of trimesh operations.\nAvaiblable meshes are:\n\t_stl_mesh\n\t_boolean_mask{available_stl_armatures_formated}')
 
             if boperator_str in b_operators:
@@ -598,7 +552,7 @@ mesh = extrusion.to_mesh()
             armature_dict_stl_params = self.uneval_armature_config_dict['_stl_mesh']
             for stl_param_key in self.mesh_handler._DEFAULT_PARAMS.keys():
                 if stl_param_key in armature_dict_stl_params:
-                    self.mesh_handler.set_stl_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
+                    self.mesh_handler.set_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
 
             self.mesh_handler.stl_item_mesh_processed = boolean_computed_meshes
             self.mesh_handler.add_rendered_object()
@@ -627,7 +581,7 @@ mesh = extrusion.to_mesh()
                 armature_dict_bmask_params = self.uneval_armature_config_dict['_boolean_mask']['_mask_preview_gl_options']
                 for bmask_param_key in self.bool_mask_mesh_handler._DEFAULT_PARAMS.keys():
                     if bmask_param_key in armature_dict_bmask_params:
-                        self.bool_mask_mesh_handler.set_stl_user_param(bmask_param_key, armature_dict_bmask_params[bmask_param_key])
+                        self.bool_mask_mesh_handler.set_user_param(bmask_param_key, armature_dict_bmask_params[bmask_param_key])
 
                 if self.bool_mask_mesh_handler.stl_glitem != None or self.visible is False:
                     self.bool_mask_mesh_handler.delete_rendered_object()
@@ -746,12 +700,12 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
         if convex_hull_src_mesh_name == '_stl_mesh':
             self.mesh_handler.stl_item_mesh_processed = None # Reset previous trimesh operations
             scr_mesh = self.mesh_handler.stl_item_mesh
-        elif convex_hull_src_mesh_name in self.stereotax_frame_instance._armatures_objects:
-            arma_obj = self.stereotax_frame_instance._armatures_objects[convex_hull_src_mesh_name]
-            if '_stl_mesh' in arma_obj.armature_config_dict:
+        elif convex_hull_src_mesh_name in self.stereotax_frame_instance.armatures_objects:
+            arma_obj = self.stereotax_frame_instance.armatures_objects[convex_hull_src_mesh_name]
+            if hasattr(arma_obj, 'mesh_handler') and arma_obj.mesh_handler.stl_item_mesh is not None:
                 scr_mesh = copy.deepcopy(arma_obj.mesh_handler.stl_item_mesh)
             else:
-                raise ValueError(f'Convex Hull: Unsupported mesh from armature -> {convex_hull_src_mesh_name}')
+                raise ValueError(f'Convex Hull: Unsupported mesh from armature -> {convex_hull_src_mesh_name}\nMake sure that mesh_handler.stl_item_mesh is valid on the targetted armature.')
         else:
             raise ValueError(f'Convex Hull: Unsupported mesh -> {convex_hull_src_mesh_name}')
 
@@ -775,7 +729,7 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
             armature_dict_stl_params = self.uneval_armature_config_dict['_stl_mesh']
             for stl_param_key in self.mesh_handler._DEFAULT_PARAMS.keys():
                 if stl_param_key in armature_dict_stl_params:
-                    self.mesh_handler.set_stl_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
+                    self.mesh_handler.set_user_param(stl_param_key, armature_dict_stl_params[stl_param_key])
 
             self.mesh_handler.stl_item_mesh_processed = convex_hull_mesh
             self.mesh_handler.add_rendered_object()

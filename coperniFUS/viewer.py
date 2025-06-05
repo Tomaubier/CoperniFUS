@@ -27,6 +27,7 @@ class Window(pyqtw.QMainWindow):
     def __init__(self, app, assets_dir_path='', disable_internal_console=False, **kwargs) -> None:
         self.assets_dir_path = pathlib.Path(assets_dir_path)
         self.disable_internal_console = disable_internal_console
+        self.disable_threaded_wrappers = True
         
         if not self.disable_internal_console:
             print('\n> Info: Like any text outputs, warnings and error messages will be outputed to the internal console, to change this behaviour, feel free to set disable_internal_console to True.')
@@ -67,7 +68,7 @@ class Window(pyqtw.QMainWindow):
         """ Returns the module object handle associated to a module name. Call get_module_object_from_name() to get the list of all module names. """
         builtin_modules_dict = {
             module.__class__.__name__: module
-            for module in [self.tooltip, self.anat_calib, self.stereotaxic_frame]
+            for module in [self.tooltip, self.anat_calib, self.stereotaxic_frame, *([self.console_dock] if not self.disable_internal_console else [])]
         }
         optional_module_names = [
             module.__class__.__name__
@@ -143,7 +144,7 @@ class Window(pyqtw.QMainWindow):
         """ Switch between cached configuration files available in cache directory. The list of avalable configuration files can be assessed by calling cached_settings_files. """
         print('Switching to ', cached_settings_fname)
 
-        if self.cache.is_cached_filename_existent(cached_settings_fname):
+        if self.cache.is_cached_filename_already_defined(cached_settings_fname):
 
             # Freeze wnidow to prevent user interactions during reloading
             self.setEnabled(False)
@@ -486,7 +487,7 @@ class Window(pyqtw.QMainWindow):
         """ Update CoperniFUS dark / light window theme. """
         self._update_gl_viewer_theme()
         # for mm in self._modules:
-        #     mm.update_theme() # TODO toimplement
+        #     mm.update_theme() # toimplement if needed
 
     def event(self, event):
         """ Handles app signals like system theme changes. """

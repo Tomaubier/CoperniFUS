@@ -459,7 +459,7 @@ class NewArmaturePopup(pyqtw.QDialog):
             is_data_valid = False
             self.parent_viewer.show_error_popup("Invalid data", "Please specify an armature name")
 
-        if self.new_armature_display_name in self.sterotaxframe_obj._armatures_objects:
+        if self.new_armature_display_name in self.sterotaxframe_obj.armatures_objects:
             is_data_valid = False
             self.parent_viewer.show_error_popup("Invalid data", "This armature name already exists, please choose a different one")
 

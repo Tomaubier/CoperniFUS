@@ -84,7 +84,7 @@ class TrimeshHandler:
             self._stl_item_tmat = np.eye(4) # No transform as default
         
         # Apply anatomical landmark calibration transformation if enabled
-        if not self.get_stl_user_param('ignore_anatomical_landmarks_calibration'):
+        if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
             anatomically_calibrated_stl_item_tmat = self._stl_item_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
         else:
             anatomically_calibrated_stl_item_tmat = self._stl_item_tmat
@@ -108,13 +108,13 @@ class TrimeshHandler:
             self.stl_glitem.append(
                 gl.GLMeshItem(
                     meshdata=stl_item_gl_mesh_data,
-                    shader=self.get_stl_user_param('gl_mesh_shader'), # TODO get_stl_user_param -> redondant -> transfer to stl dock
-                    smooth=self.get_stl_user_param('gl_mesh_smooth'),
-                    drawFaces=self.get_stl_user_param('gl_mesh_drawFaces'),
-                    drawEdges=self.get_stl_user_param('gl_mesh_drawEdges'),
-                    edgeColor=self.get_stl_user_param('gl_mesh_edgeColor'),
-                    edgeWidth=self.get_stl_user_param('gl_mesh_edgeWidth'),
-                    glOptions=self.get_stl_user_param('gl_mesh_glOptions'),
+                    shader=self.get_user_param('gl_mesh_shader'), # TODO get_user_param -> redondant -> transfer to stl dock
+                    smooth=self.get_user_param('gl_mesh_smooth'),
+                    drawFaces=self.get_user_param('gl_mesh_drawFaces'),
+                    drawEdges=self.get_user_param('gl_mesh_drawEdges'),
+                    edgeColor=self.get_user_param('gl_mesh_edgeColor'),
+                    edgeWidth=self.get_user_param('gl_mesh_edgeWidth'),
+                    glOptions=self.get_user_param('gl_mesh_glOptions'),
             ))
             bool_mesh_index_str = f' {mesh.bool_mesh_index}' if hasattr(mesh, 'bool_mesh_index') else ''
             self.parent_viewer.gl_view.addItem(self.stl_glitem[-1], name=f'{self.stl_item_name}{bool_mesh_index_str} STL mesh')
@@ -143,7 +143,7 @@ class TrimeshHandler:
             if sub_mesh_index < len(self.stl_glitem):
                 self.stl_glitem[sub_mesh_index].setMeshData(meshdata=stl_item_gl_mesh_data)
 
-        ignore_plane_slicing = self.get_stl_user_param('ignore_plane_slicing')
+        ignore_plane_slicing = self.get_user_param('ignore_plane_slicing')
         if not self.parent_viewer._postpone_slicing_plane_computation or ignore_plane_slicing:
             if self.stl_glitem is None:
                 self.add_rendered_object()
@@ -169,7 +169,7 @@ class TrimeshHandler:
 
     # --- cache wrapper for interface parameters ---
 
-    def get_stl_user_param(self, param_name, default_value=None):
+    def get_user_param(self, param_name, default_value=None):
         """ Get module configuration parameter stored in cache (or default values if non existant) """
         if default_value is None and param_name in self._DEFAULT_PARAMS:
             default_value = self._DEFAULT_PARAMS[param_name]
@@ -182,7 +182,7 @@ class TrimeshHandler:
             param_value = default_value
         return param_value
 
-    def set_stl_user_param(self, param_name, param_value):
+    def set_user_param(self, param_name, param_value):
         """ Set module configuration parameter to cache """
         if self.stl_item_name is not None:
             self.parent_viewer.cache.set_attr(
@@ -215,12 +215,124 @@ class StlHandler(TrimeshHandler):
         """ Raw mesh object without any affine transformations or processing applied """
         if self._raw_stl_item_mesh is None:
             self.stl_item_mesh = None # Reset inheriting processed mesh
-            stl_file_path = self.get_stl_user_param('file_path')
-            if pathlib.Path(stl_file_path).exists():
+            stl_file_path = self.get_user_param('file_path')
+            if stl_file_path is not None and pathlib.Path(stl_file_path).exists():
                 self._raw_stl_item_mesh = trimesh.load(stl_file_path)
         return self._raw_stl_item_mesh
     
     @raw_stl_item_mesh.setter
     def raw_stl_item_mesh(self, value):
-        # self.stl_item_mesh = None # Reset inheriting processed mesh
+        self._raw_stl_item_mesh = value
+
+
+class TrimeshScriptHandler(TrimeshHandler):
+
+    def __init__(self, parent_viewer, **kwargs) -> None:
+        super().__init__(parent_viewer, **kwargs)
+        self._eval_scripted_mesh = None
+        self._trimesh_script = None
+        self._trimesh_script_constants_dict = None
+
+    @property
+    def trimesh_script(self): # Override mesh import for stl
+        """ Script to be used to construct the trimesh mesh. Uppon execution, the script should define a 'mesh' object. """
+        if self._trimesh_script is None:
+            self._trimesh_script = """"""
+        return self._trimesh_script
+    
+    @trimesh_script.setter
+    def trimesh_script(self, value):
+        if value is None or isinstance(value, str):
+            self._trimesh_script = value
+        else:
+            raise ValueError('trimesh_script should be a string (or None).')
+    
+    @property
+    def trimesh_script_constants_dict(self): # Override mesh import for stl
+        """ Constants to be provided uppon evaluation of the trimesh_script. Constants keys in trimesh_script_constants_dict can be referenced trimesh_script """
+        if self._trimesh_script_constants_dict is None:
+            self._trimesh_script_constants_dict = {}
+        return self._trimesh_script_constants_dict
+    
+    @trimesh_script_constants_dict.setter
+    def trimesh_script_constants_dict(self, value):
+        if value is None or isinstance(value, dict):
+            self._trimesh_script_constants_dict = value
+        else:
+            raise ValueError('trimesh_script_constants_dict should be a dict (or None).')
+
+    def eval_scripted_mesh(self):
+        """ Trimesh mesh object constructed from trimesh_script attriute. Uppon execution, the script should define a 'mesh' object. """
+
+        current_param_hash = ''
+        if self._eval_scripted_mesh is not None and isinstance(self._eval_scripted_mesh, tuple):
+            current_param_hash = self._eval_scripted_mesh[1]
+
+        if self.trimesh_script is not None and (self._eval_scripted_mesh is None or current_param_hash != object_list_hash([self.trimesh_script, self.trimesh_script_constants_dict])):
+
+            accessible_globals_names = [
+                'trimesh', 'np',
+                'dict_to_path_patched'
+            ]
+            accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
+            accessible_globals = {**accessible_globals, **self.trimesh_script_constants_dict}
+
+            # run trimesh script
+            self._eval_scripted_mesh = (None, '') # mesh, param_hash
+            try:
+                exec(self.trimesh_script, accessible_globals)
+                if 'mesh' in accessible_globals:
+                    scripted_mesh = accessible_globals['mesh']
+                    scripted_mesh = ensure_mesh_is_a_volume_manifold(scripted_mesh) # Cleanup mesh
+                    param_hash = object_list_hash([self.trimesh_script, self.trimesh_script_constants_dict])
+                    self._eval_scripted_mesh =  (scripted_mesh, param_hash)
+            except Exception as e:
+                raise ValueError(f'{type(e).__name__} in trimesh_script evaluation: {str(e)}')
+
+        return self._eval_scripted_mesh[0]
+
+    @property
+    def raw_stl_item_mesh(self): # Override mesh import for stl
+        """ Raw mesh object without any affine transformations or processing applied """
+        if self._raw_stl_item_mesh is None:
+            self.stl_item_mesh = None # Reset inheriting processed mesh
+            self._raw_stl_item_mesh = self.eval_scripted_mesh()
+        return self._raw_stl_item_mesh
+    
+    @raw_stl_item_mesh.setter
+    def raw_stl_item_mesh(self, value):
+        self._raw_stl_item_mesh = value
+
+
+class StlHandler(TrimeshHandler):
+
+    _DEFAULT_PARAMS = {
+        'file_path': 'None',
+        'ignore_anatomical_landmarks_calibration': True,
+        'ignore_plane_slicing': False,
+        'gl_mesh_shader': 'viewNormalColor',
+        'gl_mesh_drawEdges': False,
+        'gl_mesh_drawFaces': True,
+        'gl_mesh_edgeColor': (.9, .9, .9, 1),
+        'gl_mesh_glOptions': 'opaque',
+        'gl_mesh_smooth': False,
+        'gl_mesh_edgeWidth': 5,
+    }
+    """ Default configuration parameters used when a parameter value is not yet cached """
+
+    def __init__(self, parent_viewer, **kwargs) -> None:
+        super().__init__(parent_viewer, **kwargs)
+
+    @property
+    def raw_stl_item_mesh(self): # Override mesh import for stl
+        """ Raw mesh object without any affine transformations or processing applied """
+        if self._raw_stl_item_mesh is None:
+            self.stl_item_mesh = None # Reset inheriting processed mesh
+            stl_file_path = self.get_user_param('file_path')
+            if stl_file_path is not None and pathlib.Path(stl_file_path).exists():
+                self._raw_stl_item_mesh = trimesh.load(stl_file_path)
+        return self._raw_stl_item_mesh
+    
+    @raw_stl_item_mesh.setter
+    def raw_stl_item_mesh(self, value):
         self._raw_stl_item_mesh = value
