@@ -24,6 +24,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      - name: Install FFTW via Homebrew
+        if: runner.os == 'macos'
+        run: |
+          brew update
+          brew install fftw
+
       - name: "Install Windows-Mesa OpenGL DLL"
         if: runner.os == 'Windows'
         run: |
