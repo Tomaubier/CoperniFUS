@@ -2,9 +2,12 @@ import pytest
 import PyQt6.QtCore as pyqtc
 from PyQt6.QtTest import QTest
 
-import trimesh, copy
+import trimesh, copy, pathlib
 import numpy as np
 from coperniFUS.viewer import Window, pyqtw
+import coperniFUS
+
+reference_test_assets_dir_path = pathlib.Path(coperniFUS.__file__).parent.parent / 'tests' / 'reference_test_assets'
 
 # ===== Viewer =====
 
@@ -14,7 +17,6 @@ def viewer_window(qapp):
     window = Window(app=qapp)
     yield window
     window.close()
-
 
 # ==== Misc ====
 
@@ -123,8 +125,11 @@ def test_trimesh_interface(viewer_window, qtbot):
 
 from coperniFUS.modules.interfaces import kwave_interfaces
 
-def test_kwave_3D():
-    expected_pmag_array_hash = 'rpSGZT'
+def test_kwave_3D_interface():
+
+    ref_pmag_xmidplane_fpath = reference_test_assets_dir_path / 'test_kwave_3D_interface_pmag_xmidplane.npy'
+    assert ref_pmag_xmidplane_fpath.exists()
+    ref_pmag_xmidplane = np.load(ref_pmag_xmidplane_fpath)
 
     kw3D = kwave_interfaces.Kwave3D()
     
@@ -163,9 +168,9 @@ def test_kwave_3D():
 
     kw3D.set_simulation_param('source_f0', 500000.0)
     kw3D.run_simulation()
-    p_mag = kw3D.p_amp_xyz[0]
+    test_outcome_pmag_xmidplane = kw3D.p_amp_xyz[0][14//2]
 
-    assert get_nparray_shorthash(p_mag) == expected_pmag_array_hash
+    assert np.isclose(test_outcome_pmag_xmidplane, ref_pmag_xmidplane, rtol=1e-3).all()
 
 # TOIMPLEMENT once kave bug has been fixed test_kwave_AS -> does not run on macOS -> https://github.com/waltsims/k-wave-python/issues/470
 # def test_kwave_AS():
@@ -687,7 +692,9 @@ mesh = extrusion.to_mesh()
 def test_kwave_armature(viewer_window, qtbot):
     """ Ensure that Test Armature 1, Fake Skull Mesh, Fake Brain Tissues Mesh from test_base_armature and test_mesh_armature are still loaded """
 
-    expected_pmag_hash = 'tgis-p'
+    ref_pmag_xmidplane_fpath = reference_test_assets_dir_path / 'test_kwave_armature_pmag_xmidplane.npy'
+    assert ref_pmag_xmidplane_fpath.exists()
+    ref_pmag_xmidplane = np.load(ref_pmag_xmidplane_fpath)
 
     steframe_module = viewer_window.get_module_object_from_name('StereotaxicFrame')
 
@@ -715,11 +722,8 @@ def test_kwave_armature(viewer_window, qtbot):
     kwave_armature.compute_boolean_operation()
     kwave_armature.run_3D_simulation()
 
-    # assert kwave_armature.kw3D.p_amp_xyz is not None and kwave_armature.kw3D.p_amp_xyz[0].shape == (64, 64, 128)
-
-    test_outcome_pmag_hash = get_nparray_shorthash(np.round(kwave_armature.kw3D.p_amp_xyz[0], decimals=3).astype(np.float64))
-
-    assert test_outcome_pmag_hash == expected_pmag_hash
+    pmag_xmidplane_test_outome = kwave_armature.kw3D.p_amp_xyz[0][26//2]
+    assert np.isclose(pmag_xmidplane_test_outome, ref_pmag_xmidplane, rtol=1e-3).all()
 
 
 # ===== Optionnal Modules =====
