@@ -34,6 +34,7 @@ Documentation Structure
 
    contents/key_features
    contents/installation
+   contributing.md
    contents/usage
    contents/api_reference
    contents/related_projects

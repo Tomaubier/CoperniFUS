@@ -3,7 +3,7 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
-import os, sys
+import os, sys, shutil
 import importlib.util
 sys.path.insert(0, os.path.abspath(".."))
 
@@ -15,6 +15,11 @@ spec = importlib.util.spec_from_file_location(
 coperniFUS = importlib.util.module_from_spec(spec)
 sys.modules["coperniFUS"] = coperniFUS
 spec.loader.exec_module(coperniFUS)
+
+# Copy README.md into docs/ as _readme.md
+source_readme = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'CONTRIBUTING.md'))
+dest_readme = os.path.abspath(os.path.join(os.path.dirname(__file__), 'contributing.md'))
+shutil.copyfile(source_readme, dest_readme)
 
 # from directory_tree import DisplayTree
 # DisplayTree('.')
@@ -37,7 +42,8 @@ extensions = [
     'sphinx.ext.napoleon',  # For Google/NumPy-style docstrings
     'sphinx.ext.autosummary',  # Optional: for summaries
     'sphinx_autodoc_typehints',  # If using type hints
-    "sphinx_mdinclude",
+    # "sphinx_mdinclude",
+    "myst_parser", # include .md files
     "nbsphinx" # Import notebook
 ]
 

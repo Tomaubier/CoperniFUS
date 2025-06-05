@@ -4,6 +4,7 @@ nbsphinx==0.9.6
 nbconvert==7.16.6
 sphinx-autodoc-typehints==3.0.1
 sphinx_mdinclude==0.6.2
+myst-parser==4.0.1
 
 PyQt6==6.7.0
 numpy==1.26.4
