@@ -168,9 +168,10 @@ def test_kwave_3D_interface():
 
     kw3D.set_simulation_param('source_f0', 500000.0)
     kw3D.run_simulation()
-    test_outcome_pmag_xmidplane = kw3D.p_amp_xyz[0][14//2]
+    pmag_xmidplane_test_outome = kw3D.p_amp_xyz[0][14//2]
 
-    assert np.isclose(test_outcome_pmag_xmidplane, ref_pmag_xmidplane, rtol=1e-3).all()
+    print(f'test_kwave_3D_interface error {(pmag_xmidplane_test_outome - ref_pmag_xmidplane).max()}')
+    assert (pmag_xmidplane_test_outome - ref_pmag_xmidplane).max() < 1 # tolerance in the pascal range
 
 # TOIMPLEMENT once kave bug has been fixed test_kwave_AS -> does not run on macOS -> https://github.com/waltsims/k-wave-python/issues/470
 # def test_kwave_AS():
@@ -723,9 +724,8 @@ def test_kwave_armature(viewer_window, qtbot):
     kwave_armature.run_3D_simulation()
 
     pmag_xmidplane_test_outome = kwave_armature.kw3D.p_amp_xyz[0][26//2]
-
-    assert (pmag_xmidplane_test_outome - ref_pmag_xmidplane).max() > 1e-3
-    assert np.isclose(pmag_xmidplane_test_outome, ref_pmag_xmidplane, rtol=1e3).all() # tol -> kPa TEMPORARY
+    print(f'test_kwave_armature error {(pmag_xmidplane_test_outome - ref_pmag_xmidplane).max()}')
+    assert (pmag_xmidplane_test_outome - ref_pmag_xmidplane).max() < 1 # tolerance in the pascal range
 
 
 # ===== Optionnal Modules =====
