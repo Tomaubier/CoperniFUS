@@ -12,7 +12,7 @@ jobs:
         
     strategy:
       matrix:
-        os: [macos-latest, windows-latest, ubuntu-latest]
+        os: [macos-latest] #, windows-latest, ubuntu-latest]
         python-version: ['3.12']
 
     steps:
@@ -25,10 +25,11 @@ jobs:
           python-version: '3.12'
 
       - name: Install FFTW via Homebrew
+        # https://github.com/waltsims/k-wave-python/issues/549
         if: runner.os == 'macos'
         run: |
           brew update
-          brew install fftw
+          brew install hdf5 fftw zlib libomp
 
       - name: "Install Windows-Mesa OpenGL DLL"
         if: runner.os == 'Windows'
