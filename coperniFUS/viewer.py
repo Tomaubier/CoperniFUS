@@ -53,7 +53,7 @@ class Window(pyqtw.QMainWindow):
 
         self.cache = CachedDataHandler('coperniFUSCache')
 
-        self.setWindowTitle(f"CoperniFUS {version('coperniFUS')}")
+        self._update_window_title()
         self.setGeometry(*self.cache.get_attr('viewer.geometry', default_value=[100, 100, 1500, 1000]))
 
         self._init_gui()
@@ -61,7 +61,7 @@ class Window(pyqtw.QMainWindow):
         self._init_modules()
         self.show()
         self.showMaximized()
-    
+
     # ==== Public attributes ====
     
     def get_module_object_from_name(self, module_name=None):
@@ -140,45 +140,53 @@ class Window(pyqtw.QMainWindow):
 
     # --- Cache handler ---
 
-    def switch_cached_settings_file(self, cached_settings_fname):
-        """ Switch between cached configuration files available in cache directory. The list of avalable configuration files can be assessed by calling cached_settings_files. """
-        print('Switching to ', cached_settings_fname)
+    def switch_cached_settings_file(self, cached_settings_fname, force_create_new=False):
+        """ Switch between cached configuration files available in cache directory or create new ones. The list of avalable configuration files can be assessed by calling cached_settings_files. Setting force_create_new to True will force the creation a a new config file by adding a suffix to cached_settings_fname if it already exists."""
+        print(f'> Info: Switching to {cached_settings_fname}')
 
-        if self.cache.is_cached_filename_already_defined(cached_settings_fname):
+        def get_safe_config_name(name):
+            safe_name = copy.deepcopy(name)
+            # Increment suffix until an unused name is found
+            suffix_index = 1
+            while self.cache.is_cached_filename_already_defined(safe_name):
+                safe_name = f'{copy.deepcopy(name)} {suffix_index}'
+                suffix_index += 1
+            return safe_name
 
-            # Freeze wnidow to prevent user interactions during reloading
-            self.setEnabled(False)
-            pyqtw.QApplication.processEvents()
+        if force_create_new and self.cache.is_cached_filename_already_defined(cached_settings_fname):
+            cached_settings_fname = get_safe_config_name(cached_settings_fname)
 
-            # Set new cached file name
-            # self.cache.cached_settings_fname = cached_settings_fname
-            self.cache = CachedDataHandler(cache_dir_name='coperniFUSCache', cached_settings_fname=cached_settings_fname)
+        # Freeze wnidow to prevent user interactions during reloading
+        self.setEnabled(False)
+        pyqtw.QApplication.processEvents()
 
-            # Clear rendered view
-            self.clear_rendered_view()
+        # Set new cached file name
+        # self.cache.cached_settings_fname = cached_settings_fname
+        self.cache = CachedDataHandler(cache_dir_name='coperniFUSCache', cached_settings_fname=cached_settings_fname)
 
-            # Find all dock widgets in the main window
-            docks = self.findChildren(pyqtw.QDockWidget)
-            for dock in docks: # Remove each dock widget
-                self.removeDockWidget(dock)
-                dock.deleteLater()  # Optionally delete the dock widget to free memory
+        # Clear rendered view
+        self.clear_rendered_view()
+        self._update_window_title()
 
-            # Remove all widgets from the status bar
-            status_bar_widgets = self.status_bar.findChildren(pyqtw.QWidget) # Find all QLabel widgets in the status bar
-            for widget in status_bar_widgets:
-                if not isinstance(widget, pyqtw.QSizeGrip): # Bugfix: prevents application crash
-                    self.status_bar.removeWidget(widget)
-                    widget.deleteLater() # Delete the widget to free memory
-            self.status_bar.clearMessage() # Clear any message from the status bar
+        # Find all dock widgets in the main window
+        docks = self.findChildren(pyqtw.QDockWidget)
+        for dock in docks: # Remove each dock widget
+            self.removeDockWidget(dock)
+            dock.deleteLater()  # Optionally delete the dock widget to free memory
 
-            # Re-initialize modules
-            self._init_modules()
+        # Remove all widgets from the status bar
+        status_bar_widgets = self.status_bar.findChildren(pyqtw.QWidget) # Find all QLabel widgets in the status bar
+        for widget in status_bar_widgets:
+            if not isinstance(widget, pyqtw.QSizeGrip): # Bugfix: prevents application crash
+                self.status_bar.removeWidget(widget)
+                widget.deleteLater() # Delete the widget to free memory
+        self.status_bar.clearMessage() # Clear any message from the status bar
 
-            # Freeze wnidow to prevent user interactions during reloading
-            self.setEnabled(True)
+        # Re-initialize modules
+        self._init_modules()
 
-        else:
-            print(f'{cached_settings_fname} cached file does not exist')
+        # Freeze wnidow to prevent user interactions during reloading
+        self.setEnabled(True)
 
     @property
     def cached_settings_files(self):
@@ -193,7 +201,7 @@ class Window(pyqtw.QMainWindow):
     def _update_cached_settings_menu(self):
         self.cached_settings_menu.clear()
 
-        open_cache_dir_action = pyqtg.QAction('Open cached settings directory', self)
+        open_cache_dir_action = pyqtg.QAction('Open Cached Configurations Directory', self)
         self.cached_settings_menu.addAction(open_cache_dir_action)
         open_cache_dir_action.triggered.connect(self._open_cached_settings_dir)
         self.cached_settings_menu.addSeparator() # Adds a separator line
@@ -288,7 +296,12 @@ class Window(pyqtw.QMainWindow):
 
         # --- File menu ---
         file_menu = menu_bar.addMenu('File')
-        self.cached_settings_menu = file_menu.addMenu('Revert to cached settings')
+
+        new_config_action = pyqtg.QAction('New Configurations', self)
+        file_menu.addAction(new_config_action)
+        new_config_action.triggered.connect(self._open_new_config_popup)
+
+        self.cached_settings_menu = file_menu.addMenu('Open Existing Configurations')
         self.cached_settings_menu.aboutToShow.connect(self._update_cached_settings_menu)
 
         # --- Modules visibility menu ---
@@ -296,6 +309,11 @@ class Window(pyqtw.QMainWindow):
         visible_modules_placeholder = pyqtg.QAction('Visible modules', self)
         self.modules_menu.addAction(visible_modules_placeholder)
         self.modules_menu.aboutToShow.connect(self._update_modules_menu)
+
+    def _open_new_config_popup(self):
+        self.new_config_popup = NewConfigNamePopup(self)
+        if self.new_config_popup.exec():
+            self.switch_cached_settings_file(self.new_config_popup.new_config_name)
 
     def _init_gui(self):
 
@@ -466,6 +484,13 @@ class Window(pyqtw.QMainWindow):
         z_glaxis.setDepthValue(-1) # Axis -> render tree background
 
     # --- Misc ---
+
+    def _update_window_title(self):
+        try:
+            config_name_window_title_suffix = f' - {self.cache.cached_settings_fname.replace(".json", "")}'
+        except Exception as e:
+            config_name_window_title_suffix = ''
+        self.setWindowTitle(f"CoperniFUS {version('coperniFUS')}{config_name_window_title_suffix}")
 
     @property
     def _is_dark_mode(self):

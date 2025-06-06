@@ -32,20 +32,22 @@ class CachedDataHandler:
         # Make cache dir if it does not exists
         self.cache_dir.mkdir(exist_ok=True)
 
-        successful_loading = False
+        # Default -> new untitled config
+        self.cached_settings_fname = 'Untitled Configuration.json'
 
-        self.cached_settings_fname = None
-        if cached_settings_fname is not None and self.is_cached_filename_already_defined(cached_settings_fname):
-            self.cached_settings_fname = cached_settings_fname
-        else:
-            # .json file loading trial
+        # If name not specified bug some config files exist in cache_dir -> set first available file name by default
+        if cached_settings_fname is None:
             db_cached_fpaths = list(self.cache_dir.glob("*.json"))
-            db_cached_fpaths = sorted(db_cached_fpaths, key=lambda x: "latest" not in x.stem) # prioritize files ending with latest
             if len(db_cached_fpaths) > 0:
                 self.cached_settings_fname = db_cached_fpaths[0].name
+
+        # If name specified -> set cache name
+        else:
+            self.cached_settings_fname = f'{cached_settings_fname.split(".")[0]}.json'
         
         # Try loading cached_settings_fname
-        if not successful_loading and self.cached_settings_fname is not None:
+        successful_loading = False
+        if self.cached_settings_fname is not None:
             try:
                 cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
                 with cached_db:
@@ -53,17 +55,22 @@ class CachedDataHandler:
                 cached_db.close()
                 successful_loading = True
             except Exception as e:
-                print(f'\nFailed to load .json cached settings file\n{db_cached_fpaths[0]}\n{type(e).__name__}: {str(e)}')
+                print(f'\nFailed to load .json cached settings file\n{self.cached_settings_fname}\n{type(e).__name__}: {str(e)}')
 
-        if not successful_loading: # Creates a new cached database as a default
-            self.cached_settings_fname = 'untitled_cached_config.json'
+        # If unsuccesful loading -> fallback to new untitled config
+        if not successful_loading:
+            self.cached_settings_fname = 'Untitled Configuration.json'
 
         print(f'\n> Info: Cached configuration file location: {self.cached_settings_fpath}')
 
     def is_cached_filename_already_defined(self, cache_fname):
-        """ Checks the availibility of a cache_fname """
-        exists = (self.cache_dir / cache_fname).exists()
-        return exists
+        """ Checks the availibility of a cache_fname (regardless of the file extension). """
+        directory_path = pathlib.Path(self.cache_dir)
+        cache_fname_without_ext = cache_fname.split(".")[0]
+        for file in directory_path.iterdir():
+            if file.is_file() and file.stem == cache_fname_without_ext:
+                return True
+        return False
 
     @property
     def cached_settings_fpath(self):
@@ -111,6 +118,69 @@ class CachedDataHandler:
 
         unique_child_names = np.unique([attk[0] for attk in attkeys_with_prefix_splitted])
         return unique_child_names
+
+
+class NewConfigNamePopup(pyqtw.QDialog):
+
+    def __init__(self, parent_viewer):
+        self.parent_viewer = parent_viewer
+        super().__init__(self.parent_viewer)
+
+        # Layout for the dialog
+        self.setWindowTitle("New CoperniFUS Configuration")
+        self.popup_layout = pyqtw.QGridLayout()
+        self.setLayout(self.popup_layout)
+        self.setMinimumSize(400, 10)
+
+        # Armature name editor
+        self.config_name_editor = pyqtw.QLineEdit('Untitled Configuration')
+        self.popup_layout.addWidget(self.config_name_editor, 1, 0, 1, 1) # Y, X, w, h
+
+        # Set up the button box
+        self.button_box = pyqtw.QDialogButtonBox(pyqtw.QDialogButtonBox.StandardButton.Cancel | pyqtw.QDialogButtonBox.StandardButton.Ok)
+        self.popup_layout.addWidget(self.button_box, 2, 0, 1, 1) # Y, X, w, h
+        # Connect buttons to actions
+        self.button_box.rejected.connect(self.reject)
+        self.button_box.accepted.connect(self.on_accept)
+
+    def _is_valid_filename(self, filename):
+        # Windows forbidden characters
+        forbidden_chars = r'<>:"/\\|?*'
+        # Reserved names in Windows
+        reserved_names = {
+            "CON", "PRN", "AUX", "NUL",
+            *(f"COM{i}" for i in range(1, 10)),
+            *(f"LPT{i}" for i in range(1, 10)),
+        }
+
+        name = pathlib.Path(filename).name
+        if any(char in name for char in forbidden_chars):
+            return False
+        if name.split('.')[0].upper() in reserved_names:
+            return False
+        if name in (".", "..") or len(name.strip()) == 0:
+            return False
+        return True
+    
+    def on_accept(self):
+
+        is_name_valid = True
+
+        if not self._is_valid_filename(self.new_config_name):
+            is_name_valid = False
+            self.parent_viewer.show_error_popup("Invalid configuration name", "This name is not suitable for use as a filename, please choose a different one.")
+
+        if self.parent_viewer.cache.is_cached_filename_already_defined(self.new_config_name):
+            is_name_valid = False
+            self.parent_viewer.show_error_popup("Invalid configuration name", "This name already exists, please choose a different one.")
+
+        if is_name_valid:
+            self.accept()
+
+    @property
+    def new_config_name(self):
+        return self.config_name_editor.text()
+
 
 
 class AffineTransforms:
