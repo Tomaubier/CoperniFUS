@@ -5,6 +5,40 @@ import brainglobe_atlasapi
 from coperniFUS import *
 from coperniFUS.modules.module_base import Module
 
+# Worker thread
+class AsynchronousOnlineAtlasListRetrieval(pyqtc.QThread):
+    """ Handles network issues when retrieving online atlas lists. """
+    finished = pyqtc.pyqtSignal()
+
+    def __init__(self, parent_viewer, skip_online_atlas_retreival):
+        super().__init__()
+        self.parent_viewer = parent_viewer
+        self.skip_online_atlas_retreival = skip_online_atlas_retreival
+        self.formatted_online_atlases = None
+
+    def run(self):
+        if self.skip_online_atlas_retreival:
+            self.formatted_online_atlases = {
+                None: 'Offline mode -> Showing downloaded atlases only'
+            }
+        else:
+            try:
+                self.parent_viewer.statusBar().showMessage('Loading online atlas list')
+                online_atlases = brainglobe_atlasapi.list_atlases.get_all_atlases_lastversions()
+                online_atlases_names = list(online_atlases.keys())
+                online_atlases_versions = list(online_atlases.values())
+
+                self.formatted_online_atlases = {
+                    f'online_{atlas_name}': f'{atlas_name} | v{online_atlases_versions[ii]} (online)'
+                    for (ii, atlas_name) in enumerate(online_atlases_names)
+                }
+            except Exception as e:
+                print(f'> Could not proceed with online altas retrieval: {type(e).__name__}: {str(e)}')
+                self.formatted_online_atlases = {
+                    None: 'Online atlas retrieval has failed -> Showing downloaded atlases only'
+                }
+        self.finished.emit()
+
 
 class BrainAtlas(Module):
 
@@ -28,6 +62,13 @@ class BrainAtlas(Module):
         self._layers = None
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self._init_attributes()
+
+        self._formatted_online_atlases = {
+            None: 'Retrieving atlases available online...'
+        }
+        self.async_online_altas_list_handler = AsynchronousOnlineAtlasListRetrieval(parent_viewer, skip_online_atlas_retreival)
+        self.async_online_altas_list_handler.finished.connect(self._update_atlas_selector)
+        self.async_online_altas_list_handler.start()
 
     # --- Module specific public attributes ---
 
@@ -131,32 +172,13 @@ class BrainAtlas(Module):
                 for (ii, atlas_name) in enumerate(self._offline_atlases_names)
             }
 
-            formatted_online_atlases = None
-            if not self.skip_online_atlas_retreival:
-                self.parent_viewer.statusBar().showMessage('Loading online atlas list')
-                try:
-                    online_atlases = brainglobe_atlasapi.list_atlases.get_all_atlases_lastversions()
-                    self._online_atlases_names = list(online_atlases.keys())
-                    online_atlases_versions = list(online_atlases.values())
-
-                    formatted_online_atlases = {
-                        f'online_{atlas_name}': f'{atlas_name} | v{online_atlases_versions[ii]} (online)'
-                        for (ii, atlas_name) in enumerate(self._online_atlases_names)
-                        if atlas_name not in formatted_offline_atlases
-                    }
-                except:
-                    pass
-            
-            self.parent_viewer.statusBar().clearMessage()
-            if formatted_online_atlases is None:
-                formatted_online_atlases = {
-                    None: 'Offline mode -> Only downloaded atlas are visible'
-                }
+            if self.async_online_altas_list_handler.formatted_online_atlases is not None:
+                self._formatted_online_atlases = self.async_online_altas_list_handler.formatted_online_atlases
 
             self._available_atlases = {
                 'no_atlas': 'Select Atlas',
                 **formatted_offline_atlases,
-                **formatted_online_atlases
+                **self._formatted_online_atlases
             }
         return self._available_atlases
     
