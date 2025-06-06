@@ -51,7 +51,7 @@ class InternalConsoleModule(Module):
         """ Called on GUI setup to add a module dock """
         # Setting up dock layout
         self.dock = pyqtw.QDockWidget('Console', self.parent_viewer)
-        self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.RightDockWidgetArea, self.dock)
+        self.parent_viewer.addDockWidget(pyqtc.Qt.DockWidgetArea.LeftDockWidgetArea, self.dock)
         self.dock.visibilityChanged.connect(self._on_console_dock_visibility_change)
         self.dock_widget = pyqtw.QWidget(self.dock)
         self.dock.setWidget(self.dock_widget)

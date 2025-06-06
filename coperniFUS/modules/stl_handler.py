@@ -77,6 +77,11 @@ class StlHandlerGUI(StlHandler):
         self.dock_layout.addWidget(self.stl_item_transform_editor, 1, 0, 1, 1) # Y, X, w, h
         self.stl_item_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
 
+        # Resize to most comptact height
+        self.dock.adjustSize()
+        self.dock.setMinimumHeight(self.dock.sizeHint().height())
+        self.dock.setMaximumHeight(self.dock.sizeHint().height())
+
     def add_rendered_object(self,):
         """ Called when populating the viewer with the module rendered objects """
         if self.stl_item_name is None:

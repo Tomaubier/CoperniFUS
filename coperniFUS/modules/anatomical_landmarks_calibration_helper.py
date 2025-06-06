@@ -230,6 +230,7 @@ class AnatLandmarksCalib(Module):
         self.tree_view.setModel(self.model)
         self.dock_layout.addWidget(self.tree_view, 0, 0, 1, 3) # Y, X, h, w
         self._populate_treeview_cached_landmarks()
+        self.tree_view.setMaximumHeight(100)
 
         # Add / Remove Landmarks Buttons
         self.add_landmark_button = pyqtw.QPushButton('+')
@@ -260,6 +261,11 @@ class AnatLandmarksCalib(Module):
         self._update_calib_tmat_btn_status()
         self.dock_layout.addWidget(self.apply_calibration_tmat_btn, 2, 0, 1, 3) # Y, X, h, w
         self.apply_calibration_tmat_btn.setToolTip('Once all landmark coordinates are set, coordinate transformation from Uncalibrated to Calibrated spaces can be performed.')
+
+        # Resize to most comptact height
+        self.dock.adjustSize()
+        self.dock.setMinimumHeight(self.dock.sizeHint().height())
+        self.dock.setMaximumHeight(self.dock.sizeHint().height())
 
     def add_rendered_object(self):
         """ Called when populating the viewer with the module rendered objects """

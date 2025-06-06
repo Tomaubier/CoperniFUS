@@ -56,6 +56,13 @@ class Module:
     
     def init_dock(self):
         """ Sets up a dock GUI for the module """
+
+        # Optionnal
+        # # Resize to most comptact height
+        # self.dock.adjustSize()
+        # self.dock.setMinimumHeight(self.dock.sizeHint().height())
+        # self.dock.setMaximumHeight(self.dock.sizeHint().height())
+
         pass
 
     def add_rendered_object(self):

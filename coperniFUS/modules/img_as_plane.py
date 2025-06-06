@@ -133,6 +133,11 @@ class RefImageAsPlane(Module):
 
         self._enable_disable_editors(False)
 
+        # Resize to most comptact height
+        self.dock.adjustSize()
+        self.dock.setMinimumHeight(self.dock.sizeHint().height())
+        self.dock.setMaximumHeight(self.dock.sizeHint().height())
+
     def add_rendered_object(self):
         """ Called when populating the viewer with the module rendered objects """
         try: # Load previous ref image if valid path

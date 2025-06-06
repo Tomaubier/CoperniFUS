@@ -355,10 +355,10 @@ class Window(pyqtw.QMainWindow):
         self.gl_view.gl_items_toggler.init_dock()
         self.stereotaxic_frame.init_dock()
         self.anat_calib.init_dock()
-        for mm in self._modules:
-            mm.init_dock()
         if not self.disable_internal_console:
             self.console_dock.init_dock()
+        for mm in self._modules:
+            mm.init_dock()
 
     def hide_show_module_dock(self, module_dock, module_name, visibility):
         """ Hide and show module docks """

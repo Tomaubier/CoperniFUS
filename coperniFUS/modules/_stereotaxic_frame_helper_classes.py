@@ -435,6 +435,7 @@ class NewArmaturePopup(pyqtw.QDialog):
         self.setWindowTitle("Setup New Armature")
         self.popup_layout = pyqtw.QGridLayout()
         self.setLayout(self.popup_layout)
+        self.setMinimumSize(400, 10)
 
         # Armature class selector
         self.armature_class_selector = pyqtw.QComboBox()
