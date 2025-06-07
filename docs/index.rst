@@ -7,7 +7,7 @@
 CoperniFUS documentation
 ========================
 
-CoperniFUS: A flexible Python-based GUI for stereotaxic experiment planning.
+*CoperniFUS: A flexible Python-based GUI for stereotaxic experiment planning.*
 
 In the quest for a better control and understanding of the mechanisms of ultrasound neuromodulation and neurostimulation, the planning of experiments, evaluation of acoustic parameters via simulations, and post-processing of results often rely on distinct software programs with their own coordinate systems, which greatly complicates the integration, analysis, and interpretation of key information.
 

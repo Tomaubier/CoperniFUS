@@ -4,7 +4,19 @@ Installation
 .. role:: raw-html(raw)
     :format: html
 
-Tested on macOS 15, Ubuntu 24.04.2 LTS, Linux Mint 21.1, Windows 10 & 11 using Python 3.12.
+
+Minimum requirements
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Although CoperniFUS can theoretically run on any system supporting Python 3.12 it has currently been tested on
+- macOS 15
+- Ubuntu 24.04.2 LTS, Linux Mint 21.1
+- Windows 10 & 11.
+
+Acoutic simulations being by far the most taxing operations, hardware requirements will largely depend on the characteristics of the kwave simulations being considered. Please refer to `k-Wave documentation <http://www.k-wave.org/download.php>`_ to check if your hardware is supported by the C++ binaries leveraged by `k-wave-python <https://k-wave-python.readthedocs.io/en/latest/>`_.
+
+Installation procedure
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 0. Optional but highly recommended: setup a dedicated Python 3.12 environment (I recommended using `miniconda <https://docs.anaconda.com/miniconda/install/>`_) :raw-html:`<br />` - Using `conda`: ``conda create -n coperniFUS_env python=3.12`` :raw-html:`<br />` - Activate the newly created environment using ``conda activate coperniFUS_env``
 1. Install ``coperniFUS`` using ``pip`` (if you are using windows, you might need to install Git) :raw-html:`<br />` - ``pip install git+https://github.com/Tomaubier/CoperniFUS.git``
