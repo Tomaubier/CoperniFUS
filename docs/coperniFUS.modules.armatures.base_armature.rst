@@ -1,6 +1,8 @@
 Base ``Armature``
 -----------------
 
+.. _armature_definition_procedure:
+
 Armature definition procedure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -8,7 +8,9 @@ from coperniFUS.modules.module_base import Module
 # Worker thread
 class AsynchronousOnlineAtlasListRetrieval(pyqtc.QThread):
     """ Handles network issues when retrieving online atlas lists. """
+    
     finished = pyqtc.pyqtSignal()
+    """ Signal emitted whenever the atlas retreival is done (or has failed). """
 
     def __init__(self, parent_viewer, skip_online_atlas_retreival):
         super().__init__()

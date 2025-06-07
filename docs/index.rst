@@ -36,6 +36,7 @@ Documentation Structure
    contents/installation
    contributing.md
    contents/usage
+   contents/tutorial
    contents/api_reference
    contents/related_projects
    Github <https://github.com/Tomaubier/CoperniFUS>

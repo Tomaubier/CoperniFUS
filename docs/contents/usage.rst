@@ -11,6 +11,8 @@ Assets (such as ``.stl`` mesh files) loaded by armatures need to be located in a
 
    coperniFUS --assets_dir_path 'path/to/your/armature/assets'
 
+.. _running_in_interactive_mode:
+
 Interactively in a ``notebook``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 

@@ -565,7 +565,6 @@ kwave_armature_test_config_dict = {
         'gl_mesh_edgeWidth': 5
     },
     '_boolean_mask': {
-        '_src_meshes': ['_stl_mesh'],
         '_boolean_operations': {
             '1': ['intersection', ['Fake Brain Tissues Mesh', '_boolean_mask']],
             '2': ['intersection', ['Fake Skull Mesh', '_boolean_mask']]

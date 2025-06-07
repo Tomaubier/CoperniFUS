@@ -717,7 +717,7 @@ gl.shaders.Shaders.append(gl.shaders.ShaderProgram('boneShader', [
                 color.x = (normal.y + 1.0) * 0.972 * .4;
                 color.y = (normal.y + 1.0) * 0.760 * .4;
                 color.z = (normal.y + 1.0) * 0.568 * .4;
-                color.w = 0.8;
+                color.w = 0.5;
                 gl_FragColor = color;
             }
         """)

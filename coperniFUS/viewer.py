@@ -35,9 +35,8 @@ class Window(pyqtw.QMainWindow):
         print(f'\n> Info: Referencing assets located in {self.assets_dir_path} directory.')
 
         self.app_kwargs = kwargs
-        if app is not None: # ignore app when running tests
-            self.app = app
-            self.app.setStyle('Fusion')
+        self.app = app
+        self.app.setStyle('Fusion')
         super().__init__()
 
         self.debug_trihedras = []
@@ -297,11 +296,11 @@ class Window(pyqtw.QMainWindow):
         # --- File menu ---
         file_menu = menu_bar.addMenu('File')
 
-        new_config_action = pyqtg.QAction('New Configurations', self)
+        new_config_action = pyqtg.QAction('New Configuration', self)
         file_menu.addAction(new_config_action)
         new_config_action.triggered.connect(self._open_new_config_popup)
 
-        self.cached_settings_menu = file_menu.addMenu('Open Existing Configurations')
+        self.cached_settings_menu = file_menu.addMenu('Open Existing Configuration')
         self.cached_settings_menu.aboutToShow.connect(self._update_cached_settings_menu)
 
         # --- Modules visibility menu ---
