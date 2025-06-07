@@ -8,7 +8,7 @@ Designed around a unified coordinate system architecture, `CoperniFUS` is built 
 Check out the [Documentation](https://copernifus.readthedocs.io/en/latest/) and [step by step tutorial](https://copernifus.readthedocs.io/en/latest/contents/tutorial.html#) to learn more on its usage.
 
 > [!IMPORTANT]  
-> Like any other numerical modeling technique, the quality of the results produced by CoperniFUS depends entirely on the choice of input parameters. This software, developed in the context of my PhD, is also subject to bugs. It is therefore of the responsibility of the user to design and perform careful assessments of the results validity. If you identify any significant issues, please document them [in GitHub's issue section](https://github.com/Tomaubier/CoperniFUS/issues).
+> Like any other numerical modeling technique, the quality of the results produced by CoperniFUS depends entirely on the choice of input parameters. This software, developed in the context of my PhD, is also subject to bugs. It is therefore of the responsibility of the user to design and perform careful assessments of the results validity. If you identify any issues, please report them [in GitHub's dedicated section](https://github.com/Tomaubier/CoperniFUS/issues).
 
 ## Key features
 
