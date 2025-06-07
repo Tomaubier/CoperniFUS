@@ -15,6 +15,7 @@ reference_test_assets_dir_path = pathlib.Path(coperniFUS.__file__).parent.parent
 def viewer_window(qapp):
     """ Fixture to create CoperniFUS viewer window. """
     window = Window(app=qapp)
+    window.switch_cached_settings_file('Test config', force_create_new=True)
     yield window
     window.close()
 
