@@ -6,7 +6,14 @@
 ========================
 CoperniFUS documentation
 ========================
+
 CoperniFUS: A flexible Python-based GUI for stereotaxic experiment planning.
+
+In the quest for a better control and understanding of the mechanisms of ultrasound neuromodulation and neurostimulation, the planning of experiments, evaluation of acoustic parameters via simulations, and post-processing of results often rely on distinct software programs with their own coordinate systems, which greatly complicates the integration, analysis, and interpretation of key information.
+Designed around a unified coordinate system architecture, `CoperniFUS` is built to address this challenge by offering a versatile software platform for planning stereotaxic FUS procedures.
+
+.. warning::
+   Like any other numerical modeling technique, the quality of the results produced by CoperniFUS depends entirely on the choice of input parameters. This software, developed in the context of my PhD, is also subject to bugs. It is therefore of the responsibility of the user to design and perform careful assessments of the results validity. If you identify any significant issues, please document them `in GitHub's issue section <https://github.com/Tomaubier/CoperniFUS/issues>`_.
 
 .. image:: /_static/CoperniFUS_screenshot.png
 
