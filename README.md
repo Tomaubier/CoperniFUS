@@ -3,6 +3,7 @@
 ![Tests](https://github.com/Tomaubier/CoperniFUS/actions/workflows/python-app.yml/badge.svg) [![status](https://joss.theoj.org/papers/a1d9b1796f62be795d8b3390161dd46e/status.svg)](https://joss.theoj.org/papers/a1d9b1796f62be795d8b3390161dd46e)
 
 In the quest for a better control and understanding of the mechanisms of ultrasound neuromodulation and neurostimulation, the planning of experiments, evaluation of acoustic parameters via simulations, and post-processing of results often rely on distinct software programs with their own coordinate systems, which greatly complicates the integration, analysis, and interpretation of key information.
+
 Designed around a unified coordinate system architecture, `CoperniFUS` is built to address this challenge by offering a versatile software platform for planning stereotaxic FUS procedures.
 
 Check out the [Documentation](https://copernifus.readthedocs.io/en/latest/) and [step by step tutorial](https://copernifus.readthedocs.io/en/latest/contents/tutorial.html#) to learn more on its usage.
