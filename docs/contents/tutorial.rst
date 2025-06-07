@@ -98,7 +98,7 @@ In this example, the following mesh transformation was found: ``Rz90deg Tz-0.292
 4. Add and configure stereotaxic frame Armatures
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To be used in subsequent operations (mesh boolean, acoustic simulation domain definition, etc.) this mesh needs to be loaded in the *Stereotactic Frame* module. To do that click on *Add armature* and setup an armature of type *STLMeshArmature*.
+To be used in subsequent operations (mesh boolean, acoustic simulation domain definition, etc.) this mesh needs to be loaded in the *Stereotaxic Frame* module. To do that click on *Add armature* and setup an armature of type *STLMeshArmature*.
 
 .. image:: /_static/tutorial_assets/tuto_15.png
     :align: center
@@ -108,7 +108,7 @@ Armatures of any types can be configured using the dedicated editor containing a
 
 .. image:: /_static/tutorial_assets/tuto_16.png 
 
-To load the mesh, parameters under the ``_stl_mesh`` section need to be edited. The ``_armature_joints`` section on the other hand can be discarded in this case. Its purpose will be detailed when defining actual stereotactic frame elements.
+To load the mesh, parameters under the ``_stl_mesh`` section need to be edited. The ``_armature_joints`` section on the other hand can be discarded in this case. Its purpose will be detailed when defining actual stereotaxic frame elements.
 Based on the affine transformation string determined earlier the following configuration can be set.
 
 .. note::
@@ -132,17 +132,17 @@ Based on the affine transformation string determined earlier the following confi
         }
     }
 
-At this point the mesh loaded in the *STL Handler* module can be removed. Note that armature visibility and *Tooltip* location inheritance can be set in the *Stereotactic Frame* module in the same fashion as in the *Brain Atlas* and *Anatomical Landmarks Calibration* modules.
+At this point the mesh loaded in the *STL Handler* module can be removed. Note that armature visibility and *Tooltip* location inheritance can be set in the *Stereotaxic Frame* module in the same fashion as in the *Brain Atlas* and *Anatomical Landmarks Calibration* modules.
 
 .. image:: /_static/tutorial_assets/tuto_17.png 
 
-For demonstration purposes we will now add *Stereotactic Armatures* that would be used for the planing of an experiment where focused ultrasound (FUS) is applied to the *VTA* while monitoring the activity of the *NAc* region using a recording electrode.
+For demonstration purposes we will now add *Stereotaxic Armatures* that would be used for the planing of an experiment where focused ultrasound (FUS) is applied to the *VTA* while monitoring the activity of the *NAc* region using a recording electrode.
 
-To reference anatomical coordinates on the animal during the experiment, we will first define a dummy probe with a needle tip. As mentioned in :ref:`Armature definition procedure <armature_definition_procedure>`, careful measurement of all stereotactic elements need to be performed to obtain good planning and simulation results. An armature definition validation procedure is also described in the :ref:`Armature definition procedure <armature_definition_procedure>` section.
+To reference anatomical coordinates on the animal during the experiment, we will first define a dummy probe with a needle tip. As mentioned in :ref:`Armature definition procedure <armature_definition_procedure>`, careful measurement of all stereotaxic elements needs to be performed to obtain accurate planning and simulation results. For reference, an armature definition validation procedure is also described in the :ref:`Armature definition procedure <armature_definition_procedure>` section.
 
 .. image:: /_static/tutorial_assets/tuto_18.png 
 
-As we touched on earlier, Stereotaxic Frame joints are defined in the ``_armature_joints`` section of the armature configuration dictionary. To start, we will define the location of the stereotactic frame origin relative to the spatial reference we choose, which is the *Bregma* landmark in this example. To that end, a regular *Armature* named *Bregma to Stereotaxic Frame Origin* is created by pressing the *Add armature* button. Translations along X, Y and Z need to be defined. Furthermore, the location of *Bregma* relative to the frame origin will likely be specific to each animals included in the study, we thus want to make these parameters easily editable.
+As we touched on earlier, Stereotaxic Frame joints are defined in the ``_armature_joints`` section of the armature configuration dictionary. To start, we will define the location of the stereotaxic frame origin relative to the spatial reference we choose, which is the *Bregma* landmark in this example. To that end, a regular *Armature* named *Bregma to Stereotaxic Frame Origin* is created by pressing the *Add armature* button. Translations along X, Y and Z need to be defined. Furthermore, the location of *Bregma* relative to the frame origin will likely be specific to each animals included in the study, we thus want to make these parameters easily editable.
 
 Armature joints are defined in the following way
 
@@ -210,7 +210,7 @@ After application of the configuration, a wireframe armature can be made visible
 
 .. image:: /_static/tutorial_assets/tuto_19.png 
 
-The rest of the registration probe can be defined as a set of three armatures: **1.** a stereotactic frame *Arm* with linkages adjustable with dials, **2.** a *Probe Shaft* with a fixed length but a rotational degree of freedom along *z* and **3.** the *Probe Tip* which has fixed dimensions.
+The rest of the registration probe can be defined as a set of three armatures: **1.** a stereotaxic frame *Arm* with linkages adjustable with dials, **2.** a *Probe Shaft* with a fixed length but a rotational degree of freedom along *z* and **3.** the *Probe Tip* which has fixed dimensions.
 
 **1.** *Coordinates Registration Probe Arm* (type: *Armature*)
 
@@ -401,11 +401,11 @@ Configuration dictionary:
         }
     }
 
-After creation, armature need to be assembled.
+After creation, created armatures need to be assembled.
 
 .. image:: /_static/tutorial_assets/tuto_20.png 
 
-Using the *armature inheritance* feature, stereotactic architecture can be set through drag and drop:
+Using the *armature inheritance* feature, stereotaxic architectures can be set via *drag and drop*:
 
 .. image:: /_static/tutorial_assets/tuto_21.png 
 
@@ -427,7 +427,7 @@ Once all *Anatomical Landmarks* are defined, calibration can be performed by cli
 
 Let us now introduce an other type of armature allowing the creation of meshes using the trimesh scripting syntax.
 
-A second stereotactic frame arm is first defined.
+A second stereotaxic frame arm is first defined.
 
 .. image:: /_static/tutorial_assets/tuto_26.png 
 
@@ -474,11 +474,11 @@ To facilitate the edition of geometry parameters, ``_trimesh_script_coords`` can
 5. Setting up and running k-wave simulations
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Mobilizing all the concepts introduced up to this point, a last stereotactic arm supporting a focused ultrasound transducer (FUS) can be defined.
+Mobilizing all the concepts introduced up to this point, a last stereotaxic arm supporting a focused ultrasound transducer (FUS) can be defined.
 
 .. image:: /_static/tutorial_assets/tuto_28.png 
 
-A *TrimeshScriptArmature* is once again used to preview a rough approximation of the FUS focal spot location. Even though this geometry does not take aberration introduced by the skull into account , it allows to make first guesses on the optimal stereotactic frame arrangement and anticipate potential spatial constraints.
+A *TrimeshScriptArmature* is once again used to preview a rough approximation of the FUS focal spot location. Even though this geometry does not take aberration introduced by the skull into account , it allows to make first guesses on the optimal stereotaxic frame arrangement and anticipate potential spatial constraints.
 
 .. code-block:: python
 
@@ -545,21 +545,20 @@ In the *kWave 3D Simulation* armature, references of the mesh armatures used for
             '2': ['intersection', ['Skull Mesh', '_boolean_mask']]
         },
 
-.. note::
-    Boolean operations indices used match the suffixes of acoustic parameters defined in ``_3dcartesian_domain_acoustic_params``:
+Boolean operations indices used match the suffixes of acoustic parameters defined in ``_3dcartesian_domain_acoustic_params``:
 
 .. code-block:: python
 
     '_3dcartesian_domain_acoustic_params': {
-        'c_0': 1482.3,      		# Water everywhere (0 index)
+        'c_0': 1482.3,          # Water everywhere (0 index)
         'rho_0': 994.04,
         'alpha_0': 0.0022,
         'alpha_power_0': 1.0,
-        'c_1': 1546,				# Brain tissue properties inside the boolean intersection mesh with index '1'
+        'c_1': 1546,            # Brain tissue properties inside the boolean intersection mesh with index '1'
         'rho_1': 1045,
         'alpha_1': 0.208,
         'alpha_power_1': 1.3,
-        'c_2': 2400,                # Skull properties inside the boolean intersection mesh with index '2'
+        'c_2': 2400,            # Skull properties inside the boolean intersection mesh with index '2'
         'rho_2': 1850,
         'alpha_2': 2.693,
         'alpha_power_2': 1.18,
@@ -573,7 +572,7 @@ At this point mesh intersections can be computed (make sure that all the meshes 
 
 .. image:: /_static/tutorial_assets/tuto_31.png 
 
-And the simulation initiated.
+and the simulation initiated.
 
 .. image:: /_static/tutorial_assets/tuto_32.png
 
