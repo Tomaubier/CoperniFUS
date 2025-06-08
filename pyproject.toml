@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["coperniFUS*", "*examples*"]
+include = ["coperniFUS*", "coperniFUS/examples/**"]
 exclude = ["joss_paper*", "docs*"]
 
 [project]
