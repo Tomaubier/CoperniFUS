@@ -589,11 +589,10 @@ mesh = extrusion.to_mesh()
         def run_simulation_threaded_wrapper(*args, **kwargs):
             # Run sim
             self._kw3D_success = self.kw3D.run_simulation(io_h5files_directory_path=kwave_3D_h5_dir)
-
             self._render_3D_pfield()
 
             # Debug
-            # viewer.add_image(self.kw3D.p_amp_xyz[0], name='Pressure field', colormap='viridis', blending='additive', translate=(-self.kw3D.Nx//2, -self.kw3D.Ny//2, -self.kw3D.simulation_params['source_z_offset']))
+            # napari_viewer.add_image(self.kw3D.p_amp_xyz[0], name='Pressure field', colormap='viridis', blending='additive', translate=(-self.kw3D.Nx//2, -self.kw3D.Ny//2, -self.kw3D.simulation_params['source_z_offset']))
 
         if self.parent_viewer.disable_threaded_wrappers:
             run_simulation_threaded_wrapper(kwave_3D_h5_dir)

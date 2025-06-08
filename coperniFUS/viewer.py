@@ -24,10 +24,10 @@ class Window(pyqtw.QMainWindow):
 
     _STATUS_BAR_MSG_TIMEOUT = 5000
 
-    def __init__(self, app, assets_dir_path='', disable_internal_console=False, **kwargs) -> None:
+    def __init__(self, app, assets_dir_path='', disable_internal_console=False, disable_threaded_wrappers=False, **kwargs) -> None:
         self.assets_dir_path = pathlib.Path(assets_dir_path)
         self.disable_internal_console = disable_internal_console
-        self.disable_threaded_wrappers = True
+        self.disable_threaded_wrappers = disable_threaded_wrappers
         
         if not self.disable_internal_console:
             print('\n> Info: Like any text outputs, warnings and error messages will be outputed to the internal console, to change this behaviour, feel free to set disable_internal_console to True.')
@@ -539,7 +539,7 @@ def _is_running_in_ipython():
         return False
 
 
-def coperniFUSviewer(assets_dir_path=None, **kwargs):
+def coperniFUSviewer(assets_dir_path=None, disable_internal_console=False, **kwargs):
     if assets_dir_path is None:
         assets_dir_path = pathlib.Path(coperniFUS.__file__).parent / 'examples' / 'assets'
         if not assets_dir_path.exists():
@@ -549,10 +549,18 @@ def coperniFUSviewer(assets_dir_path=None, **kwargs):
         if not _instance:
             _instance = pyqtw.QApplication([])
         app = _instance
-        window = Window(app, assets_dir_path=assets_dir_path, **kwargs)
+        window = Window(app,
+            assets_dir_path=assets_dir_path,
+            disable_internal_console=disable_internal_console,
+            **kwargs
+        )
     else:
         app = pyqtw.QApplication(sys.argv)
-        window = Window(app, assets_dir_path=assets_dir_path, **kwargs)
+        window = Window(app,
+            assets_dir_path=assets_dir_path,
+            disable_internal_console=disable_internal_console,
+            **kwargs
+        )
         sys.exit(app.exec())
         window.exec_()
     return window

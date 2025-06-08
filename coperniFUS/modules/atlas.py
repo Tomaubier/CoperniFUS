@@ -12,9 +12,8 @@ class AsynchronousOnlineAtlasListRetrieval(pyqtc.QThread):
     finished = pyqtc.pyqtSignal()
     """ Signal emitted whenever the atlas retreival is done (or has failed). """
 
-    def __init__(self, parent_viewer, skip_online_atlas_retreival):
+    def __init__(self, skip_online_atlas_retreival):
         super().__init__()
-        self.parent_viewer = parent_viewer
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self.formatted_online_atlases = None
 
@@ -25,7 +24,6 @@ class AsynchronousOnlineAtlasListRetrieval(pyqtc.QThread):
             }
         else:
             try:
-                self.parent_viewer.statusBar().showMessage('Loading online atlas list')
                 online_atlases = brainglobe_atlasapi.list_atlases.get_all_atlases_lastversions()
                 online_atlases_names = list(online_atlases.keys())
                 online_atlases_versions = list(online_atlases.values())
@@ -68,9 +66,10 @@ class BrainAtlas(Module):
         self._formatted_online_atlases = {
             None: 'Retrieving atlases available online...'
         }
-        self.async_online_altas_list_handler = AsynchronousOnlineAtlasListRetrieval(parent_viewer, skip_online_atlas_retreival)
+        self.async_online_altas_list_handler = AsynchronousOnlineAtlasListRetrieval(skip_online_atlas_retreival)
         self.async_online_altas_list_handler.finished.connect(self._update_atlas_selector)
         self.async_online_altas_list_handler.start()
+        self.parent_viewer.statusBar().showMessage('Loading online atlas list')
 
     # --- Module specific public attributes ---
 
