@@ -139,6 +139,22 @@ class Window(pyqtw.QMainWindow):
 
     # --- Cache handler ---
 
+    def load_example_configuration(self, example_configuration_name):
+        """ Switch to a configuration provided in CoperniFUS example directory """
+        extension_free_name = example_configuration_name.split('.')[0]
+        examples_dir_path = pathlib.Path(coperniFUS_location).parent / 'examples'
+        example_configuration_fpath = examples_dir_path / f'{extension_free_name}.json'
+        if not example_configuration_fpath.exists():
+            raise ValueError(f'{example_configuration_name} does not exist in {examples_dir_path}.')
+        if self.cache.is_cached_filename_already_defined(extension_free_name):
+            raise ValueError(f'{example_configuration_name} already exists in the cache {self.cache.cached_settings_fpath}, please remove it or rename it before retrying.')
+        target_fpath = self.cache.cache_dir / f'{extension_free_name}.json'
+        try:
+            shutil.copyfile(example_configuration_fpath, target_fpath)
+            self.switch_cached_settings_file(extension_free_name)
+        except Exception as e:
+            raise ValueError(f'extension_free_name could not be copied from {example_configuration_fpath} to {target_fpath}\n{type(e).__name__}: {str(e)}\n -> Please copy it manually and load it in CoperniFUS using switch_cached_settings_file(\'{extension_free_name}\')')
+
     def switch_cached_settings_file(self, cached_settings_fname, force_create_new=False):
         """ Switch between cached configuration files available in cache directory or create new ones. The list of avalable configuration files can be assessed by calling cached_settings_files. Setting force_create_new to True will force the creation a a new config file by adding a suffix to cached_settings_fname if it already exists."""
         print(f'> Info: Switching to {cached_settings_fname}')

@@ -3,7 +3,7 @@ from importlib.metadata import version
 
 print(f"Launching CoperniFUS v{version('coperniFUS')}")
 
-import sys, functools, os, json, pathlib, trimesh, scipy, pymeshfix, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
+import sys, shutil, functools, os, json, pathlib, trimesh, scipy, pymeshfix, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
 import PyQt6.QtGui as pyqtg
 import PyQt6.QtCore as pyqtc
 import PyQt6.QtWidgets as pyqtw
@@ -16,8 +16,11 @@ from PIL import Image
 from stl import mesh
 import numpy as np
 
+
 from coperniFUS.modules import _jsonshelve
 
+import coperniFUS
+coperniFUS_location = coperniFUS.__file__
 
 def clean_string(string):
     clean_string = ''.join(filter(str.isalnum, string))
