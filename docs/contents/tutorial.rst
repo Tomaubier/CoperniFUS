@@ -586,8 +586,8 @@ If running CoperniFUS in :ref:`interactive mode <running_in_interactive_mode>`, 
         disable_internal_console=False,
     )
 
-    ste_frame_handle = cfv.get_module_object_from_name('StereotaxicFrame')
-    acsim_armature = cfv.stereotaxic_frame.armatures_objects['kWave 3D Simulation']
+    stereotaxic_frame_handle = cfv.get_module_object_from_name('StereotaxicFrame')
+    acsim_armature = stereotaxic_frame_handle.armatures_objects['kWave 3D Simulation']
 
     import matplotlib.pyplot as plt
 
