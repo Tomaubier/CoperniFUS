@@ -8,7 +8,7 @@ exclude = ["joss_paper*", "docs*"]
 
 [tool.setuptools]
 include-package-data = true
-package-data = { "coperniFUS" = ["examples/*"] }
+package-data = { "coperniFUS" = ["examples/**"] }
 
 [project]
 name = "coperniFUS"
