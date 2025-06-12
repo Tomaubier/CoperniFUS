@@ -12,7 +12,7 @@ class StlHandlerGUI(StlHandler):
         'gl_mesh_shader': 'viewNormalColor',
         'gl_mesh_drawEdges': False,
         'gl_mesh_drawFaces': True,
-        'gl_mesh_edgeColor': (.9, .9, .9, 1),
+        'gl_mesh_edgeColor': (.5, .5, .5, .7),
         'gl_mesh_glOptions': 'opaque',
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,

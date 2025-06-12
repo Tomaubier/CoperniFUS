@@ -31,7 +31,7 @@ class STLMeshArmature(Armature):
                 'gl_mesh_shader': None,
                 'gl_mesh_drawEdges': True,
                 'gl_mesh_drawFaces': False,
-                'gl_mesh_edgeColor': (.9, .9, .9, 1),
+                'gl_mesh_edgeColor': (.5, .5, .5, .7),
                 'gl_mesh_glOptions': 'opaque',
                 'gl_mesh_smooth': False,
                 'gl_mesh_edgeWidth': 5,
@@ -143,7 +143,7 @@ class TrimeshScriptArmature(Armature):
                 'gl_mesh_shader': None,
                 'gl_mesh_drawEdges': True,
                 'gl_mesh_drawFaces': False,
-                'gl_mesh_edgeColor': (.9, .9, .9, 1),
+                'gl_mesh_edgeColor': (.5, .5, .5, .7),
                 'gl_mesh_glOptions': 'opaque',
                 'gl_mesh_smooth': False,
                 'gl_mesh_edgeWidth': 5,
@@ -155,7 +155,7 @@ inner_circle = trimesh.path.creation.circle(radius=tube_diameter/2 - tube_thickn
 path_2d = outer_circle + inner_circle
 extrusion = path_2d.extrude(tube_length)
 mesh = extrusion.to_mesh()
-tmat = tmat @ trimesh.transformations.compose_matrix(translate=[0, 0, z_offset])
+tmat = trimesh.transformations.compose_matrix(translate=[0, 0, z_offset])
 mesh.apply_transform(tmat)
 
         """,
@@ -298,7 +298,7 @@ class STLMeshBooleanArmature(STLMeshArmature):
                 'gl_mesh_shader': 'boneShader',
                 'gl_mesh_drawEdges': False,
                 'gl_mesh_drawFaces': True,
-                'gl_mesh_edgeColor': (0.9, 0.9, 0.9, 0.7),
+                'gl_mesh_edgeColor': (.5, .5, .5, .7),
                 'gl_mesh_glOptions': 'opaque',
                 'gl_mesh_smooth': False,
                 'gl_mesh_edgeWidth': 2
@@ -664,7 +664,7 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
                 'gl_mesh_shader': None,
                 'gl_mesh_drawEdges': True,
                 'gl_mesh_drawFaces': False,
-                'gl_mesh_edgeColor': (0.9, 0.9, 0.9, 1),
+                'gl_mesh_edgeColor': (.5, .5, .5, .7),
                 'gl_mesh_glOptions': 'opaque',
                 'gl_mesh_smooth': False,
                 'gl_mesh_edgeWidth': 5},
