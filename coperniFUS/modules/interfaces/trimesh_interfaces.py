@@ -272,10 +272,16 @@ class TrimeshScriptHandler(TrimeshHandler):
 
             accessible_globals_names = [
                 'trimesh', 'np',
-                'dict_to_path_patched'
+                'dict_to_path_patched'  # Depricated in v0.1.1
             ]
-            accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
-            accessible_globals = {**accessible_globals, **self.trimesh_script_constants_dict}
+            accessible_globals = {
+                accessible_glob_name: globals()[accessible_glob_name]
+                for accessible_glob_name in accessible_globals_names
+            }
+            accessible_globals = {
+                **accessible_globals, **self.trimesh_script_constants_dict,
+                'dict_to_path': trimesh.path.exchange.misc.dict_to_path
+            }
 
             # run trimesh script
             self._eval_scripted_mesh = (None, '') # mesh, param_hash

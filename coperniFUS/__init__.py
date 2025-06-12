@@ -502,7 +502,10 @@ def get_nparray_shorthash(nparray):
 
 def dict_to_path_patched(as_dict):
     """
-    TEMPORARY FIX for trimesh==4.0.1
+    --- DEPRICATED in v0.1.1 with trimesh 4.6.12 ---
+    See https://github.com/mikedh/trimesh/issues/2303
+
+    TEMPORARY FIX for trimesh < v4.6.12
 
     Turn a pure dict into a dict containing entity objects that
     can be sent directly to a Path constructor.
@@ -517,24 +520,28 @@ def dict_to_path_patched(as_dict):
     kwargs : dict
       Has keys: 'vertices', 'entities'
     """
-    # start kwargs with initial value
-    result = as_dict.copy()
-    # map of constructors
-    loaders = {"Arc": trimesh.path.entities.Arc, "Line": trimesh.path.entities.Line}
-    # pre- allocate entity array
-    entities = [None] * len(as_dict["entities"])
-    # run constructor for dict kwargs
-    for entity_index, entity in enumerate(as_dict["entities"]):
-        if entity["type"] == 'Line':
-            entities[entity_index] = loaders[entity["type"]](
-                points=entity["points"]
-            )
-        else:
-            entities[entity_index] = loaders[entity["type"]](
-                points=entity["points"], closed=entity["closed"]
-            )
-    result["entities"] = entities
+    
+    # # start kwargs with initial value
+    # result = as_dict.copy()
+    # # map of constructors
+    # loaders = {"Arc": trimesh.path.entities.Arc, "Line": trimesh.path.entities.Line}
+    # # pre- allocate entity array
+    # entities = [None] * len(as_dict["entities"])
+    # # run constructor for dict kwargs
+    # for entity_index, entity in enumerate(as_dict["entities"]):
+    #     if entity["type"] == 'Line':
+    #         entities[entity_index] = loaders[entity["type"]](
+    #             points=entity["points"]
+    #         )
+    #     else:
+    #         entities[entity_index] = loaders[entity["type"]](
+    #             points=entity["points"], closed=entity["closed"]
+    #         )
+    # result["entities"] = entities
 
+    warnings.warn('dict_to_path_patched was depricated in v0.1.1, please transition to trimesh\'s built-in dict_to_path (trimesh.path.exchange.misc.dict_to_path).')
+
+    result = trimesh.path.exchange.misc.dict_to_path(as_dict)
     return result
 
 

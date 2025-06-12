@@ -849,7 +849,7 @@
             "transform_str": null,
             "ignore_plane_slicing": true,
             "ignore_anatomical_landmarks_calibration": true,
-            "_boolean_mask_trimesh_script": "\n\n\npath_2d_dict = {\n    'entities': [\n        {'type': 'Line', 'points': [0, 1, 2, 3, 0], 'closed': False},\n        ],\n    'vertices': [\n        [-threeD_domain_x_size/2, threeD_domain_y_size/2],\n        [threeD_domain_x_size/2, threeD_domain_y_size/2],\n        [threeD_domain_x_size/2, -threeD_domain_y_size/2],\n        [-threeD_domain_x_size/2, -threeD_domain_y_size/2],\n    ]\n}\n\npath_2d_from_dict = trimesh.path.exchange.load.load_path(\n    dict_to_path_patched(path_2d_dict)\n)\n\nextrusion = path_2d_from_dict.extrude(threeD_domain_z_size)\nmesh = extrusion.to_mesh()\n\n        \n        ",
+            "_boolean_mask_trimesh_script": "\n\n\npath_2d_dict = {\n    'entities': [\n        {'type': 'Line', 'points': [0, 1, 2, 3, 0], 'closed': False},\n        ],\n    'vertices': [\n        [-threeD_domain_x_size/2, threeD_domain_y_size/2],\n        [threeD_domain_x_size/2, threeD_domain_y_size/2],\n        [threeD_domain_x_size/2, -threeD_domain_y_size/2],\n        [-threeD_domain_x_size/2, -threeD_domain_y_size/2],\n    ]\n}\n\npath_2d_from_dict = trimesh.path.exchange.load.load_path(\n    dict_to_path(path_2d_dict)\n)\n\nextrusion = path_2d_from_dict.extrude(threeD_domain_z_size)\nmesh = extrusion.to_mesh()\n\n        \n        ",
             "_boolean_mask_coords": {
                 "threeD_domain_x_size": {
                     "args": [

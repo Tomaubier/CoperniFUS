@@ -613,7 +613,7 @@ path_2d_dict = {
 }
 
 path_2d_from_dict = trimesh.path.exchange.load.load_path(
-    dict_to_path_patched(path_2d_dict)
+    dict_to_path(path_2d_dict)
 )
 
 extrusion = path_2d_from_dict.extrude(threeD_domain_z_size)

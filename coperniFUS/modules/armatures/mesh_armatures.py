@@ -350,7 +350,7 @@ path_2d_dict = {
 }
 
 path_2d_from_dict = trimesh.path.exchange.load.load_path(
-    dict_to_path_patched(path_2d_dict)
+    dict_to_path(path_2d_dict)
 )
 
 extrusion = path_2d_from_dict.extrude(extrude_length)
@@ -431,7 +431,7 @@ mesh = extrusion.to_mesh()
         self._current_mesh_bmask_params = None
 
     @property
-    def bmask_mesh(self):
+    def bmask_mesh(self): # TODO use trimesh scripted interface
         """ Mesh object to be used as a boolean mask.
             The mesh is defined as a trimesh script in armature_config_dict['_boolean_mask']['_boolean_mask_trimesh_script']. Uppon execution, the script should define a 'mesh' object.
         """
@@ -450,13 +450,19 @@ mesh = extrusion.to_mesh()
                 self._bmask_mesh = None
 
             if self._bmask_mesh is None:
+
                 accessible_globals_names = [
                     'trimesh', 'np',
-                    'dict_to_path_patched'
+                    'dict_to_path_patched' # Depricated in v0.1.1
                 ]
-
-                accessible_globals = {accessible_glob_name: globals()[accessible_glob_name] for accessible_glob_name in accessible_globals_names}
-                accessible_globals = {**accessible_globals, **bool_mask_params}
+                accessible_globals = {
+                    accessible_glob_name: globals()[accessible_glob_name]
+                    for accessible_glob_name in accessible_globals_names
+                }
+                accessible_globals = {
+                    **accessible_globals, **bool_mask_params,
+                    'dict_to_path': trimesh.path.exchange.misc.dict_to_path
+                }
 
                 # run trimesh script
                 try:
