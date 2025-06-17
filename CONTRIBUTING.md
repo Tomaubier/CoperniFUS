@@ -43,3 +43,10 @@ Enhancement suggestions are tracked as [GitHub issues](https://github.com/Tomaub
 - **Describe the current behavior** and **explain which behavior you expected to see instead** and why. At this point you can also tell which alternatives do not work for you.
 - You may want to **include screenshots or screen recordings** which help you demonstrate the steps or point out the part which the suggestion is related to. You can use [LICEcap](https://www.cockos.com/licecap/) to record GIFs on macOS and Windows, and the built-in [screen recorder in GNOME](https://help.gnome.org/users/gnome-help/stable/screen-shot-record.html.en) or [SimpleScreenRecorder](https://github.com/MaartenBaert/ssr) on Linux. <!-- this should only be included if the project has a GUI -->
 - **Explain why this enhancement would be useful** to most CoperniFUS users. You may also want to point out the other projects that solved it better and which could serve as inspiration.
+
+### Submitting pull requests
+
+Contributions to the project code are welcomed.
+- Follow the [installation procedure for development purposes](https://copernifus.readthedocs.io/en/latest/contents/installation.html#alternative-installation-procedure-for-development-purposes) to get started.
+- [Run the tests](https://copernifus.readthedocs.io/en/latest/contents/installation.html#running-automated-tests) to make sure that your edits do not introduce any major issues.
+- Create a [pull request](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request) to make your changes available to all users.
