@@ -1,7 +1,7 @@
 # %%
 from importlib.metadata import version
 
-print(f"Launching CLEAN CoperniFUS v{version('coperniFUS')}")
+print(f"Launching CoperniFUS v{version('coperniFUS')}")
 
 import sys, pathlib, trimesh, pymeshfix, copy, hashlib, base64, warnings, re
 import PyQt6.QtGui as pyqtg
