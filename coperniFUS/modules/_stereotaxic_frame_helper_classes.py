@@ -1,4 +1,5 @@
 from coperniFUS import *
+import functools
 
 
 class PythonSyntaxHighlighter(pyqtg.QSyntaxHighlighter):

@@ -1,6 +1,6 @@
 from coperniFUS import *
 from coperniFUS.modules.module_base import Module
-
+import functools
 
 class Tooltip(Module):
 

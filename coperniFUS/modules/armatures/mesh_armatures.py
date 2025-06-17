@@ -598,7 +598,6 @@ mesh = extrusion.to_mesh()
         """ Called on render view updates """
         if not self._is_render_uptodate or force_update:
             super().update_render(force_update=True)
-            # st_time = time.time()
             if self.visible is True:
                 if self.bool_mask_mesh_handler.stl_glitem is None:
                     self.add_render()
@@ -610,7 +609,6 @@ mesh = extrusion.to_mesh()
                 self.bool_mask_mesh_handler.update_rendered_object() #ignore_plane_slicing=True)
             else:
                 self.delete_render()
-            # print(f' >> STLMeshBooleanArmature -> {self._is_render_uptodate} | {si_format(time.time() - st_time)}s')
     
     def delete_render(self):
         """ Called on deletion of the module rendered objects """

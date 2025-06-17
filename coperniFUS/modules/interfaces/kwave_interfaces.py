@@ -21,6 +21,7 @@ from kwave.kspaceFirstOrder2D import kspaceFirstOrder2D
 from kwave.options.simulation_options import SimulationOptions, SimulationType
 from kwave.options.simulation_execution_options import SimulationExecutionOptions
 
+import scipy, h5py
 from scipy.spatial import cKDTree
 from tqdm import tqdm
 

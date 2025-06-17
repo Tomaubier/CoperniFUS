@@ -1,6 +1,9 @@
 from brainglobe_atlasapi.bg_atlas import BrainGlobeAtlas
 import brainglobe_space as bgs
 import brainglobe_atlasapi
+import matplotlib.pyplot as plt
+import pyqtgraph as pg
+import functools, json
 
 from coperniFUS import *
 from coperniFUS.modules.module_base import Module
@@ -33,7 +36,7 @@ class AsynchronousOnlineAtlasListRetrieval(pyqtc.QThread):
                     for (ii, atlas_name) in enumerate(online_atlases_names)
                 }
             except Exception as e:
-                print(f'> Could not proceed with online altas retrieval: {type(e).__name__}: {str(e)}')
+                print(f'> Could not proceed with online altas retrieval: {type(e).__name__}: {str(e)}\nBrainGlobe Atlas API servers could not be reached..\nEnsure that your internet connection works properly and run "brainglobe list" in a terminal.\nIf you do not have any atlases installed locally you can install one using "brainglobe install -a <atlas_name>"')
                 self.formatted_online_atlases = {
                     None: 'Online atlas retrieval has failed -> Showing downloaded atlases only'
                 }
@@ -58,7 +61,7 @@ class BrainAtlas(Module):
 
     def __init__(self, parent_viewer, skip_online_atlas_retreival=False, **kwargs) -> None:
         super().__init__(parent_viewer, 'atlas', **kwargs)
-
+ 
         self._layers = None
         self.skip_online_atlas_retreival = skip_online_atlas_retreival
         self._init_attributes()

@@ -1,6 +1,7 @@
 from coperniFUS import *
 from coperniFUS.modules.interfaces.trimesh_interfaces import StlHandler
-
+import pyqtgraph as pg
+import functools
 
 class StlHandlerGUI(StlHandler):
 

@@ -1,19 +1,14 @@
 # %%
 from importlib.metadata import version
 
-print(f"Launching CoperniFUS v{version('coperniFUS')}")
+print(f"Launching CLEAN CoperniFUS v{version('coperniFUS')}")
 
-import sys, shutil, functools, os, json, pathlib, trimesh, scipy, pymeshfix, matplotlib, pickle, shelve, pprint, copy, hashlib, time, h5py, napari, base64, threading, warnings, re
+import sys, pathlib, trimesh, pymeshfix, copy, hashlib, base64, warnings, re
 import PyQt6.QtGui as pyqtg
 import PyQt6.QtCore as pyqtc
 import PyQt6.QtWidgets as pyqtw
 from si_prefix import si_format, si_parse
-import matplotlib.pyplot as plt
 import pyqtgraph.opengl as gl
-from pyqtgraph import Qt
-import pyqtgraph as pg
-from PIL import Image
-from stl import mesh
 import numpy as np
 
 

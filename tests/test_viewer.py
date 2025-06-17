@@ -4,7 +4,7 @@ from PyQt6.QtTest import QTest
 
 import trimesh, copy, pathlib
 import numpy as np
-from coperniFUS.viewer import Window, pyqtw
+from coperniFUS.viewer import Window
 import coperniFUS
 
 reference_test_assets_dir_path = pathlib.Path(coperniFUS.__file__).parent.parent / 'tests' / 'reference_test_assets'

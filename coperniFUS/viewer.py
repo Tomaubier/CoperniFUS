@@ -7,6 +7,7 @@ from coperniFUS.modules.img_as_plane import RefImageAsPlane
 from coperniFUS.modules.stl_handler import StlHandlerGUI
 from coperniFUS.modules.atlas import BrainAtlas
 from coperniFUS.modules.tooltip import Tooltip
+import shutil, functools
 
 
 class Window(pyqtw.QMainWindow):

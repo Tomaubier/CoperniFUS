@@ -1,6 +1,7 @@
 from coperniFUS import *
 from coperniFUS.modules.module_base import Module
-
+from PIL import Image
+import functools
 
 class RefImageAsPlane(Module):
 
