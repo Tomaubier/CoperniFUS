@@ -10,10 +10,13 @@ authors:
     affiliation: 1 # (Multiple affiliations must be quoted)
     corresponding: true # (This is how to denote the corresponding author)
   - name: Sandrine Parrot
+    orcid: 0000-0002-9836-0391
     affiliation: 2
   - name: Ivan M. Suarez-Castellanos
+    orcid: 0000-0001-6575-0775
     affiliation: 1
   - name: W. Apoutou N'Djin
+    orcid: 0000-0003-0606-1464
     affiliation: 1
 affiliations:
  - name: LabTAU, INSERM, Centre Léon Bérard, Université Claude Bernard Lyon 1, F-69003, Lyon, France
