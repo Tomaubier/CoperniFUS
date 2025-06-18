@@ -13,6 +13,7 @@ authors:
     orcid: 0000-0002-9836-0391
     affiliation: 2
   - name: Ivan M. Suarez-Castellanos
+    corresponding: true # (This is how to denote the corresponding author)
     orcid: 0000-0001-6575-0775
     affiliation: 1
   - name: W. Apoutou N'Djin
