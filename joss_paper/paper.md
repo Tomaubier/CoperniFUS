@@ -9,9 +9,6 @@ authors:
     orcid: 0009-0004-5558-8435
     affiliation: 1 # (Multiple affiliations must be quoted)
     corresponding: true # (This is how to denote the corresponding author)
-  - name: Sandrine Parrot
-    orcid: 0000-0002-9836-0391
-    affiliation: 2
   - name: Ivan M. Suarez-Castellanos
     corresponding: true # (This is how to denote the corresponding author)
     orcid: 0000-0001-6575-0775
@@ -22,8 +19,6 @@ authors:
 affiliations:
  - name: LabTAU, INSERM, Centre Léon Bérard, Université Claude Bernard Lyon 1, F-69003, Lyon, France
    index: 1
- - name: Université Claude Bernard Lyon 1, INSERM, Centre de Recherche en Neurosciences de Lyon CRNL U1028 UMR5292, F-69500 Bron, France
-   index: 2
 date: 7 February 2025
 bibliography: references.bib
 
@@ -82,6 +77,6 @@ Finally, data analysis and manipulation can be greatly simplified by using `Cope
 
 # Acknowledgements
 
-This project was supported by the French National Research Agency (ANR-16-TERC0017, ANR-21-CE19-0007 \& ANR-21-CE19-0030), the American Focused Ultrasound Foundation (LabTAU, FUSF Center of Excellence). Additionally, this work was performed within the framework of the LABEX DEV WECAN (ANR-10-LABX-0061) and CORTEX (ANR-11-LABX-0042) of Université de Lyon, within the program "Investissements d'Avenir" (ANR-11-IDEX-0007) operated by the French National Research Agency (ANR). The work of the communities behind [k-Wave](http://www.k-wave.org) and the Python packages used throughout this work was integral to its completion.
+This project was supported by the French National Research Agency (ANR-16-TERC0017, ANR-21-CE19-0007 \& ANR-21-CE19-0030), the American Focused Ultrasound Foundation (LabTAU, FUSF Center of Excellence). Additionally, this work was performed within the framework of the LABEX DEV WECAN (ANR-10-LABX-0061) and CORTEX (ANR-11-LABX-0042) of Université de Lyon, within the program "Investissements d'Avenir" (ANR-11-IDEX-0007) operated by the French National Research Agency (ANR). The work of the communities behind [k-Wave](http://www.k-wave.org) and the Python packages used throughout this work was integral to its completion. Finally, the authors warmly thank Dr. Sandrine Parrot (CRNL, Lyon) for her strong expertise in microdialysis devices and in vivo experiments.
 
 # References
