@@ -556,13 +556,13 @@ mesh = extrusion.to_mesh()
 
             def voxelize_domain_and_apply_mat_properties(mesh):
                 material_index = mesh.bool_mesh_index # Retreive material index before deepcopy (will be deleted in that process)
+                mesh_copy = copy.deepcopy(mesh)
 
-                mesh = copy.deepcopy(mm)
-                mesh.apply_transform(np.linalg.inv(self.end_transform_mat.T))
+                mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat.T))
 
                 # Voxelize mesh
                 voxel_size = self.kw3D.dx
-                voxelized = mesh.voxelized(pitch=voxel_size, max_iter=1000)
+                voxelized = mesh_copy.voxelized(pitch=voxel_size, max_iter=1000)
                 voxelized = voxelized.fill()
                 # voxelized.show() # Debug
                 # KDTree for fast voxel lookup
@@ -584,7 +584,7 @@ mesh = extrusion.to_mesh()
                 voxelize_domain_and_apply_mat_properties(self.mesh_handler.stl_item_mesh_processed)
             elif isinstance(self.mesh_handler.stl_item_mesh_processed, list):
                 for mm in self.mesh_handler.stl_item_mesh_processed:
-                    voxelize_domain_and_apply_mat_properties(mm)
+                    voxelize_domain_and_apply_mat_properties(copy.deepcopy(mm))
 
             self.kw3D._medium.sound_speed = raveled_sound_speed.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
             self.kw3D._medium.density = raveled_density.T.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
@@ -1020,13 +1020,14 @@ mesh = extrusion.to_mesh()
 
                 def voxelize_domain_and_apply_mat_properties(mesh):
                     material_index = mesh.bool_mesh_index # Retreive material index before deepcopy (will be deleted in that process)
+                    mesh_copy = copy.deepcopy(mesh)
 
-                    mesh = copy.deepcopy(mm)
-                    mesh.apply_transform(np.linalg.inv(self.end_transform_mat.T))
+                    mesh_copy = copy.deepcopy(mm)
+                    mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat.T))
 
                     # Voxelize mesh
                     voxel_size = self.kw3D.dx
-                    voxelized = mesh.voxelized(pitch=voxel_size, max_iter=1000)
+                    voxelized = mesh_copy.voxelized(pitch=voxel_size, max_iter=1000)
                     voxelized = voxelized.fill()
                     # voxelized.show() # Debug
                     # KDTree for fast voxel lookup
