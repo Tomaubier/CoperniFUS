@@ -584,7 +584,7 @@ mesh = extrusion.to_mesh()
                 voxelize_domain_and_apply_mat_properties(self.mesh_handler.stl_item_mesh_processed)
             elif isinstance(self.mesh_handler.stl_item_mesh_processed, list):
                 for mm in self.mesh_handler.stl_item_mesh_processed:
-                    voxelize_domain_and_apply_mat_properties(copy.deepcopy(mm))
+                    voxelize_domain_and_apply_mat_properties(mm)
 
             self.kw3D._medium.sound_speed = raveled_sound_speed.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
             self.kw3D._medium.density = raveled_density.T.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
