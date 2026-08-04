@@ -295,10 +295,11 @@ class STLMeshBooleanArmature(STLMeshArmature):
                 'transform_str': 'S.11 Rz90deg Tz-31.9mm Tx46mm Ry3.7deg',
                 'ignore_plane_slicing': False,
                 'ignore_anatomical_landmarks_calibration': False,
-                'gl_mesh_shader': 'boneShader',
+                'gl_mesh_shader': 'softShade',
+                'gl_mesh_color': [0.972, 0.76, 0.568, 1.],
                 'gl_mesh_drawEdges': False,
                 'gl_mesh_drawFaces': True,
-                'gl_mesh_edgeColor': (.5, .5, .5, .7),
+                'gl_mesh_edgeColor': [.5, .5, .5, .7],
                 'gl_mesh_glOptions': 'opaque',
                 'gl_mesh_smooth': False,
                 'gl_mesh_edgeWidth': 2

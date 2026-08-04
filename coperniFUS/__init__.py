@@ -11,6 +11,8 @@ from si_prefix import si_format, si_parse
 import pyqtgraph.opengl as gl
 import numpy as np
 
+# Handle multiple GLview instances
+pyqtc.QCoreApplication.setAttribute(pyqtc.Qt.ApplicationAttribute.AA_ShareOpenGLContexts)
 
 from coperniFUS.modules import _jsonshelve
 
@@ -701,53 +703,45 @@ class NamedGLViewWidget(gl.GLViewWidget):
         else:
             return None
 
-# ----- Custom Mesh Shaders -----
-# Src: https://stackoverflow.com/a/68989314/9645937
+# ----- Custom Mesh Shader -----
+# Src: https://github.com/pyqtgraph/pyqtgraph/discussions/3230
 
-gl.shaders.Shaders.append(gl.shaders.ShaderProgram('boneShader', [
-    gl.shaders.VertexShader("""
-            varying vec3 normal;
-            void main() {
-                // compute here for use in fragment shader
-                normal = normalize(gl_NormalMatrix * gl_Normal);
-                gl_FrontColor = gl_Color;
-                gl_BackColor = gl_Color;
-                gl_Position = ftransform();
-            }
-        """),
-    gl.shaders.FragmentShader("""
-            varying vec3 normal;
-            void main() {
-                vec4 color = gl_Color;
-                color.x = (normal.y + 1.0) * 0.972 * .4;
-                color.y = (normal.y + 1.0) * 0.760 * .4;
-                color.z = (normal.y + 1.0) * 0.568 * .4;
-                color.w = 0.5;
-                gl_FragColor = color;
-            }
-        """)
+vert_shader = """
+    #version 120
+
+    uniform mat4 u_mvp;
+    uniform mat3 u_normal;
+
+    attribute vec4 a_position;
+    attribute vec3 a_normal;
+    attribute vec4 a_color;
+
+    varying vec4 v_color;
+    varying vec3 v_normal;
+
+    void main()
+    {
+        v_normal = normalize(u_normal * a_normal);
+        v_color = a_color;
+        gl_Position = u_mvp * a_position;
+    }
+"""
+frag_shader = """
+    #version 120
+
+    varying vec4 v_color;
+    varying vec3 v_normal;
+
+    void main()
+    {
+        float shade = (v_normal.y + 1.0) * 0.4;
+        gl_FragColor = vec4(v_color.rgb * shade, v_color.a);
+    }
+"""
+
+gl.shaders.Shaders.append(gl.shaders.ShaderProgram('softShade', [
+    gl.shaders.VertexShader(vert_shader),
+    gl.shaders.FragmentShader(frag_shader),
 ]))
 
-gl.shaders.Shaders.append(gl.shaders.ShaderProgram('bwShader', [
-    gl.shaders.VertexShader("""
-            varying vec3 normal;
-            void main() {
-                // compute here for use in fragment shader
-                normal = normalize(gl_NormalMatrix * gl_Normal);
-                gl_FrontColor = gl_Color;
-                gl_BackColor = gl_Color;
-                gl_Position = ftransform();
-            }
-        """),
-    gl.shaders.FragmentShader("""
-            varying vec3 normal;
-            void main() {
-                vec4 color = gl_Color;
-                color.x = (normal.y + 1.0) * .4;
-                color.y = (normal.y + 1.0) * .4;
-                color.z = (normal.y + 1.0) * .4;
-                color.w = 0.8;
-                gl_FragColor = color;
-            }
-        """)
-]))
+AVAILABLE_SHADER_NAMES = [name for name in gl.shaders.Shaders[0].names if name is not None]

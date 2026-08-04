@@ -126,7 +126,8 @@
             "transform_str": "Rz90deg Tz-0.292m Tx0.415m Ry4.2deg S.09",
             "ignore_plane_slicing": false,
             "ignore_anatomical_landmarks_calibration": false,
-            "gl_mesh_shader": "boneShader",
+            "gl_mesh_shader": "softShade",
+            "gl_mesh_color": [0.972, 0.76, 0.568, 1.0],
             "gl_mesh_drawEdges": false,
             "gl_mesh_drawFaces": true,
             "gl_mesh_edgeColor": [
@@ -145,7 +146,8 @@
     "mesh_handler.Pohl2013_coarse.file_path": "/Users/tomaubier/Documents/US_Neurostim/Analysis_scripts/CoperniFUS/coperniFUS/examples/assets/Pohl2013_coarse.stl",
     "mesh_handler.Pohl2013_coarse.ignore_anatomical_landmarks_calibration": false,
     "mesh_handler.Pohl2013_coarse.ignore_plane_slicing": false,
-    "mesh_handler.Pohl2013_coarse.gl_mesh_shader": "boneShader",
+    "mesh_handler.Pohl2013_coarse.gl_mesh_shader": "softShade",
+    "mesh_handler.Pohl2013_coarse.gl_mesh_color": [0.972, 0.76, 0.568, 1.0],
     "mesh_handler.Pohl2013_coarse.gl_mesh_drawEdges": false,
     "mesh_handler.Pohl2013_coarse.gl_mesh_drawFaces": true,
     "mesh_handler.Pohl2013_coarse.gl_mesh_edgeColor": [

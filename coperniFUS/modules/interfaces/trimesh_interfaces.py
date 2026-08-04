@@ -9,7 +9,8 @@ class TrimeshHandler:
         'gl_mesh_shader': 'viewNormalColor',
         'gl_mesh_drawEdges': False,
         'gl_mesh_drawFaces': True,
-        'gl_mesh_edgeColor': (.5, .5, .5, .7),
+        'gl_mesh_color': [.5, .5, .5, 1.],
+        'gl_mesh_edgeColor': [.5, .5, .5, .7],
         'gl_mesh_glOptions': 'opaque',
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,
@@ -103,13 +104,22 @@ class TrimeshHandler:
 
     def add_rendered_object(self):
         """ Called when populating the viewer with the module rendered objects """
+
+        def handle_unavailable_shade_names(shader_name):
+            if shader_name is not None and shader_name not in AVAILABLE_SHADER_NAMES:
+                warnings.warn(f'{shader_name} does not exist. Please use one of these:\n\t{"\n\t".join(AVAILABLE_SHADER_NAMES)}.')
+                shader_name = 'shaded'
+            return shader_name
+
         def add_mesh_render(mesh):
             stl_item_gl_mesh_data = gl.MeshData(vertexes=mesh.vertices, faces=mesh.faces)
+
             self.stl_glitem.append(
                 gl.GLMeshItem(
                     meshdata=stl_item_gl_mesh_data,
-                    shader=self.get_user_param('gl_mesh_shader'), # TODO get_user_param -> redondant -> transfer to stl dock
+                    shader=handle_unavailable_shade_names(self.get_user_param('gl_mesh_shader')), # TODO get_user_param -> redondant -> transfer to stl dock
                     smooth=self.get_user_param('gl_mesh_smooth'),
+                    color=self.get_user_param('gl_mesh_color'),
                     drawFaces=self.get_user_param('gl_mesh_drawFaces'),
                     drawEdges=self.get_user_param('gl_mesh_drawEdges'),
                     edgeColor=self.get_user_param('gl_mesh_edgeColor'),
@@ -200,7 +210,8 @@ class StlHandler(TrimeshHandler):
         'gl_mesh_shader': 'viewNormalColor',
         'gl_mesh_drawEdges': False,
         'gl_mesh_drawFaces': True,
-        'gl_mesh_edgeColor': (.5, .5, .5, .7),
+        'gl_mesh_color': [.5, .5, .5, 1.],
+        'gl_mesh_edgeColor': [.5, .5, .5, .7],
         'gl_mesh_glOptions': 'opaque',
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,
@@ -319,7 +330,8 @@ class StlHandler(TrimeshHandler):
         'gl_mesh_shader': 'viewNormalColor',
         'gl_mesh_drawEdges': False,
         'gl_mesh_drawFaces': True,
-        'gl_mesh_edgeColor': (.5, .5, .5, .7),
+        'gl_mesh_color': [.5, .5, .5, 1.],
+        'gl_mesh_edgeColor': [.5, .5, .5, .7],
         'gl_mesh_glOptions': 'opaque',
         'gl_mesh_smooth': False,
         'gl_mesh_edgeWidth': 5,
