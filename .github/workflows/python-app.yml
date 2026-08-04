@@ -41,19 +41,24 @@ jobs:
       - name: "Install Linux system dependencies"
         if: runner.os == 'Linux'
         run: |
+          # make sure universe is available (safe on GitHub runners)
           sudo apt-get update
+          sudo apt-get install -y software-properties-common || true
+          sudo add-apt-repository -y universe || true
+          sudo apt-get update
+
           sudo apt-get install -y libxcb-cursor-dev
 
       - name: "Install Linux VirtualDisplay"
         if: runner.os == 'Linux'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            libgl1 \
-            libgl1-mesa-glx \
+          # Install Mesa/OpenGL and Xvfb + required X/wayland compatibility libs
+          sudo apt-get install -y --no-install-recommends \
+            libegl1-mesa \
             libgl1-mesa-dri \
+            libglx-mesa0 \
             libglu1-mesa \
-            libglu1-mesa-dev \
+            libglvnd0 \
             xvfb \
             libxkbcommon-x11-0 \
             libxcb-cursor0 \
@@ -67,7 +72,7 @@ jobs:
             libxcb-util1 \
             libxrender1 \
             libxi6 \
-            libxtst6 \
+            libxtst6
 
       - name: "Display Info (Windows/MacOS)"
         if: runner.os != 'Linux'
