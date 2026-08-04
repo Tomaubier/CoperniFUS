@@ -74,6 +74,14 @@ jobs:
             libxi6 \
             libxtst6
 
+          export QT_QPA_PLATFORM=offscreen
+
+      - name: Installing CoperniFUS
+        run: python -m pip install -e .
+
+      - name: Installing test dependencies
+        run: pip install pytest pytest-qt
+
       - name: "Display Info (Windows/MacOS)"
         if: runner.os != 'Linux'
         run: |
@@ -83,16 +91,9 @@ jobs:
       - name: "Display Info (Linux)"
         if: runner.os == 'Linux'
         run: |
-          export QT_QPA_PLATFORM=offscreen
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
           python -m pyqtgraph.util.glinfo
           python -m pyqtgraph.util.get_resolution
-
-      - name: Installing CoperniFUS
-        run: python -m pip install -e .
-
-      - name: Installing test dependencies
-        run: pip install pytest pytest-qt
 
       - name: "Debug Info"
         run: |
