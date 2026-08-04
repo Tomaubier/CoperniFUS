@@ -667,7 +667,8 @@
             "file_path": "simple_transducer_holder.stl",
             "ignore_plane_slicing": true,
             "ignore_anatomical_landmarks_calibration": true,
-            "gl_mesh_shader": "bwShader",
+            "gl_mesh_shader": "softShade",
+            "gl_mesh_color": [0.7, 0.7, 0.7, 1.0],
             "gl_mesh_drawEdges": false,
             "gl_mesh_drawFaces": true,
             "gl_mesh_edgeColor": [
@@ -696,7 +697,8 @@
     "mesh_handler.simple_transducer_holder.file_path": "/Users/tomaubier/Documents/US_Neurostim/Analysis_scripts/CoperniFUS/coperniFUS/examples/assets/simple_transducer_holder.stl",
     "mesh_handler.simple_transducer_holder.ignore_anatomical_landmarks_calibration": true,
     "mesh_handler.simple_transducer_holder.ignore_plane_slicing": true,
-    "mesh_handler.simple_transducer_holder.gl_mesh_shader": "bwShader",
+    "mesh_handler.simple_transducer_holder.gl_mesh_shader": "softShade",
+    "mesh_handler.simple_transducer_holder.gl_mesh_color": [0.7, 0.7, 0.7, 1.0],
     "mesh_handler.simple_transducer_holder.gl_mesh_drawEdges": false,
     "mesh_handler.simple_transducer_holder.gl_mesh_drawFaces": true,
     "mesh_handler.simple_transducer_holder.gl_mesh_edgeColor": [
@@ -768,7 +770,8 @@
     "armature.TheoreticalFUSfocalspotpreview.visible": false,
     "mesh_handler.trimesh_scripted_mesh.ignore_anatomical_landmarks_calibration": true,
     "mesh_handler.trimesh_scripted_mesh.ignore_plane_slicing": true,
-    "mesh_handler.trimesh_scripted_mesh.gl_mesh_shader": "bwShader",
+    "mesh_handler.trimesh_scripted_mesh.gl_mesh_shader": "softShade",
+    "mesh_handler.trimesh_scripted_mesh.gl_mesh_color": [0.7, 0.7, 0.7, 1.0],
     "mesh_handler.trimesh_scripted_mesh.gl_mesh_drawEdges": false,
     "mesh_handler.trimesh_scripted_mesh.gl_mesh_drawFaces": true,
     "mesh_handler.trimesh_scripted_mesh.gl_mesh_edgeColor": [
@@ -1233,7 +1236,8 @@
             "file_path": "None",
             "transform_str": null,
             "ignore_plane_slicing": true,
-            "gl_mesh_shader": "bwShader",
+            "gl_mesh_shader": "softShade",
+            "gl_mesh_color": [0.7, 0.7, 0.7, 1.0],
             "gl_mesh_drawEdges": false,
             "gl_mesh_drawFaces": true,
             "gl_mesh_edgeColor": [
