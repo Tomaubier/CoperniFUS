@@ -49,8 +49,11 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y \
-            libegl1 \
             libgl1 \
+            libgl1-mesa-glx \
+            libgl1-mesa-dri \
+            libglu1-mesa \
+            libglu1-mesa-dev \
             xvfb \
             libxkbcommon-x11-0 \
             libxcb-cursor0 \
@@ -64,13 +67,7 @@ jobs:
             libxcb-util1 \
             libxrender1 \
             libxi6 \
-            libxtst6
-
-      - name: Installing CoperniFUS
-        run: python -m pip install -e .
-
-      - name: Installing test dependencies
-        run: pip install pytest pytest-qt
+            libxtst6 \
 
       - name: "Display Info (Windows/MacOS)"
         if: runner.os != 'Linux'
@@ -85,6 +82,12 @@ jobs:
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1200x24" \
           python -m pyqtgraph.util.glinfo
           python -m pyqtgraph.util.get_resolution
+
+      - name: Installing CoperniFUS
+        run: python -m pip install -e .
+
+      - name: Installing test dependencies
+        run: pip install pytest pytest-qt
 
       - name: "Debug Info"
         run: |
