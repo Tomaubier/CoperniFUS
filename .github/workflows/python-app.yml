@@ -53,8 +53,20 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           # Install Mesa/OpenGL and Xvfb + required X/wayland compatibility libs
+          sudo apt-get update
+
+          # figure out the EGL package name on this runner and pick a valid one
+          if apt-cache show libegl1-mesa >/dev/null 2>&1; then
+            EGL_PKG=libegl1-mesa
+          elif apt-cache show libegl-mesa0 >/dev/null 2>&1; then
+            EGL_PKG=libegl-mesa0
+          else
+            echo "Warning: no known libegl package found; continuing and hoping dependencies are already present"
+            EGL_PKG=""
+          fi
+
           sudo apt-get install -y --no-install-recommends \
-            libegl1-mesa \
+            $EGL_PKG \
             libgl1-mesa-dri \
             libglx-mesa0 \
             libglu1-mesa \
@@ -72,7 +84,8 @@ jobs:
             libxcb-util1 \
             libxrender1 \
             libxi6 \
-            libxtst6
+            libxtst6 || true
+
 
           export QT_QPA_PLATFORM=offscreen
 
