@@ -148,7 +148,7 @@ class Window(pyqtw.QMainWindow):
         if not example_configuration_fpath.exists():
             raise ValueError(f'{example_configuration_name} does not exist in {examples_dir_path}.')
         if self.cache.is_cached_filename_already_defined(extension_free_name):
-            raise ValueError(f'{example_configuration_name} already exists in the cache {self.cache.cached_settings_fpath}, please remove it or rename it before retrying.')
+            raise ValueError(f'{example_configuration_name} already exists in the cache {self.cache.cache_dir}, please remove it or rename it before retrying.')
         target_fpath = self.cache.cache_dir / f'{extension_free_name}.json'
         try:
             shutil.copyfile(example_configuration_fpath, target_fpath)

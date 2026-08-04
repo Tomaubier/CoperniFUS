@@ -3,6 +3,7 @@ import functools
 
 
 class PythonSyntaxHighlighter(pyqtg.QSyntaxHighlighter):
+
     def __init__(self, document, dark_mode=False):
         super().__init__(document)
         self.highlighting_rules = []
