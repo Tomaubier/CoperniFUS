@@ -506,17 +506,71 @@ mesh = extrusion.to_mesh()
         super().__init__(armature_display_name, parent_viewer, stereotax_frame_instance, **kwargs)
 
         self._kw3D_success = False
-        self.kw3D = None
+        # self.kw3D = None
+        self.kw3D = Kwave3D()
         self.p_amp_3D_vol_tmat = None
         self.voxel_centers = {}
 
     # --- Armature specific public attributes ---
 
+    @property
+    def raveled_material_map(self):
+
+        if self._raveled_material_map is None:
+            
+            print('Domain mesh voxelization...')
+
+            self._raveled_material_map = np.zeros((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz), dtype=np.uint8).ravel()
+
+            def voxelize_domain_and_construct_material_map(mesh):
+                material_index = mesh.bool_mesh_index # Retreive material index before deepcopy (will be deleted in that process)
+                mesh_copy = copy.deepcopy(mesh)
+
+                mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat.T))
+
+                # Voxelize mesh
+                voxel_size = self.kw3D.dx
+                voxelized = mesh_copy.voxelized(pitch=voxel_size, max_iter=1000)
+                voxelized = voxelized.fill()
+                # voxelized.show() # Debug
+                # KDTree for fast voxel lookup
+                self.voxel_centers[material_index] = voxelized.points
+                voxel_tree = cKDTree(self.voxel_centers[material_index])
+                # self.render_voxelized_mesh_debug_preview(material_index)
+                # Only keep points that are within the voxel grid
+                distance_threshold = voxel_size / 2.0  # Adjust based on voxel grid resolution
+                distances, indices = voxel_tree.query(self.kw3D.kgrid_coords, distance_upper_bound=distance_threshold)
+                valid_points_mask = distances != np.inf
+
+                # Set map material index from voxelized mesh
+                self._raveled_material_map[valid_points_mask] = material_index
+
+            # Domain mesh material properties assignement
+            if isinstance(self.mesh_handler.stl_item_mesh_processed, trimesh.Trimesh):
+                voxelize_domain_and_construct_material_map(self.mesh_handler.stl_item_mesh_processed)
+            elif isinstance(self.mesh_handler.stl_item_mesh_processed, list):
+                for mm in self.mesh_handler.stl_item_mesh_processed:
+                    voxelize_domain_and_construct_material_map(mm)
+
+        return self._raveled_material_map
+    
+    @raveled_material_map.setter
+    def raveled_material_map(self, value):
+        self._raveled_material_map = value
+
+    @property
+    def material_map_xyz(self):
+        return self.raveled_material_map.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
+    
+    @material_map_xyz.setter
+    def material_map_xyz(self, value):
+        self._material_map_xyz = value
+
     def run_3D_simulation(self):
         """ Call to run kwave simulation. Results are contained in kw3D attribute. """
-        self.kw3D = Kwave3D()
-
+        # self.kw3D = Kwave3D()
         self._update_3D_sim_parameters()
+        self.raveled_material_map = None # temp?: force recompute
 
         # kWave I/O h5 files location retreival
         if 'kwave_3D_h5_dir' in self.armature_config_csts:
@@ -545,46 +599,22 @@ mesh = extrusion.to_mesh()
                 alpha_power=np.array([self.kw3D.kwave_alpha_power]), # stokes safe -> see kWave doc
                 alpha_mode='stokes'
             )
-            raveled_sound_speed = np.ones((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz), dtype=float).ravel()
-            raveled_density = np.ones((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz), dtype=float).ravel()
-            raveled_alpha = np.ones((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz), dtype=float).ravel()
+
+            # Init material maps
+            raveled_sound_speed = np.ones_like(self.raveled_material_map, dtype=float)
+            raveled_density = np.ones_like(self.raveled_material_map, dtype=float)
+            raveled_alpha = np.ones_like(self.raveled_material_map, dtype=float)
             
             # Set base medium properties
             raveled_sound_speed *= self.kw3D.c(0)
             raveled_density *= self.kw3D.rho(0)
             raveled_alpha *= self.kw3D.alpha_corrected(0)
 
-            def voxelize_domain_and_apply_mat_properties(mesh):
-                material_index = mesh.bool_mesh_index # Retreive material index before deepcopy (will be deleted in that process)
-                mesh_copy = copy.deepcopy(mesh)
-
-                mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat.T))
-
-                # Voxelize mesh
-                voxel_size = self.kw3D.dx
-                voxelized = mesh_copy.voxelized(pitch=voxel_size, max_iter=1000)
-                voxelized = voxelized.fill()
-                # voxelized.show() # Debug
-                # KDTree for fast voxel lookup
-                self.voxel_centers[material_index] = voxelized.points
-                voxel_tree = cKDTree(self.voxel_centers[material_index])
-                # self.render_voxelized_mesh_debug_preview(material_index)
-                # Only keep points that are within the voxel grid
-                distance_threshold = voxel_size / 2.0  # Adjust based on voxel grid resolution
-                distances, indices = voxel_tree.query(self.kw3D.kgrid_coords, distance_upper_bound=distance_threshold)
-                valid_points_mask = distances != np.inf
-
-                # Set medium properties on voxelized mesh
-                raveled_sound_speed[valid_points_mask] = self.kw3D.c(material_index)
-                raveled_density[valid_points_mask] = self.kw3D.rho(material_index)
-                raveled_alpha[valid_points_mask] = self.kw3D.alpha_corrected(material_index)
-
-            # Domain mesh material properties assignement
-            if isinstance(self.mesh_handler.stl_item_mesh_processed, trimesh.Trimesh):
-                voxelize_domain_and_apply_mat_properties(self.mesh_handler.stl_item_mesh_processed)
-            elif isinstance(self.mesh_handler.stl_item_mesh_processed, list):
-                for mm in self.mesh_handler.stl_item_mesh_processed:
-                    voxelize_domain_and_apply_mat_properties(mm)
+            # Set medium properties on voxelized mesh
+            for material_index in np.unique(self.raveled_material_map):
+                raveled_sound_speed[self.raveled_material_map == material_index] = self.kw3D.c(material_index)
+                raveled_density[self.raveled_material_map == material_index] = self.kw3D.rho(material_index)
+                raveled_alpha[self.raveled_material_map == material_index] = self.kw3D.alpha_corrected(material_index)
 
             self.kw3D._medium.sound_speed = raveled_sound_speed.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
             self.kw3D._medium.density = raveled_density.T.reshape((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz))
