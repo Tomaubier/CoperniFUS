@@ -19,7 +19,7 @@ Installation procedure
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 0. Optional but highly recommended: setup a dedicated Python 3.12 environment (I recommended using `miniconda <https://docs.anaconda.com/miniconda/install/>`_) :raw-html:`<br />` - Using `conda`: ``conda create -n coperniFUS_env python=3.12`` :raw-html:`<br />` - Activate the newly created environment using ``conda activate coperniFUS_env``
-1. Install ``coperniFUS`` using ``pip`` (if you are using windows, you might need to install Git) :raw-html:`<br />` - ``pip install git+https://github.com/Tomaubier/CoperniFUS.git``
+1. Install ``coperniFUS`` using ``pip`` (if you are using windows, you might need to install Git) :raw-html:`<br />` - ``pip install git+https://github.com/Tomaubier/CoperniFUS.git@0.1.2``
 
     1a. *For Linux users:* Install ``libxcb-cursor-dev`` to satisfy ``PyQt6`` requirements ``sudo apt-get install -y libxcb-cursor-dev`` `see this post <https://stackoverflow.com/questions/77725761/from-6-5-0-xcb-cursor0-or-libxcb-cursor0-is-needed-to-load-the-qt-xcb-platform>`_ for additional details.
 
