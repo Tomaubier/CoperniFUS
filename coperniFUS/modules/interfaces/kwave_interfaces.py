@@ -63,7 +63,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
         'alpha_0': 0.0022, # water attenuation [dB/(MHz^y cm)]
         'alpha_power_0': 1., # water attenuation [dB/(MHz^y cm)]
 
-        'alpha_mode': 'stokes',
+        # 'alpha_mode': 'stokes',
 
         'c_tx_coupling_medium': 1482.3, # sound speed [m/s]
         'rho_tx_coupling_medium': 994.04, # density [kg/m^3]
@@ -128,7 +128,7 @@ class KwaveHomogeneousAxisymetricBowlSim():
         return cmd
 
     def _init_quantities(self):
-        self.kwave_AS_alpha_power = 2 # Always equal to 2 when using alpha_mode = 'stokes' -> see doc
+        self.kwave_AS_alpha_power = 2. # Always equal to 2 when using alpha_mode = 'stokes' -> see doc
         self._kgrid = None
         self._dx = None
         self._Nx = None
@@ -301,9 +301,11 @@ class KwaveHomogeneousAxisymetricBowlSim():
             self._medium = kWaveMedium(
                 sound_speed=self.simulation_params['c_0'],
                 density=self.simulation_params['rho_0'],
-                alpha_coeff=np.array([self.alpha_corrected]),
-                alpha_power=np.array([self.kwave_AS_alpha_power]),
-                alpha_mode=self.simulation_params['alpha_mode'],
+                alpha_coeff=self.alpha_corrected,
+                alpha_power=self.kwave_AS_alpha_power,
+                # alpha_coeff=np.array([self.alpha_corrected]),
+                # alpha_power=np.array([self.kwave_AS_alpha_power]),
+                # alpha_mode=self.simulation_params['alpha_mode'], # ignored by kwave CPP backend -> raises an error in kwave 0.6.2 TODO handle python backend
             )
         return self._medium
     
@@ -508,7 +510,7 @@ class Kwave3D():
         'alpha_1': 2.693, # water attenuation [dB/(MHz^y cm)]
         'alpha_power_1': 1.18, # water attenuation [dB/(MHz^y cm)]
         
-        'alpha_mode': 'stokes',
+        # 'alpha_mode': 'stokes', # ignored by kwave CPP backend -> raises an error in kwave 0.6.2 TODO handle python backend
 
         # source parameters
         'source_f0': 1.0e6,              # source frequency [Hz]
@@ -788,8 +790,9 @@ class Kwave3D():
                 sound_speed=self.c(0),
                 density=self.rho(0),
                 alpha_coeff=self.alpha_corrected(0),
-                alpha_power=np.array([self.kwave_alpha_power]),
-                alpha_mode=self.simulation_params['alpha_mode']
+                alpha_power=self.kwave_alpha_power, # kwave 0.6.2 fix TODO review full kwave implementation
+                # alpha_power=np.array([self.kwave_alpha_power]), # 
+                # alpha_mode=self.simulation_params['alpha_mode'] # ignored by kwave CPP backend -> raises an error in kwave 0.6.2 TODO handle python backend
             )
         return self._medium
     

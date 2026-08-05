@@ -6,6 +6,8 @@ from coperniFUS.modules.interfaces.trimesh_interfaces import *
 import matplotlib.pyplot as plt
 import threading, scipy
 
+# TODO check origin of the discrapencies between pressure fields computed with k-wave-python v0.4.0 vs v0.6.0 (tests/test_viewer.py::test_kwave_armature)
+
 class KwaveAShomogeneousSimulationArmature(Armature):
 
     """ kWave simulation attributes are contained in kwAS """
@@ -466,7 +468,7 @@ mesh = extrusion.to_mesh()
                     'rho_2': 1850,
                     'alpha_2': 2.693,
                     'alpha_power_2': 1.18,
-                    'alpha_mode': None,
+                    # 'alpha_mode': None,
                     'source_f0': 1000000.0,
                     'source_roc': 0.015,
                     'source_diameter': 0.015,
@@ -596,8 +598,9 @@ mesh = extrusion.to_mesh()
                 sound_speed=None,
                 density=None,
                 alpha_coeff=None,
-                alpha_power=np.array([self.kw3D.kwave_alpha_power]), # stokes safe -> see kWave doc
-                alpha_mode='stokes'
+                alpha_power=self.kw3D.kwave_alpha_power,  # kwave 0.6.2 fix TODO review full kwave implementation
+                # alpha_power=np.array([self.kw3D.kwave_alpha_power]), # stokes safe -> see kWave doc
+                # alpha_mode='stokes' # ignored by kwave CPP backend -> raises an error in kwave 0.6.2
             )
 
             # Init material maps
@@ -921,7 +924,7 @@ mesh = extrusion.to_mesh()
                     'rho_2': 1850,
                     'alpha_2': 2.693,
                     'alpha_power_2': 1.18,
-                    'alpha_mode': None,
+                    # 'alpha_mode': None,
                     'source_f0': 1000000.0,
                     'source_roc': 0.015,
                     'source_diameter': 0.008,
@@ -1036,8 +1039,9 @@ mesh = extrusion.to_mesh()
                     sound_speed=None,
                     density=None,
                     alpha_coeff=None,
-                    alpha_power=np.array([self.kw3D.kwave_alpha_power]), # stokes safe -> see kWave doc
-                    alpha_mode='stokes'
+                    alpha_power=self.kw3D.kwave_alpha_power,  # kwave 0.6.2 fix TODO review full kwave implementation
+                    # alpha_power=np.array([self.kw3D.kwave_alpha_power]), # stokes safe -> see kWave doc
+                    # alpha_mode='stokes' # ignored by kwave CPP backend -> raises an error in kwave 0.6.2
                 )
                 raveled_sound_speed = np.ones((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz), dtype=float).ravel()
                 raveled_density = np.ones((self.kw3D.Nx, self.kw3D.Ny, self.kw3D.Nz), dtype=float).ravel()
