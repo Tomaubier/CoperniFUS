@@ -628,7 +628,9 @@ class GlItemsToggler:
         # Set up the list view
         self.gl_layers_editor = pyqtw.QListView()
         self.gl_layers_editor.setSelectionMode(pyqtw.QListView.SelectionMode.NoSelection)
+        self.gl_layers_editor.setEditTriggers(pyqtw.QAbstractItemView.EditTrigger.NoEditTriggers)
         self.gl_layers_editor.setModel(self.model)
+        self.gl_layers_editor.doubleClicked.connect(self._on_item_double_clicked)
         self.update_list_view()
         self.dock_layout.addWidget(self.gl_layers_editor, 0, 0, 1, 1) # Y, X, w, h
         self.model.itemChanged.connect(self._on_item_changed)
@@ -645,6 +647,12 @@ class GlItemsToggler:
                 list_view_item.setCheckState(pyqtc.Qt.CheckState.Checked)
             else:
                 list_view_item.setCheckState(pyqtc.Qt.CheckState.Unchecked)
+
+            # Set name to bold if double-clickable item
+            if callable(gl_item.double_click_event_func):
+                font = list_view_item.font()
+                font.setBold(True)
+                list_view_item.setFont(font)
             self.model.appendRow(list_view_item)
 
     def _on_item_changed(self, list_view_item):
@@ -653,6 +661,17 @@ class GlItemsToggler:
             edited_gl_item.show()
         else:
             edited_gl_item.hide()
+
+    def _on_item_double_clicked(self, index):
+        item = self.model.itemFromIndex(index)
+        glitem_name = item.text()
+        if glitem_name in self.gl_view.gl_items_names2double_click_events_dict:
+            if self.gl_view.gl_items_names2double_click_events_dict[glitem_name] is not None:
+                print(self.gl_view.gl_items_names2double_click_events_dict[glitem_name])
+                try:
+                    self.gl_view.gl_items_names2double_click_events_dict[glitem_name]()
+                except Exception as e:
+                    warnings.warn(f'Double click function ({glitem_name}) returned an error:\n\t-> {str(e)}.')
 
 
 class NamedGLViewWidget(gl.GLViewWidget):
@@ -673,13 +692,19 @@ class NamedGLViewWidget(gl.GLViewWidget):
 
         return safe_name
 
-    def addItem(self, item, name=None):
+    def addItem(self, item, name=None, double_click_event_func=None):
         """ addItem overloaded with the handling of a gl_item name attribute + GlItemsToggler """
         existing_names = self.gl_items_names
 
         if name is None:
             name = f'{item.__class__.__name__}_{id(item)}'
         item.name = self.get_safe_gl_item_name(name, existing_names)
+
+        # Connect double-click event
+        if callable(double_click_event_func):
+            item.double_click_event_func = double_click_event_func
+        else:
+            item.double_click_event_func = None
         
         super().addItem(item)
         self.gl_items_toggler.update_list_view()
@@ -695,6 +720,10 @@ class NamedGLViewWidget(gl.GLViewWidget):
     @property
     def gl_items_named_dict(self):
         return {gl_item.name: gl_item for gl_item in self.parent_viewer.gl_view.items}
+
+    @property
+    def gl_items_names2double_click_events_dict(self):
+        return {gl_item.name: gl_item.double_click_event_func for gl_item in self.parent_viewer.gl_view.items}
     
     def get_gl_item_from_name(self, gl_item_name):
         name2item_dict = self.gl_items_named_dict
