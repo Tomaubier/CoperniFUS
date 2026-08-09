@@ -4,51 +4,38 @@ import json
 
 class MultiLayerNDImageLUT(object):
 
-    # _DEFAULT_PARAMS = {
-    #     'jsonable_layers_dict': "{}", # in host class?? 
-    # }
-
-    def __init__(self, parent_viewer, ndimage_name='Multi-layer ndimage'): # updated
+    def __init__(self, parent_viewer, ndimage_name='Multi-layer ndimage'):
         self.parent_viewer = parent_viewer
         self.ndimage_name = ndimage_name
         self._layers = None
         self._init_attributes()
         self._init_LUT_editor_floating_dock()
 
-    def _init_attributes(self): # updated
+    def _init_attributes(self):
         self._raw_rgba_ndimage_compound = None
         self._rgba_ndimage_compound = None
         self._ndimage_tmat = None
         self._voxel_coordinates = None
         self._ndimage_plane_slicing_application_mask = None
         self._slicing_plane_mask = None
-        self._ndimage_params_hash = None # keeps track of modification to the ndimage data to prevent useless computation of rgba values
+        self._ndimage_params_hash = None # keeps track of modification to ndimage data to prevent useless computation of rgba values
         self._tmat_version_hash = None
         self.ndimage_glvol = None
 
     @property
-    def ndimage_tmat(self): # updated
+    def ndimage_tmat(self):
         if self._ndimage_tmat is None:
             self._ndimage_tmat = np.eye(4)
         return self._ndimage_tmat
 
     @ndimage_tmat.setter
-    def ndimage_tmat(self, value): # updated
+    def ndimage_tmat(self, value):
         if value is not None:
             if value.shape != (4, 4):
                 raise ValueError('Transformation matrix should be of shape (4, 4)')
         self._ndimage_tmat = value
-        self._update_transform()
 
-    # @property # RM?
-    # def voxel_size(self):
-    #     pass
-
-    # @voxel_size.setter # RM?
-    # def voxel_size(self, xyz_size_array):
-    #     self._voxel_size = xyz_size_array
-
-    @property # updated / previously atlas_voxel_coordinates
+    @property 
     def voxel_coordinates(self):
         """ Holds the coordinates of the ndimage voxels """
         # Check if tmat has changed since last update
@@ -68,11 +55,11 @@ class MultiLayerNDImageLUT(object):
         return self._voxel_coordinates
     
     @voxel_coordinates.setter
-    def voxel_coordinates(self, value): # updated
+    def voxel_coordinates(self, value):
         self._voxel_coordinates = value
 
     @property
-    def layers(self): # updated
+    def layers(self):
         """ MultiLayerNDImageLUT layer dict, keys starting with an underscore corresponds to large data that will be omitted in the version saved in cache. Make sure than other keys only contain jsonable data.
         
         General dict structure:
@@ -83,13 +70,13 @@ class MultiLayerNDImageLUT(object):
         return self._layers
 
     @layers.setter
-    def layers(self, layers_dict: dict): #updated
+    def layers(self, layers_dict: dict):
         """ Holds the MultiLayerNDImageLUT layers to be rendered """
         if layers_dict is None:
             layers_dict = {}
         self._layers = layers_dict
 
-    def _update_layers_lut_presets(self): #updated
+    def _update_layers_lut_presets(self):
         """ save the state of the LUT editor floating dock elements in the layer dict """
         for layer_name, layer in self.layers.items():
             if '_lut_widgets' in layer:
@@ -97,7 +84,7 @@ class MultiLayerNDImageLUT(object):
                 self.layers[layer_name]['lut_preset'] = layer['_lut_widgets'].gradient.saveState()
 
     @property
-    def jsonable_layers_dict(self): #updated
+    def jsonable_layers_dict(self):
         """ Provides a copy of the layers dict omitting non-jsonable data keys (starting with an underscore) for caching purposes """
         def private_keys_free_dict(d):
             if isinstance(d, dict):
@@ -126,9 +113,9 @@ class MultiLayerNDImageLUT(object):
 
         return json_layers
 
-    def clear_all_layers(self): # updated
-        self._clear_LUT_editor_floating_dock()
+    def clear_all_layers(self):
         self.layers = None
+        self._clear_LUT_editor_floating_dock()
 
     def clear_layer(self, layer_name):
         if layer_name not in self.layers:
@@ -136,7 +123,6 @@ class MultiLayerNDImageLUT(object):
 
         self._remove_lut_editor_from_floating_dock(layer_name)
         _ = self.layers.pop(layer_name)
-        self._on_layers_update() # TODO check if needed
 
     def add_new_layer(self, layer_name: str, layer_attributes_dict: dict):
 
@@ -173,7 +159,7 @@ class MultiLayerNDImageLUT(object):
 
     # --- ndimage data ---
 
-    def _get_layer_ndimage_data(self, layer_name, apply_mask=True): # override in dedicated subclass
+    def _get_layer_ndimage_data(self, layer_name, apply_mask=True):
             """
             layers: dictionary of all the layers
             layer_name: dict key of the layer from which ndimage data has to be retreived
@@ -218,7 +204,7 @@ class MultiLayerNDImageLUT(object):
     # --- rgba from LUT ---
 
     @property
-    def raw_rgba_ndimage_compound(self): # ok
+    def raw_rgba_ndimage_compound(self):
         """ Holds the RGBA n-dimension image of the compounded layers before plane slicing operations (raw) """
 
         def apply_plane_slicing_on_layer(layer):
@@ -284,14 +270,14 @@ class MultiLayerNDImageLUT(object):
         return self._raw_rgba_ndimage_compound[1]
     
     @property
-    def rgba_ndimage_compound(self): # ok
+    def rgba_ndimage_compound(self):
         """ Holds the RGBA n-dimension image of the compounded layers with plane slicing applied """
         self._rgba_ndimage_compound = self.raw_rgba_ndimage_compound.copy()
         self._compute_slicing_plane()
 
         return self._rgba_ndimage_compound
 
-    def _apply_lut_to_ndimage(self, ndimage_data, lut, levels): # ok
+    def _apply_lut_to_ndimage(self, ndimage_data, lut, levels):
         """ Converts ndimage data to ndim RGBA based on a lookup table (LUT) """
         # Normalize data to levels
         min_val, max_val = levels
@@ -300,7 +286,7 @@ class MultiLayerNDImageLUT(object):
         rgba = lut[indices]  # shape: (..., 4)
         return rgba
 
-    def _alpha_blend(self, background, foreground): #ok
+    def _alpha_blend(self, background, foreground):
         """
         Alpha blending of two N-dimensional uint8 RGBA images.
 
@@ -323,7 +309,7 @@ class MultiLayerNDImageLUT(object):
         out = np.concatenate((out_rgb, out_a), axis=-1).astype(np.uint8)
         return out
 
-    def _get_grayscale_lut_preset(self): #ok
+    def _get_grayscale_lut_preset(self):
         lut_state = {
             'mode': 'rgb',
             'ticks': [
@@ -412,20 +398,19 @@ class MultiLayerNDImageLUT(object):
 
         layer['_lut_widgets'].deleteLater()
 
-    def _on_layers_update(self): #updated
+    def _on_layers_update(self):
         """ Callback to update RGBA volume on LUT edition """
 
         self._raw_rgba_ndimage_compound = None # reset
         if self.ndimage_glvol is not None:
             self.ndimage_glvol.setData(self.rgba_ndimage_compound)
 
-    def _update_transform(self): #DECOUP rename + move to multilayerLUT class
-            print('_update_transform call')
-            # self.ndimage_tmat = None
-            self.voxel_coordinates = None # Reset voxels coordinates
-            if self.ndimage_glvol is not None:
-                self.ndimage_glvol.resetTransform()
-                self.ndimage_glvol.applyTransform(pyqtg.QMatrix4x4(self.ndimage_tmat.T.ravel()), local=False)
+    def _update_transform(self):
+        self.ndimage_tmat = None
+        self.voxel_coordinates = None # Reset voxels coordinates
+        if self.ndimage_glvol is not None:
+            self.ndimage_glvol.resetTransform()
+            self.ndimage_glvol.applyTransform(pyqtg.QMatrix4x4(self.ndimage_tmat.T.ravel()), local=False)
 
     # add / rm / update globj
 
@@ -433,16 +418,16 @@ class MultiLayerNDImageLUT(object):
         """ Called when populating the viewer with the rendered objects """
         self.delete_rendered_object()
 
-        self.ndimage_glvol = gl.GLVolumeItem(self.rgba_ndimage_compound, smooth=True, glOptions='translucent') # DECOUP refer to self.rgba_ndimage_compound instance
+        self.ndimage_glvol = gl.GLVolumeItem(self.rgba_ndimage_compound, smooth=True, glOptions='translucent')
         self.parent_viewer.gl_view.addItem(self.ndimage_glvol, name=self.ndimage_name, double_click_event_func=self._show_LUT_editor_floating_dock)
         self.ndimage_glvol.setDepthValue(1) # GL volumes -> render tree foreground
 
-        self._update_transform() # DECOUP rename
+        self._update_transform()
 
     def update_rendered_object(self):
         """ Called on render view updates """
         if self.ndimage_glvol is not None:
-            self._update_transform() # DECOUP rename
+            self._update_transform()
             self.ndimage_glvol.setData(self.rgba_ndimage_compound)
 
     def delete_rendered_object(self):
