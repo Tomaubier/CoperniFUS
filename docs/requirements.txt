@@ -30,3 +30,4 @@ mapbox_earcut==2.0.0
 trimesh==5.0.0
 matplotlib==3.10.9
 k-Wave-python==0.6.2
+.
