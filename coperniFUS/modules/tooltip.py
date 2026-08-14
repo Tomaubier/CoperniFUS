@@ -132,7 +132,7 @@ class Tooltip(Module):
         self.parent_viewer.statusBar().addPermanentWidget(pyqtw.QLabel(" ")) # Termination spacer
 
         # Tooltip coordinate transform editor
-        self.tooltip_transform_editor = descriptive_line_edit(str(self.get_user_param('tooltip_transforms_str')), 'Default Tooltip transform')
+        self.tooltip_transform_editor = StrTransformDescriptiveQLineEdit(str(self.get_user_param('tooltip_transforms_str')), 'Default Tooltip transform')
         self.tooltip_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.tooltip_transform_editor, 'tooltip_transforms_str', '', 'str'))
         self.parent_viewer.statusBar().addPermanentWidget(self.tooltip_transform_editor)
         self.parent_viewer.statusBar().addPermanentWidget(pyqtw.QLabel(" ")) # Termination spacer

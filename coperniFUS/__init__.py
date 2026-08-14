@@ -23,6 +23,9 @@ def clean_string(string):
     clean_string = ''.join(filter(str.isalnum, string))
     return clean_string
 
+def remove_repeated_spaces_from_string(string):
+    string = ' '.join(string.split())
+    return string
 
 class CachedDataHandler:
 
@@ -315,7 +318,6 @@ class AffineTransformsFromStr(AffineTransforms):
         str_tmatrices = self.transform_matrices_from_str(ef_tr_str)
         for str_tmat in str_tmatrices:
             tmat = tmat @ str_tmat
-        tmat
         return tmat
 
 
@@ -347,28 +349,57 @@ def constrain_scaling_along_local_axis(tmat, scale, scaling_axis_index):
 
 # ----- QT misc classes and functions ------
 
-def descriptive_line_edit(default_text, description_text):
-    """ Custom QLineEdit with a description text prefix """
+class DescriptiveQLineEdit(pyqtw.QLineEdit):
 
-    descr_line_edit = pyqtw.QLineEdit(default_text)
+    def __init__(self, default_text, description_text, **kwargs):
+        super().__init__(default_text, **kwargs)
 
-    # Description prefix label
-    prefix_label = pyqtw.QLabel(description_text)
-    prefix_label.setStyleSheet("padding-left: 2px; padding-right: 0px; color: gray;")
+        # Description prefix label
+        prefix_label = pyqtw.QLabel(description_text)
+        prefix_label.setStyleSheet("padding-left: 2px; padding-right: 0px; color: gray;")
 
-    # Eval description width to avoid trucation
-    font_metrics = pyqtg.QFontMetrics(prefix_label.font())
-    text_width = font_metrics.horizontalAdvance(description_text)
-    prefix_label.setFixedWidth(text_width + font_metrics.averageCharWidth())
+        # Eval description width to avoid trucation
+        font_metrics = pyqtg.QFontMetrics(prefix_label.font())
+        text_width = font_metrics.horizontalAdvance(description_text)
+        prefix_label.setFixedWidth(text_width + font_metrics.averageCharWidth())
 
-    # Description label embeding into QLineEdit
-    prefix_action = pyqtw.QWidgetAction(descr_line_edit)
-    prefix_action.setDefaultWidget(prefix_label)
-    descr_line_edit.addAction(prefix_action, pyqtw.QLineEdit.ActionPosition.LeadingPosition)
-    descr_line_edit.setTextMargins(text_width - font_metrics.averageCharWidth(), 0, 0, 0)
+        # Description label embeding into QLineEdit
+        prefix_action = pyqtw.QWidgetAction(self)
+        prefix_action.setDefaultWidget(prefix_label)
+        self.addAction(prefix_action, pyqtw.QLineEdit.ActionPosition.LeadingPosition)
+        self.setTextMargins(text_width - font_metrics.averageCharWidth(), 0, 0, 0)
 
-    return descr_line_edit
+class StrTransformDescriptiveQLineEdit(DescriptiveQLineEdit):
 
+    def __init__(self, default_text, description_text, **kwargs):
+        super().__init__(default_text, description_text, **kwargs)
+
+    def get_transforms_strs_before_text_caret(self):
+        """ returns (str transforms before carret, trim index) """
+
+        tr_str, caret_location = self.text(), self.cursorPosition()
+        spaces_locations = np.array([i for i, c in enumerate(tr_str) if c.isspace()])
+        carret2space_distance = spaces_locations - caret_location
+        positive_carret2space_distance = carret2space_distance >= 0
+        if any(positive_carret2space_distance):
+            tr_str_trim_index = caret_location + np.min(carret2space_distance[positive_carret2space_distance])
+        else:
+            tr_str_trim_index = None # keep full transform str
+
+        return (tr_str[:tr_str_trim_index], tr_str_trim_index)
+
+    def eval_tmat_before_text_carret(self):
+        tr_str_before_text_carret, tr_str_trim_index = self.get_transforms_strs_before_text_caret()
+        tmat_before_text_carret = af_tr_from_str.transform_matrix_from_str(
+            tr_str_before_text_carret
+        )
+        return (tmat_before_text_carret, tr_str_trim_index)
+
+    def eval_tmat(self):
+        tmat = af_tr_from_str.transform_matrix_from_str(
+            self.text()
+        )
+        return tmat
 
 class AcceptRejectDialog(pyqtw.QDialog):
     def __init__(self, parent=None, title='Title', msg='Msg'):
@@ -641,19 +672,20 @@ class GlItemsToggler:
         """ Updates the list of objects rendered in the viewer """
         self.model.clear()
         for gl_item_name, gl_item in self.gl_view.gl_items_named_dict.items():
-            list_view_item = pyqtg.QStandardItem(gl_item_name)
-            list_view_item.setCheckable(True)
-            if gl_item.visible():
-                list_view_item.setCheckState(pyqtc.Qt.CheckState.Checked)
-            else:
-                list_view_item.setCheckState(pyqtc.Qt.CheckState.Unchecked)
+            if not gl_item_name.startswith('_'): # Do not show in tree list if starting with underscore
+                list_view_item = pyqtg.QStandardItem(gl_item_name)
+                list_view_item.setCheckable(True)
+                if gl_item.visible():
+                    list_view_item.setCheckState(pyqtc.Qt.CheckState.Checked)
+                else:
+                    list_view_item.setCheckState(pyqtc.Qt.CheckState.Unchecked)
 
-            # Set name to bold if double-clickable item
-            if callable(gl_item.double_click_event_func):
-                font = list_view_item.font()
-                font.setBold(True)
-                list_view_item.setFont(font)
-            self.model.appendRow(list_view_item)
+                # Set name to bold if double-clickable item
+                if callable(gl_item.double_click_event_func):
+                    font = list_view_item.font()
+                    font.setBold(True)
+                    list_view_item.setFont(font)
+                self.model.appendRow(list_view_item)
 
     def _on_item_changed(self, list_view_item):
         edited_gl_item = self.gl_view.get_gl_item_from_name(list_view_item.text())
@@ -680,6 +712,130 @@ class NamedGLViewWidget(gl.GLViewWidget):
         self.parent_viewer = parent_viewer
         super().__init__(**kwargs)
         self.gl_items_toggler = GlItemsToggler(parent_viewer=parent_viewer, gl_view=self)
+
+        # --- trs mode -> translate rotate scale ---
+        self._trs_mode = None
+        self._trs_focussed_widget = None
+        self._trs_ogsc_trihedras = []
+        self._pressed_spacebar = False
+
+        # Receive keyboard events regardless of which widget has focus
+        pyqtw.QApplication.instance().installEventFilter(self)
+
+    # --- translate / rotate / scale modifier keys ---
+
+    def trs_mode_switcher(self, target_mode):
+        # Translate
+        if target_mode == 'T' or target_mode == pyqtc.Qt.Key.Key_T:
+            if self._trs_mode == 'T':
+                self._trs_mode = None # reset
+            else:
+                self._trs_mode = 'T'
+        # Rotate
+        if target_mode == 'R' or target_mode == pyqtc.Qt.Key.Key_R:
+            if self._trs_mode == 'R':
+                self._trs_mode = None # reset
+            else:
+                self._trs_mode = 'R'
+        # Scale
+        if target_mode == 'S' or target_mode == pyqtc.Qt.Key.Key_S:
+            if self._trs_mode == 'S':
+                self._trs_mode = None # reset
+            else:
+                self._trs_mode = 'S'
+
+    def eventFilter(self, obj, event): # TODO update tmat / init sensible trihedra scale / esc -> reset tmat / grab cursor loc (got to next space)
+        if event.type() == pyqtc.QEvent.Type.KeyPress:
+            pressed_key = event.key()
+            if self._trs_mode is not None and pressed_key == pyqtc.Qt.Key.Key_Space: # Pause TRS mode mouse grab start
+                self._pressed_spacebar = True
+                # Prevent Space from being typed into QLineEdit
+                event.accept()
+                return True
+            
+            elif pressed_key in [pyqtc.Qt.Key.Key_T, pyqtc.Qt.Key.Key_R, pyqtc.Qt.Key.Key_S]:
+                if self._trs_focussed_widget is None:
+                    self._trs_focussed_widget = self.parent_viewer.focusWidget()
+
+                # Only activate if mouse is currently over this GL widget
+                if isinstance(self._trs_focussed_widget, StrTransformDescriptiveQLineEdit) and self.underMouse(): # transform qline + hovered viewer
+                    if not event.isAutoRepeat():
+                        self._pressed_spacebar = False # reset
+                        self.trs_mode_switcher(pressed_key)
+                        if self._trs_mode is None:
+                            self._trs_focussed_widget = None
+                            self.delete_scale_accurate_TRS_trihedra()
+                        else:
+                            editor_tmat = self._trs_focussed_widget.eval_tmat()
+                            if editor_tmat is not None:
+                                self.add_scale_accurate_TRS_trihedra(editor_tmat)
+                            print('TRS mode ON: ', self._trs_mode, self._trs_focussed_widget.text())
+
+                    # Prevent T / R / S from being typed into QLineEdit
+                    event.accept()
+                    return True
+
+                else:
+                    self._trs_focussed_widget = None
+
+        if event.type() == pyqtc.QEvent.Type.KeyRelease:
+            released_key = event.key()
+            if self._trs_mode is not None and released_key == pyqtc.Qt.Key.Key_Space: # Pause TRS mode mouse grab end
+                self._pressed_spacebar = False
+
+        return super().eventFilter(obj, event)
+
+    def mouseMoveEvent(self, event):
+        if self._pressed_spacebar is False and self._trs_mode is not None:
+            pos = event.position()
+            x = pos.x()
+            y = pos.y()
+
+            editor_tmat = self._trs_focussed_widget.eval_tmat()
+            if editor_tmat is not None:
+                self.update_scale_accurate_TRS_trihedra(editor_tmat)
+                print("TRS", self._trs_mode, self._trs_focussed_widget.text(), "Mouse viewer pos: ", x, y)
+
+            event.accept()
+
+        else: # Normal GLViewWidget mouse handling
+            super().mouseMoveEvent(event)
+
+    def add_scale_accurate_TRS_trihedra(self, transform_matrix, line_width=6):
+        """ Render an axes trihedra corresponding to a given transform_matrix. Axes length correspond to their actual scale. """
+        x_vec = transform_matrix[0, :3]
+        y_vec = transform_matrix[1, :3]
+        z_vec = transform_matrix[2, :3]
+        origin = transform_matrix[3, :3]
+        
+        x_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+x_vec]), width=line_width, color=self.parent_viewer.x_RED, antialias=True, glOptions='translucent')
+        y_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+y_vec]), width=line_width, color=self.parent_viewer.y_GREEN, antialias=True, glOptions='translucent')
+        z_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+z_vec]), width=line_width, color=self.parent_viewer.z_BLUE, antialias=True, glOptions='translucent')
+
+        self.delete_scale_accurate_TRS_trihedra()
+        self._trs_ogsc_trihedras = [x_glaxis, y_glaxis, z_glaxis]
+
+        self.addItem(x_glaxis, name='_trs trihedra ogsc x axis')
+        self.addItem(y_glaxis, name='_trs trihedra ogsc y axis')
+        self.addItem(z_glaxis, name='_trs trihedra ogsc z axis')
+
+    def update_scale_accurate_TRS_trihedra(self, transform_matrix):
+        x_vec = transform_matrix[0, :3]
+        y_vec = transform_matrix[1, :3]
+        z_vec = transform_matrix[2, :3]
+        origin = transform_matrix[3, :3]
+        
+        self._trs_ogsc_trihedras[0].setData(pos=np.array([origin, origin+x_vec]))
+        self._trs_ogsc_trihedras[1].setData(pos=np.array([origin, origin+y_vec]))
+        self._trs_ogsc_trihedras[2].setData(pos=np.array([origin, origin+z_vec]))
+
+    def delete_scale_accurate_TRS_trihedra(self):
+        """ Remove all debug trihedras """
+        for trihedra_gl_obj in self._trs_ogsc_trihedras:
+            self.removeItem(trihedra_gl_obj)
+        self._trs_ogsc_trihedras = []
+
+    # ---
 
     def get_safe_gl_item_name(self, name, existing_names):
         safe_name = copy.deepcopy(name)
@@ -715,15 +871,15 @@ class NamedGLViewWidget(gl.GLViewWidget):
 
     @property
     def gl_items_names(self):
-        return [gl_item.name for gl_item in self.parent_viewer.gl_view.items]
+        return [gl_item.name for gl_item in self.items]
     
     @property
     def gl_items_named_dict(self):
-        return {gl_item.name: gl_item for gl_item in self.parent_viewer.gl_view.items}
+        return {gl_item.name: gl_item for gl_item in self.items}
 
     @property
     def gl_items_names2double_click_events_dict(self):
-        return {gl_item.name: gl_item.double_click_event_func for gl_item in self.parent_viewer.gl_view.items}
+        return {gl_item.name: gl_item.double_click_event_func for gl_item in self.items}
     
     def get_gl_item_from_name(self, gl_item_name):
         name2item_dict = self.gl_items_named_dict

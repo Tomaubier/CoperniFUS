@@ -406,7 +406,6 @@ class MultiLayerNDImageLUT(object):
             self.ndimage_glvol.setData(self.rgba_ndimage_compound)
 
     def _update_transform(self):
-        self.ndimage_tmat = None
         self.voxel_coordinates = None # Reset voxels coordinates
         if self.ndimage_glvol is not None:
             self.ndimage_glvol.resetTransform()

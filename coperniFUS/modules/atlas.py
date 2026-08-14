@@ -63,6 +63,10 @@ class BrainAtlasMultiLayerNDImageLUT(MultiLayerNDImageLUT):
                 raise ValueError('Transformation matrix should be of shape (4, 4)')
         self.parent_brainatlas_module.brain_atlas_tmat = value
 
+    def _update_transform(self):
+        self.ndimage_tmat = None # force tmat computation
+        super()._update_transform()
+
     def _on_layers_update(self):
         super()._on_layers_update()
         self.parent_brainatlas_module._save_layers_state_to_cache()
@@ -201,8 +205,8 @@ class BrainAtlas(Module):
             atlas_shape = self.atlas_ml_ndimg.raw_rgba_ndimage_compound.shape
 
             # Axes ordering correction
-            source_space = bgs.AnatomicalSpace(self.bg_atlas.orientation, shape=atlas_shape[:3])
-            target_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.parent_viewer.ATLAS_SPACE_CONVENTION))
+            source_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.bg_atlas.orientation), shape=atlas_shape[:3])
+            target_space = bgs.AnatomicalSpace(self.parent_viewer.ATLAS_SPACE_CONVENTION)
             axes_order_idx = source_space.map_to(target_space)[0]
             space_conversion_tmat = source_space.transformation_matrix_to(target_space)
             self._brain_atlas_tmat = space_conversion_tmat.T
@@ -423,13 +427,14 @@ class BrainAtlas(Module):
         self.atlas_selector.setToolTip('Select a brain atlas for download. Previously downloaded atlases are registered as (DOWNLOADED).<br>You can find detailed descriptions of the available atlases on BrainGlobe\'s documentation.')
 
         # Subsampling stride editor
-        self.subsampling_stride_editor = descriptive_line_edit(str(self._DEFAULT_PARAMS['subsampling_stride']), 'Subsampling')
+        self.subsampling_stride_editor = DescriptiveQLineEdit(
+            str(self._DEFAULT_PARAMS['subsampling_stride']), 'Subsampling')
         self.subsampling_stride_editor.editingFinished.connect(functools.partial(self._parse_editor, self.subsampling_stride_editor, 'subsampling_stride', '', 'int'))
         self.dock_layout.addWidget(self.subsampling_stride_editor, 1, 0, 1, 1) # Y, X, h, w
         self.subsampling_stride_editor.setToolTip('Atlas subsampling stride<br>Use 1 to show the altas in its full resolution, larger strides will however improve performances.')
 
         # Transform string editor
-        self.atlas_transform_editor = descriptive_line_edit(str(self._DEFAULT_PARAMS['atlas_transforms_str']), 'Transform')
+        self.atlas_transform_editor = StrTransformDescriptiveQLineEdit(str(self._DEFAULT_PARAMS['atlas_transforms_str']), 'Transform')
         self.atlas_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.atlas_transform_editor, 'atlas_transforms_str', '', 'str'))
         self.dock_layout.addWidget(self.atlas_transform_editor, 1, 1, 1, 1) # Y, X, h, w
         self.atlas_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
