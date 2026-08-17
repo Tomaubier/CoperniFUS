@@ -90,13 +90,13 @@ class Window(pyqtw.QMainWindow):
     
     def add_debug_trihedra(self, transform_matrix, axes_len=5e-3, line_width=6):
         """ Render an axes trihedra corresponding to a given transform_matrix with a fixed axes length (axes_len). """
-        x_tri_loc = np.array([[0,0,0,1], [axes_len,0,0,1]])
-        y_tri_loc = np.array([[0,0,0,1], [0,axes_len,0,1]])
-        z_tri_loc = np.array([[0,0,0,1], [0,0,axes_len,1]])
+        x_tri_loc = np.array([[0,0,0,1], [axes_len,0,0,1]]).T
+        y_tri_loc = np.array([[0,0,0,1], [0,axes_len,0,1]]).T
+        z_tri_loc = np.array([[0,0,0,1], [0,0,axes_len,1]]).T
 
-        x_glaxis = gl.GLLinePlotItem(pos=(x_tri_loc @ transform_matrix)[:3, :], width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
-        y_glaxis = gl.GLLinePlotItem(pos=(y_tri_loc @ transform_matrix)[:3, :], width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
-        z_glaxis = gl.GLLinePlotItem(pos=(z_tri_loc @ transform_matrix)[:3, :], width=line_width, color=self.z_BLUE, antialias=True, glOptions='translucent')
+        x_glaxis = gl.GLLinePlotItem(pos=(transform_matrix @ x_tri_loc)[:3].T, width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
+        y_glaxis = gl.GLLinePlotItem(pos=(transform_matrix @ y_tri_loc)[:3].T, width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
+        z_glaxis = gl.GLLinePlotItem(pos=(transform_matrix @ z_tri_loc)[:3].T, width=line_width, color=self.z_BLUE, antialias=True, glOptions='translucent')
 
         self.debug_trihedras = [*self.debug_trihedras, x_glaxis, y_glaxis, z_glaxis] # Append
 

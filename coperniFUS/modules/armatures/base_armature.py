@@ -360,7 +360,7 @@ class Armature:
         self.armature_transf_mat = {
             'Origin': {
                 'transf_mat': origin_transform_mat,
-                'link_end_loc': origin_transform_mat[3],
+                'link_end_loc': origin_transform_mat[:, 3],
             }
         }
 
@@ -374,10 +374,10 @@ class Armature:
                 elif transform_id.startswith('rotation'):
                     joint_transfmat = joint_transfmat @ af_tr.rot_mat(*transform_args)
 
-            compound_transf = joint_transfmat @ parent_transf
+            compound_transf = parent_transf @ joint_transfmat
             self.armature_transf_mat[joint_id] = {
                 'transf_mat': compound_transf,
-                'link_end_loc': compound_transf[3],
+                'link_end_loc': compound_transf[:, 3],
             }
             parent_transf = compound_transf
 

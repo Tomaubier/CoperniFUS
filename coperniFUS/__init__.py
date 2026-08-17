@@ -25,6 +25,8 @@ def clean_string(string):
     return clean_string
 
 
+# ----- Config files handlers -----
+
 
 class GitVersionTrackerInterface(object):
 
@@ -321,6 +323,8 @@ class NewConfigNamePopup(pyqtw.QDialog):
         return self.config_name_editor.text()
 
 
+# ----- Affine Transform handlers -----
+
 
 class AffineTransforms:
     """ Collection of affine transform function (Scale, Translate, Rotate)"""
@@ -454,7 +458,6 @@ class AffineTransformsFromStr(AffineTransforms):
         str_tmatrices = self.transform_matrices_from_str(ef_tr_str)
         for str_tmat in str_tmatrices:
             tmat = tmat @ str_tmat
-        tmat
         return tmat
 
 
@@ -484,7 +487,9 @@ def constrain_scaling_along_local_axis(tmat, scale, scaling_axis_index):
     constrained_tmat[:3, 0] = scaled_x_axis
     return constrained_tmat
 
+
 # ----- QT misc classes and functions ------
+
 
 def descriptive_line_edit(default_text, description_text):
     """ Custom QLineEdit with a description text prefix """
@@ -870,6 +875,7 @@ class NamedGLViewWidget(gl.GLViewWidget):
             return name2item_dict[gl_item_name]
         else:
             return None
+
 
 # ----- Custom Mesh Shader -----
 # Src: https://github.com/pyqtgraph/pyqtgraph/discussions/3230
