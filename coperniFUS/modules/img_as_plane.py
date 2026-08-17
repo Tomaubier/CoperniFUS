@@ -154,7 +154,7 @@ class RefImageAsPlane(Module):
         """ Called on render view updates """
         if self.ref_image_glitem is not None:
             self.ref_image_glitem.resetTransform()
-            self.ref_image_glitem.applyTransform(pyqtg.QMatrix4x4(self.ref_image_tmat.T.ravel()), local=False)
+            self.ref_image_glitem.applyTransform(pyqtg.QMatrix4x4(self.ref_image_tmat.ravel()), local=False)
 
     def delete_rendered_object(self):
         """ Called on deletion of the module rendered objects """

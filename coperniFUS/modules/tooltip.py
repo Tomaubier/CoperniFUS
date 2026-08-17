@@ -37,7 +37,7 @@ class Tooltip(Module):
         """ Returns the current Tooltip 3D coordinates (x, y, z) """
         _tooltip_coordinates = None
         if self.tooltip_tmat is not None:
-            _tooltip_coordinates = self.tooltip_tmat[3, :3]
+            _tooltip_coordinates = self.tooltip_tmat[:3, 3]
         return _tooltip_coordinates
 
     @property
@@ -150,9 +150,9 @@ class Tooltip(Module):
     
     def _update_transform(self):
         self.x_glaxis.resetTransform()
-        self.x_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
+        self.x_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.ravel()), local=False)
         self.y_glaxis.resetTransform()
-        self.y_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
+        self.y_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.ravel()), local=False)
         self.z_glaxis.resetTransform()
-        self.z_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.T.ravel()), local=False)
+        self.z_glaxis.applyTransform(pyqtg.QMatrix4x4(self.tooltip_tmat.ravel()), local=False)
         self._update_statusbar_coordinates()

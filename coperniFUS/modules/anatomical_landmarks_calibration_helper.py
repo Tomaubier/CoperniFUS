@@ -71,8 +71,8 @@ class AnatLandmarksCalib(Module):
         )
 
         self.parent_viewer.delete_debug_trihedras()
-        self.parent_viewer.add_scale_accurate_debug_trihedra(cal_tmat.T)
-        self.parent_viewer.add_scale_accurate_debug_trihedra(uncal_tmat.T)
+        self.parent_viewer.add_scale_accurate_debug_trihedra(cal_tmat) # TODO TMAT check .T
+        self.parent_viewer.add_scale_accurate_debug_trihedra(uncal_tmat)
 
     def get_tmat_from_anat_landmarks(self, anat_landmarks_dict):
         """ Computes the calibration transformation matrix based on calibrated and uncalibrated landmarks coordinates defined in anat_landmarks_dict
@@ -133,7 +133,7 @@ class AnatLandmarksCalib(Module):
             return
 
         # Calibration matrix evaluation
-        calibration_tmat = (cal_tmat @ np.linalg.inv(uncal_tmat)).T
+        calibration_tmat = cal_tmat @ np.linalg.inv(uncal_tmat)
 
         landmarks_hash = self._get_anat_landmarks_dicts_hash()
         self._landmarks_calib_tmat = (calibration_tmat, landmarks_hash) # tmat + hash for version tracking
@@ -180,7 +180,7 @@ class AnatLandmarksCalib(Module):
             raise ValueError('Only one sublandmark should be selected to set coordinates.')
         sublandmark_label_item, landmark_header_text, sublandmark_type_label = selected_sublandmarks[0]
 
-        tooltip_loc = list(self.parent_viewer.tooltip.tooltip_tmat[3, :3])
+        tooltip_loc = list(self.parent_viewer.tooltip.tooltip_tmat[:3, 3])
 
         self._set_coordinates_to_sublandmark_qtree_item(sublandmark_label_item, tooltip_loc)
         self._on_treeview_edit()
@@ -194,7 +194,7 @@ class AnatLandmarksCalib(Module):
 
             # Create translation only tmat
             landmark_loc_tooltip_tmat = np.eye(4)
-            landmark_loc_tooltip_tmat[3, :3] = self.landmark_coords_from_full_name[self._tooltip_to_landmark_full_name]
+            landmark_loc_tooltip_tmat[:3, 3] = self.landmark_coords_from_full_name[self._tooltip_to_landmark_full_name]
 
             # Apply tmat to tooltip
             self.parent_viewer.tooltip.release_from_modules(sender_module=self)

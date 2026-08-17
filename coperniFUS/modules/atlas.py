@@ -205,7 +205,7 @@ class BrainAtlas(Module):
             target_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.parent_viewer.ATLAS_SPACE_CONVENTION))
             axes_order_idx = source_space.map_to(target_space)[0]
             space_conversion_tmat = source_space.transformation_matrix_to(target_space)
-            self._brain_atlas_tmat = space_conversion_tmat.T
+            self._brain_atlas_tmat = space_conversion_tmat
 
             # Setting atlas scale based on resolution
             self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.scale_mat(resolution)
@@ -382,12 +382,12 @@ class BrainAtlas(Module):
             # Convert voxel coordinates to physical space (microns)
             centroid_voxel = coords.mean(axis=0)
             centroid_physical_tmat = np.eye(4)
-            centroid_physical_tmat[3, :3] = centroid_voxel
+            centroid_physical_tmat[:3, 3] = centroid_voxel
             centroid_physical_tmat = centroid_physical_tmat @ self.brain_atlas_tmat
 
             # Keep translation component only
             translation_only_centroid_tmat = np.eye(4)
-            translation_only_centroid_tmat[3, :3] = centroid_physical_tmat[3, :3]
+            translation_only_centroid_tmat[:3, 3] = centroid_physical_tmat[:3, 3]
 
             # Apply tmat to tooltip
             self.parent_viewer.tooltip.release_from_modules(sender_module=self)

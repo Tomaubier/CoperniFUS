@@ -94,9 +94,9 @@ class Window(pyqtw.QMainWindow):
         y_tri_loc = np.array([[0,0,0,1], [0,axes_len,0,1]])
         z_tri_loc = np.array([[0,0,0,1], [0,0,axes_len,1]])
 
-        x_glaxis = gl.GLLinePlotItem(pos=(x_tri_loc @ transform_matrix)[:, :3], width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
-        y_glaxis = gl.GLLinePlotItem(pos=(y_tri_loc @ transform_matrix)[:, :3], width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
-        z_glaxis = gl.GLLinePlotItem(pos=(z_tri_loc @ transform_matrix)[:, :3], width=line_width, color=self.z_BLUE, antialias=True, glOptions='translucent')
+        x_glaxis = gl.GLLinePlotItem(pos=(x_tri_loc @ transform_matrix)[:3, :], width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
+        y_glaxis = gl.GLLinePlotItem(pos=(y_tri_loc @ transform_matrix)[:3, :], width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
+        z_glaxis = gl.GLLinePlotItem(pos=(z_tri_loc @ transform_matrix)[:3, :], width=line_width, color=self.z_BLUE, antialias=True, glOptions='translucent')
 
         self.debug_trihedras = [*self.debug_trihedras, x_glaxis, y_glaxis, z_glaxis] # Append
 
@@ -106,10 +106,10 @@ class Window(pyqtw.QMainWindow):
 
     def add_scale_accurate_debug_trihedra(self, transform_matrix, line_width=6):
         """ Render an axes trihedra corresponding to a given transform_matrix. Axes length correspond to their actual scale. """
-        x_vec = transform_matrix[0, :3]
-        y_vec = transform_matrix[1, :3]
-        z_vec = transform_matrix[2, :3]
-        origin = transform_matrix[3, :3]
+        x_vec = transform_matrix[:3, 0]
+        y_vec = transform_matrix[:3, 1]
+        z_vec = transform_matrix[:3, 2]
+        origin = transform_matrix[:3, 3]
 
         x_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+x_vec]), width=line_width, color=self.x_RED, antialias=True, glOptions='translucent')
         y_glaxis = gl.GLLinePlotItem(pos=np.array([origin, origin+y_vec]), width=line_width, color=self.y_GREEN, antialias=True, glOptions='translucent')
@@ -472,9 +472,9 @@ class Window(pyqtw.QMainWindow):
         """ Get the normal vector defining the location of the slicing plane """
         if self.slicing_plane_name is not None:
             if self.tooltip.tooltip_tmat is not None:
-                sp_normal_vect = (self.slicing_plane_def @ self.tooltip.tooltip_tmat)[[0, 3], :3]
+                sp_normal_vect = (self.slicing_plane_def @ self.tooltip.tooltip_tmat)[:3, [0, 3]]
             else:
-                sp_normal_vect = self.slicing_plane_def[[0, 3], :3]
+                sp_normal_vect = self.slicing_plane_def[:3, [0, 3]]
         else:
             sp_normal_vect = None
         return sp_normal_vect

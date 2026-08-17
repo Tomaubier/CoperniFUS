@@ -50,7 +50,7 @@ class TrimeshHandler:
         """ Mesh object with affine transformation applied """
         def apply_tr(raw_mesh):
             mesh = copy.deepcopy(raw_mesh)
-            mesh.apply_transform(self.stl_item_tmat.T)
+            mesh.apply_transform(self.stl_item_tmat)
             return mesh
 
         if self.stl_item_mesh_processed is not None:

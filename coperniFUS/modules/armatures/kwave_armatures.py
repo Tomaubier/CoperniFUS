@@ -337,7 +337,7 @@ mesh = extrusion.to_mesh()
             self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ self.end_transform_mat
 
             self.p_amp_AS_vol.resetTransform()
-            self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.T.ravel()), local=False)
+            self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.ravel()), local=False)
 
 
 class KWave3dSimulationArmature(STLMeshBooleanArmature):
@@ -528,7 +528,7 @@ mesh = extrusion.to_mesh()
                 material_index = mesh.bool_mesh_index # Retreive material index before deepcopy (will be deleted in that process)
                 mesh_copy = copy.deepcopy(mesh)
 
-                mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat.T))
+                mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat))
 
                 # Voxelize mesh
                 voxel_size = self.kw3D.dx
@@ -662,7 +662,7 @@ mesh = extrusion.to_mesh()
             voxmesh_tmat = voxmesh_tmat @ self.end_transform_mat
 
             vox_mat_glpts.resetTransform()
-            vox_mat_glpts.applyTransform(pyqtg.QMatrix4x4(voxmesh_tmat.T.ravel()), local=False)
+            vox_mat_glpts.applyTransform(pyqtg.QMatrix4x4(voxmesh_tmat.ravel()), local=False)
 
     # --- Optionnal armature methods ---
 
@@ -742,7 +742,7 @@ mesh = extrusion.to_mesh()
             self.p_amp_3D_vol_tmat = self.p_amp_3D_vol_tmat @ self.end_transform_mat
 
             self.p_amp_3D_vol.resetTransform()
-            self.p_amp_3D_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_3D_vol_tmat.T.ravel()), local=False)
+            self.p_amp_3D_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_3D_vol_tmat.ravel()), local=False)
 
 
 class KWaveAS3dSimulationArmature(STLMeshBooleanArmature):
@@ -1057,7 +1057,7 @@ mesh = extrusion.to_mesh()
                     mesh_copy = copy.deepcopy(mesh)
 
                     mesh_copy = copy.deepcopy(mm)
-                    mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat.T))
+                    mesh_copy.apply_transform(np.linalg.inv(self.end_transform_mat))
 
                     # Voxelize mesh
                     voxel_size = self.kw3D.dx
@@ -1166,7 +1166,7 @@ mesh = extrusion.to_mesh()
             voxmesh_tmat = voxmesh_tmat @ self.end_transform_mat
 
             vox_mat_glpts.resetTransform()
-            vox_mat_glpts.applyTransform(pyqtg.QMatrix4x4(voxmesh_tmat.T.ravel()), local=False)
+            vox_mat_glpts.applyTransform(pyqtg.QMatrix4x4(voxmesh_tmat.ravel()), local=False)
 
     @property
     def axisym_domain_mesh(self):
@@ -1363,7 +1363,7 @@ mesh = extrusion.to_mesh()
             self.p_amp_AS_vol_tmat = self.p_amp_AS_vol_tmat @ self.end_transform_mat
 
             self.p_amp_AS_vol.resetTransform()
-            self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.T.ravel()), local=False)
+            self.p_amp_AS_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_AS_vol_tmat.ravel()), local=False)
 
     def _render_3D_pfield(self):
         """ Called to render pressure magnitude fields. """
@@ -1415,4 +1415,4 @@ mesh = extrusion.to_mesh()
             self.p_amp_3D_vol_tmat = self.p_amp_3D_vol_tmat @ self.end_transform_mat
 
             self.p_amp_3D_vol.resetTransform()
-            self.p_amp_3D_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_3D_vol_tmat.T.ravel()), local=False)
+            self.p_amp_3D_vol.applyTransform(pyqtg.QMatrix4x4(self.p_amp_3D_vol_tmat.ravel()), local=False)

@@ -410,7 +410,7 @@ class MultiLayerNDImageLUT(object):
         self.voxel_coordinates = None # Reset voxels coordinates
         if self.ndimage_glvol is not None:
             self.ndimage_glvol.resetTransform()
-            self.ndimage_glvol.applyTransform(pyqtg.QMatrix4x4(self.ndimage_tmat.T.ravel()), local=False)
+            self.ndimage_glvol.applyTransform(pyqtg.QMatrix4x4(self.ndimage_tmat.ravel()), local=False)
 
     # add / rm / update globj
 

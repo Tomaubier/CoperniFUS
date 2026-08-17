@@ -352,17 +352,17 @@ class AffineTransforms:
             rotmat = np.array([ [1, 0, 0, 0],
                                 [0, np.cos(theta), -np.sin(theta), 0],
                                 [0, np.sin(theta), np.cos(theta), 0],
-                                [0, 0, 0, 1]]).T
+                                [0, 0, 0, 1]])
         elif rot_axis == 'y':
             rotmat = np.array([ [np.cos(theta), 0, np.sin(theta), 0],
                                 [0, 1, 0, 0],
                                 [-np.sin(theta), 0, np.cos(theta), 0],
-                                [0, 0, 0, 1]]).T
+                                [0, 0, 0, 1]])
         elif rot_axis == 'z':
             rotmat = np.array([ [np.cos(theta), -np.sin(theta), 0, 0],
                                 [np.sin(theta), np.cos(theta), 0, 0],
                                 [0, 0, 1, 0],
-                                [0, 0, 0, 1]]).T
+                                [0, 0, 0, 1]])
         else:
             raise Exception('Unknown axis of rotation.  Please use x, y, or z.')
         return rotmat
@@ -373,7 +373,7 @@ class AffineTransforms:
         if axii is None:
             raise ValueError('translation_axis must contain x, y, or z characters')
         tmat = np.eye(4)
-        tmat[3, axii] = translation_norm
+        tmat[axii, 3] = translation_norm
         return tmat
 
 
