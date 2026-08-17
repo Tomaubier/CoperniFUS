@@ -143,7 +143,7 @@ class Window(pyqtw.QMainWindow):
     def load_example_configuration(self, example_configuration_name):
         """ Switch to a configuration provided in CoperniFUS example directory """
         extension_free_name = example_configuration_name.split('.')[0]
-        examples_dir_path = pathlib.Path(coperniFUS_location).parent / 'examples'
+        examples_dir_path = coperniFUS_location.parent / 'examples'
         example_configuration_fpath = examples_dir_path / f'{extension_free_name}.json'
         if not example_configuration_fpath.exists():
             raise ValueError(f'{example_configuration_name} does not exist in {examples_dir_path}.')

@@ -3,11 +3,12 @@ from importlib.metadata import version
 
 print(f"Launching CoperniFUS v{version('coperniFUS')}")
 
-import sys, pathlib, trimesh, pymeshfix, copy, hashlib, base64, warnings, re
+import sys, shutil, os, subprocess, pathlib, trimesh, pymeshfix, copy, hashlib, base64, warnings, re
 import PyQt6.QtGui as pyqtg
 import PyQt6.QtCore as pyqtc
 import PyQt6.QtWidgets as pyqtw
 from si_prefix import si_format, si_parse
+from datetime import datetime
 import pyqtgraph.opengl as gl
 import numpy as np
 
@@ -17,11 +18,143 @@ pyqtc.QCoreApplication.setAttribute(pyqtc.Qt.ApplicationAttribute.AA_ShareOpenGL
 from coperniFUS.modules import _jsonshelve
 
 import coperniFUS
-coperniFUS_location = coperniFUS.__file__
+coperniFUS_location = pathlib.Path(coperniFUS.__file__)
 
 def clean_string(string):
     clean_string = ''.join(filter(str.isalnum, string))
     return clean_string
+
+
+
+class GitVersionTrackerInterface(object):
+
+    GITHUB_BASE_URL = 'https://github.com/Tomaubier/CoperniFUS/' # commit/hash
+
+    def __init__(self, repo_path):
+
+        if shutil.which('git') is None:
+            raise ValueError('Git command not found')
+            
+        self.repo_path = repo_path
+
+    def get_current_git_revision_hash(self) -> str:
+        return subprocess.check_output(
+            ['git', 'rev-parse', 'HEAD'],
+            cwd=self.repo_path
+        ).decode('ascii').strip()
+
+    def get_commit_datetime(self, commit_hash):
+        output = subprocess.check_output(
+            ['git', 'show', '-s', '--format=%cI', commit_hash],
+            cwd=self.repo_path
+        ).decode().strip()
+        return datetime.fromisoformat(output)
+
+    def get_commit_message(self, commit_hash):
+        return subprocess.check_output(
+            ['git', 'show', '-s', '--format=%B', commit_hash],
+            cwd=self.repo_path
+        ).decode('utf-8').strip()
+
+
+class CacheUpdater(object):
+
+    """
+        Reference the breaking revisions that require a cache update in CACHE_UPDATER_PROCEDURES.
+    """
+
+    CACHE_UPDATER_PROCEDURES = {
+        # '2026-08-04T15:00:12+01:00': { # revision date using iso format
+        #     'commit_hash': 'ad44071b61f825a77c9f12f762cdd89faab817ad',
+        #     'commit_message': 'trimesh 2d path extrusion bug fix -> bumping mapbox_earcut to v2.0.0',
+        # },
+    }
+
+    def __init__(self, cache_data_handler):
+        self.cache_data_handler = cache_data_handler
+        self.git_handler = GitVersionTrackerInterface(coperniFUS_location.parent.parent)
+
+        self.cache_updater_procedures = {
+            commit_datetime: {
+                **commit_update_dict,
+                'cache_upgrade_function': self._get_updater_function(commit_update_dict['commit_hash'])}
+            for (commit_datetime, commit_update_dict) in self.CACHE_UPDATER_PROCEDURES.items()
+            if self._is_updater_function_available(commit_update_dict['commit_hash'])
+        }
+
+        self.check_for_cache_updates()
+
+    def check_for_cache_updates(self):
+
+        # Get the revision status of the configuration file being loaded
+        self.cache_last_update_githash = self.cache_data_handler.get_attr(
+            'cache_last_update_githash', default_value=None)
+        self.cache_last_update_githash_datetime = self.cache_data_handler.get_attr(
+            'cache_last_update_githash_datetime', default_value=None)
+        if self.cache_last_update_githash is None: 
+            warnings.warn('No git hash was found in this configuration file -> Assuming it was created using CoperniFUS v0.1.2')
+            self.cache_last_update_githash = '8c5f1cab59f03ffb4012c54b98d87270b6fc6320' # '2025-06-18 15:51:54' -> v0.1.2
+        if self.cache_last_update_githash_datetime is None:
+            self.cache_last_update_githash_datetime = self.git_handler.get_commit_datetime(
+                self.cache_last_update_githash
+            )
+        else:
+            self.cache_last_update_githash_datetime = datetime.fromisoformat(self.cache_last_update_githash_datetime) # decode str -> datetime object
+
+        # Get the revision status of the CoperniFUS instance
+        self.current_coperniFUS_revision_hash = self.git_handler.get_current_git_revision_hash()
+        self.current_coperniFUS_revision_datetime = self.git_handler.get_commit_datetime(
+            self.current_coperniFUS_revision_hash
+        )
+
+        # Outdated CoperniFUS instance
+        if self.cache_last_update_githash_datetime > self.current_coperniFUS_revision_datetime:
+            warning.warn(f'This configuration file appears to have been created using a more recent revision of CoperniFUS.\n\t-> Config. file {self.current_coperniFUS_revision_datetime} (git hash: {self.cache_last_update_githash})\n\t-> CoperniFUS: {self.cache_last_update_githash_datetime} (git hash: {self.current_coperniFUS_revision_hash})\nSome features might be missing in the version installed on this system. Please update CoperniFUS by pulling a newer version from its GitHub repo ({self.git_handler.GITHUB_BASE_URL}), or ignore this warning if you know what you are doing! :)')
+
+        # Outdated cache file
+        if self.cache_last_update_githash_datetime < self.current_coperniFUS_revision_datetime:
+            available_cache_updates_procedures = self._get_available_cache_updates(self.cache_last_update_githash_datetime)
+
+            # Check for updates available
+            if len(available_cache_updates_procedures) > 0:
+                legacy_cache_fpath = self.cache_data_handler.cache_dir / '_legacy_config_files' / f'{self.cache_data_handler.cached_settings_fname.split(".")[0]}_{self.cache_last_update_githash}.json'
+                os.makedirs(self.cache_data_handler.cache_dir / '_legacy_config_files', exist_ok=True)
+                shutil.copy(self.cache_data_handler.cached_settings_fpath, legacy_cache_fpath)
+                print(f'\n> {len(available_cache_updates_procedures)} cache updates available -> the current version of the cache file has been backed-up to\n\t-> {str(legacy_cache_fpath)}')
+
+                for commit_datetime, commit_update_dict in available_cache_updates_procedures.items():
+                    print(f'\n=== Running {commit_datetime} cache update ({commit_update_dict['commit_message']}) ===')
+                    commit_update_dict['cache_upgrade_function']()
+
+                # Udpate cache_last_update_githash is procedure successful
+                self.cache_data_handler.set_attr('cache_last_update_githash', self.current_coperniFUS_revision_hash)
+                self.cache_data_handler.set_attr('cache_last_update_githash_datetime', self.current_coperniFUS_revision_datetime.isoformat())
+
+    def _get_updater_func_name(self, commit_hash):
+        return f'updater_func_{commit_hash}'
+
+    def _is_updater_function_available(self, commit_hash):
+        if hasattr(self, self._get_updater_func_name(commit_hash)):
+            return True
+        else:
+            return False
+
+    def _get_updater_function(self, commit_hash):
+        return getattr(self, self._get_updater_func_name(commit_hash))
+
+    def _get_available_cache_updates(self, cache_last_update_datetime: datetime):
+        available_cache_update_procedures = {
+            commit_datetime: commit_update_dict
+            for commit_datetime, commit_update_dict in self.cache_updater_procedures.items()
+            if datetime.fromisoformat(commit_datetime) > cache_last_update_datetime
+        }
+        return available_cache_update_procedures
+
+    # === ADD UPDATER FUNCTIONS HERE ===
+
+    def updater_func_ad44071b61f825a77c9f12f762cdd89faab817ad(self):
+        # implement cache update procedure here
+        pass
 
 
 class CachedDataHandler:
@@ -63,6 +196,12 @@ class CachedDataHandler:
 
         print(f'\n> Info: Cached configuration file location: {self.cached_settings_fpath}')
 
+        # === Run cache updater ===
+        try:
+            self._updater = CacheUpdater(self)
+        except Exception as e:
+            warnings.warn(f'{str(e)} -> Skipping cache version checks')
+
     def is_cached_filename_already_defined(self, cache_fname):
         """ Checks the availibility of a cache_fname (regardless of the file extension). """
         directory_path = pathlib.Path(self.cache_dir)
@@ -74,7 +213,7 @@ class CachedDataHandler:
 
     @property
     def cached_settings_fpath(self):
-        """ FIle path of the cached file. """
+        """ File path of the cached file. """
         return self.cache_dir / self.cached_settings_fname
 
     def _attribute_str_id(self, attribute_id):
