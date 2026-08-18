@@ -416,25 +416,25 @@ class Window(pyqtw.QMainWindow):
         
             if self.slicing_plane_name == 'x':
                 self._slicing_plane_def = np.array([
-                    [0, 0, 0, 1],
-                    [0, 1, 0, 1],
-                    [0, 0, 1, 1],
-                    [1, 0, 0, 1],
-                ])
+                    [0, 0, 0, 1], # origin
+                    [0, 1, 0, 1], # ax1 -> y
+                    [0, 0, 1, 1], # ax2 -> z
+                    [1, 0, 0, 1], # ax0 -> x
+                ], dtype=float).T
             elif self.slicing_plane_name == 'y':
                 self._slicing_plane_def = np.array([
-                    [0, 0, 0, 1],
-                    [0, 0, 1, 1],
-                    [1, 0, 0, 1],
-                    [0, 1, 0, 1],
-                ])
+                    [0, 0, 0, 1], # origin
+                    [0, 0, 1, 1], # ax1 -> z
+                    [1, 0, 0, 1], # ax2 -> x
+                    [0, 1, 0, 1], # ax0 -> x
+                ], dtype=float).T
             elif self.slicing_plane_name == 'z':
                 self._slicing_plane_def = np.array([
-                    [0, 0, 0, 1],
-                    [1, 0, 0, 1],
-                    [0, 1, 0, 1],
-                    [0, 0, 1, 1],
-                ])
+                    [0, 0, 0, 1], # origin
+                    [1, 0, 0, 1], # ax1 -> x
+                    [0, 1, 0, 1], # ax2 -> y
+                    [0, 0, 1, 1], # ax0 -> z
+                ], dtype=float).T
         self.update_rendered_view()
 
     def _on_reverse_plane_slicing_checked(self):
@@ -448,21 +448,21 @@ class Window(pyqtw.QMainWindow):
     def slicing_plane_def(self):
         """ Slicing plane definition. Refer to slicing_plane_3pts and slicing_plane_normal_vect to get the plane location in other conventions. """
         d = self.slicing_plane_direction
-        directed_slicing_plane_def = self._slicing_plane_def * np.array([d, d, d, 1])
+        directed_slicing_plane_def = self._slicing_plane_def * np.vstack([d, d, d, 1])
         if d < 0:
-            directed_slicing_plane_def = directed_slicing_plane_def[[0, 2, 1, 3]]
+            directed_slicing_plane_def = directed_slicing_plane_def[:, [0, 2, 1, 3]]
         elif d > 0:
-            directed_slicing_plane_def = directed_slicing_plane_def[[0, 1, 2, 3]]
+            directed_slicing_plane_def = directed_slicing_plane_def[:, [0, 1, 2, 3]]
         return directed_slicing_plane_def
-        
+
     @property
     def slicing_plane_3pts(self):
         """ Get the set of three points defining the location of the slicing plane """
         if self.slicing_plane_name is not None:
             if self.tooltip.tooltip_tmat is not None:
-                sp_3pts = (self.slicing_plane_def @ self.tooltip.tooltip_tmat)[:3, :3]
+                sp_3pts = (self.tooltip.tooltip_tmat @ self.slicing_plane_def)[:3, :3].T
             else:
-                sp_3pts = self.slicing_plane_def[:3, :3]
+                sp_3pts = self.slicing_plane_def[:3, :3].T
         else:
             sp_3pts = None
         return sp_3pts
@@ -472,9 +472,9 @@ class Window(pyqtw.QMainWindow):
         """ Get the normal vector defining the location of the slicing plane """
         if self.slicing_plane_name is not None:
             if self.tooltip.tooltip_tmat is not None:
-                sp_normal_vect = (self.slicing_plane_def @ self.tooltip.tooltip_tmat)[:3, [0, 3]]
+                sp_normal_vect = (self.tooltip.tooltip_tmat @ self.slicing_plane_def)[:3, [0, 3]].T
             else:
-                sp_normal_vect = self.slicing_plane_def[:3, [0, 3]]
+                sp_normal_vect = self.slicing_plane_def[:3, [0, 3]].T
         else:
             sp_normal_vect = None
         return sp_normal_vect

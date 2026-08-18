@@ -44,13 +44,13 @@ class MultiLayerNDImageLUT(object):
         if self._voxel_coordinates is None:
             ndimage_shape = self.raw_rgba_ndimage_compound.shape[:-1]
             voxel_coords = np.mgrid[tuple(slice(0, n) for n in ndimage_shape)]
-            raveled_coords = voxel_coords.reshape(len(ndimage_shape), -1).T
+            raveled_coords = voxel_coords.reshape(len(ndimage_shape), -1)
 
             # Apply ndimage spatial transformations
             self._update_transform()
-            raveled_coords_4by = np.vstack([raveled_coords.T, np.ones(len(raveled_coords))]).T
-            transformed_coords = raveled_coords_4by @ self.ndimage_tmat
-            self._voxel_coordinates = transformed_coords[:, :3]
+            raveled_coords_4by = np.pad(raveled_coords, ((0, 1), (0, 0)), constant_values=1.)
+            transformed_coords = self.ndimage_tmat @ raveled_coords_4by
+            self._voxel_coordinates = transformed_coords[:3].T
             self._tmat_version_hash = object_list_hash([self.ndimage_tmat])
         return self._voxel_coordinates
     
