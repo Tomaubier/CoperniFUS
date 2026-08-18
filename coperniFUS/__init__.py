@@ -154,13 +154,20 @@ class CacheUpdater(object):
 
     # === ADD UPDATER FUNCTIONS HERE ===
 
-    def updater_func_ad44071b61f825a77c9f12f762cdd89faab817ad(self):
-        # implement cache update procedure here
+    def updater_func_HASH_TOBEDEFINED(self):
+        """ With the correction of illdefined affine tranform matrices, transform strings need to flipped """
 
-        # def str_afftmat_reversal(str_tmat):
-        #     return ' '.join(str_tmat.split(' ')[::-1])
+        def str_afftmat_reversal(str_tmat):
+            return ' '.join(str_tmat.split(' ')[::-1])
 
-        pass
+        cached_transforms_strs = {
+            cache_key: cache_value
+            for cache_key, cache_value in self.cache_data_handler._cached_db.data.items()
+            if 'transforms_str' in cache_key
+        }
+
+        for (tr_str_cache_key, og_tr_str) in cached_transforms_strs.items():
+            self.cache_data_handler.set_attr(tr_str_cache_key, str_afftmat_reversal(og_tr_str))
 
 
 class CachedDataHandler:
@@ -188,7 +195,7 @@ class CachedDataHandler:
         successful_loading = False
         if self.cached_settings_fname is not None:
             try:
-                cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
+                cached_db = self._cached_db
                 with cached_db:
                     _ = dict(cached_db)
                 cached_db.close()
@@ -207,6 +214,10 @@ class CachedDataHandler:
             self._updater = CacheUpdater(self)
         except Exception as e:
             warnings.warn(f'{str(e)} -> Skipping cache version checks')
+
+    @property
+    def _cached_db(self):
+        return _jsonshelve.FlatShelf(self.cached_settings_fpath)
 
     def is_cached_filename_already_defined(self, cache_fname):
         """ Checks the availibility of a cache_fname (regardless of the file extension). """
@@ -233,7 +244,7 @@ class CachedDataHandler:
         """ Set the value of an attribute. """
         attribute_str_id = self._attribute_str_id(attribute_id)
 
-        cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
+        cached_db = self._cached_db
         with cached_db:
             cached_db[attribute_str_id] = value
         cached_db.close()
@@ -242,7 +253,7 @@ class CachedDataHandler:
         """ Get the value of an attribute. default_value will be returned if the attribute does not exist in cache. """
         attribute_str_id = self._attribute_str_id(attribute_id)
 
-        cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
+        cached_db = self._cached_db
         with cached_db:
             if attribute_str_id in cached_db:
                 value = cached_db[attribute_str_id]
@@ -254,7 +265,7 @@ class CachedDataHandler:
             
     def get_attr_unique_childs(self, attribute_prefix):
         """ Garanties attribute name unicity. """
-        cached_db = _jsonshelve.FlatShelf(self.cached_settings_fpath)
+        cached_db = self._cached_db
         with cached_db:
             attributes_keys = list(cached_db.keys())
             attkeys_with_prefix = [attk.replace(attribute_prefix, '') for attk in attributes_keys if attk.startswith(attribute_prefix)]
@@ -566,7 +577,7 @@ def uncheck_all_checkboxes_in_qtree_column(model, checkbox_column=0, parent_inde
 # ----- misc helper functions -----
 
 
-def recursive_key_finder(nested_dict, target_key='_is_editable'):
+def recursive_key_finder(nested_dict, target_key='_is_editable', require_exact_match=True):
     def recursive_search(d, parent_keys=None):
         if parent_keys is None:
             parent_keys = []
@@ -579,8 +590,10 @@ def recursive_key_finder(nested_dict, target_key='_is_editable'):
             if isinstance(value, dict):
                 found_keys.extend(recursive_search(value, current_keys))
             
-            if key == target_key:
+            if require_exact_match and target_key == key:
                 found_keys.append((parent_keys, d[key])) # returns (nested_keys, value)
+            elif not require_exact_match and target_key in key:
+                found_keys.append(([*parent_keys, key], d[key])) # returns (nested_keys -> with actual matching key, value)
         
         return found_keys
     
