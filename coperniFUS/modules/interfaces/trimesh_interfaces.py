@@ -86,7 +86,7 @@ class TrimeshHandler:
         
         # Apply anatomical landmark calibration transformation if enabled
         if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
-            anatomically_calibrated_stl_item_tmat = self._stl_item_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
+            anatomically_calibrated_stl_item_tmat = self.parent_viewer.anat_calib.landmarks_calib_tmat @ self._stl_item_tmat
         else:
             anatomically_calibrated_stl_item_tmat = self._stl_item_tmat
 

@@ -201,29 +201,36 @@ class BrainAtlas(Module):
             atlas_shape = self.atlas_ml_ndimg.raw_rgba_ndimage_compound.shape
 
             # Axes ordering correction
-            source_space = bgs.AnatomicalSpace(self.bg_atlas.orientation, shape=atlas_shape[:3])
-            target_space = bgs.AnatomicalSpace(get_flipped_atlas_space_convention(self.parent_viewer.ATLAS_SPACE_CONVENTION))
+            source_space = bgs.AnatomicalSpace(
+                get_flipped_atlas_space_convention(self.bg_atlas.orientation),
+                resolution=resolution,
+                shape=atlas_shape[:3]
+            )
+            target_space = bgs.AnatomicalSpace(
+                self.parent_viewer.ATLAS_SPACE_CONVENTION,
+                resolution=(1, 1, 1)
+            )
             axes_order_idx = source_space.map_to(target_space)[0]
             space_conversion_tmat = source_space.transformation_matrix_to(target_space)
-            self._brain_atlas_tmat = space_conversion_tmat
 
-            # Setting atlas scale based on resolution
-            self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.scale_mat(resolution)
+            self._brain_atlas_tmat = np.eye(4)
+
+            # Apply str transformations
+            atlas_transforms_matrices = af_tr_from_str.transform_matrices_from_str(
+                self.get_user_param('atlas_transforms_str'))
+            for tr_mat in atlas_transforms_matrices:
+                self._brain_atlas_tmat = self._brain_atlas_tmat @ tr_mat
 
             # Img space origin to atlas center
             self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('x', -(resolution[0] * atlas_shape[axes_order_idx[0]]) / 2)
             self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('y', -(resolution[1] * atlas_shape[axes_order_idx[1]]) / 2)
             self._brain_atlas_tmat = self._brain_atlas_tmat @ af_tr.translat_mat('z', -(resolution[2] * atlas_shape[axes_order_idx[2]]) / 2)
 
-            atlas_transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_user_param('atlas_transforms_str')
-            )
-
-            for tr_mat in atlas_transforms_matrices:
-                self._brain_atlas_tmat = self._brain_atlas_tmat @ tr_mat
+            # Apply axes ordering correction
+            self._brain_atlas_tmat = self._brain_atlas_tmat @ space_conversion_tmat
         
         # Apply anatomical landmark calibration transformation
-        anatomically_calibrated_brain_atlas_tmat = self._brain_atlas_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
+        anatomically_calibrated_brain_atlas_tmat = self.parent_viewer.anat_calib.landmarks_calib_tmat @ self._brain_atlas_tmat
         
         return anatomically_calibrated_brain_atlas_tmat
     

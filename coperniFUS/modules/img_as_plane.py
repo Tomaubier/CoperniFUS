@@ -67,7 +67,7 @@ class RefImageAsPlane(Module):
         
         # Apply anatomical landmark calibration transformation if enabled
         if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
-            anatomically_calibrated_img_tmat = self._ref_image_tmat @ self.parent_viewer.anat_calib.landmarks_calib_tmat
+            anatomically_calibrated_img_tmat = self.parent_viewer.anat_calib.landmarks_calib_tmat @ self._ref_image_tmat
         else:
             anatomically_calibrated_img_tmat = self._ref_image_tmat
 

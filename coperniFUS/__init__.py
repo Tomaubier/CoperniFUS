@@ -156,6 +156,10 @@ class CacheUpdater(object):
 
     def updater_func_ad44071b61f825a77c9f12f762cdd89faab817ad(self):
         # implement cache update procedure here
+
+        # def str_afftmat_reversal(str_tmat):
+        #     return ' '.join(str_tmat.split(' ')[::-1])
+
         pass
 
 
