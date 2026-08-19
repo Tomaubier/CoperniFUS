@@ -571,6 +571,15 @@ def descriptive_line_edit(default_text, description_text):
     return descr_line_edit
 
 
+class ClickableLabel(pyqtw.QLabel):
+    clicked = pyqtc.pyqtSignal()
+
+    def mousePressEvent(self, event):
+        if event.button() == pyqtc.Qt.MouseButton.LeftButton:
+            self.clicked.emit()
+        super().mousePressEvent(event)
+
+
 class AcceptRejectDialog(pyqtw.QDialog):
     def __init__(self, parent=None, title='Title', msg='Msg'):
         super().__init__(parent)

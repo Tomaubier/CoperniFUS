@@ -97,6 +97,17 @@ class Tooltip(Module):
     
     # --- Module specific attributes ---
 
+    def copy_tooltip_coords_as_strtr_to_clipboard(self):
+        coords = self.tooltip_coordinates
+        if coords is not None:
+            tooltip_str_transform = ' '.join([
+                f'T{ax}' + si_format(cc, format_str='{value}{prefix}m')
+                for ax, cc in zip(['x', 'y', 'z'], coords)
+            ])
+
+            clipboard = self.parent_viewer.app.clipboard()
+            clipboard.setText(tooltip_str_transform)
+
     def _on_editor_parsed(self, param_name, edited_value):
         self.set_user_param(param_name, edited_value)
         self.parent_viewer.update_rendered_view()
@@ -118,13 +129,21 @@ class Tooltip(Module):
 
         # Tooltip global coordinates widget
         space_conv = self.parent_viewer.ATLAS_SPACE_CONVENTION
-        self.statusbar_label = pyqtw.QLabel(' Tooltip global coords: ')
-        self.statusbar_x_coord_label = pyqtw.QLabel(f"{space_conv[0][:4]}. (x): 0 m")
+        self.statusbar_label = ClickableLabel(' Tooltip global coords: ')
+        self.statusbar_x_coord_label = ClickableLabel(f"{space_conv[0][:4]}. (x): 0 m")
         self.statusbar_x_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.x_RED};')
-        self.statusbar_y_coord_label = pyqtw.QLabel(f"{space_conv[1][:4]}. (y): 0 m")
+        self.statusbar_y_coord_label = ClickableLabel(f"{space_conv[1][:4]}. (y): 0 m")
         self.statusbar_y_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.y_GREEN};')
-        self.statusbar_z_coord_label = pyqtw.QLabel(f"{space_conv[2][:4]}. (z): 0 m")
+        self.statusbar_z_coord_label = ClickableLabel(f"{space_conv[2][:4]}. (z): 0 m")
         self.statusbar_z_coord_label.setStyleSheet(f'border: 0; color: {self.parent_viewer.z_BLUE};')
+
+        # Connect mouse click events
+        self.statusbar_label.clicked.connect(self.copy_tooltip_coords_as_strtr_to_clipboard)
+        self.statusbar_x_coord_label.clicked.connect(self.copy_tooltip_coords_as_strtr_to_clipboard)
+        self.statusbar_y_coord_label.clicked.connect(self.copy_tooltip_coords_as_strtr_to_clipboard)
+        self.statusbar_z_coord_label.clicked.connect(self.copy_tooltip_coords_as_strtr_to_clipboard)
+
+        # Add widgets to toolbar
         self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_label)
         self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_x_coord_label)
         self.parent_viewer.statusBar().addPermanentWidget(self.statusbar_y_coord_label)
