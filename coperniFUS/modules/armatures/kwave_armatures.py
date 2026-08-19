@@ -47,8 +47,8 @@ class KwaveAShomogeneousSimulationArmature(Armature):
                 'gl_mesh_edgeWidth': 5
             },
             '_kwave_sim': {
-                'ignore_plane_slicing': True,
                 '_axisym_domain_gl_options': {
+                    'ignore_plane_slicing': True,
                     'gl_mesh_shader': None,
                     'gl_mesh_drawEdges': True,
                     'gl_mesh_drawFaces': False,
@@ -385,6 +385,8 @@ class KWave3dSimulationArmature(STLMeshBooleanArmature):
                     '2': ['intersection', ['Skull acoustic window', '_boolean_mask']]
                 },
                 '_mask_preview_gl_options': {
+                    'transform_str': None,
+                    'ignore_plane_slicing': True,
                     'gl_mesh_shader': None,
                     'gl_mesh_drawEdges': True,
                     'gl_mesh_drawFaces': False,
@@ -393,8 +395,6 @@ class KWave3dSimulationArmature(STLMeshBooleanArmature):
                     'gl_mesh_smooth': False,
                     'gl_mesh_edgeWidth': 2
                 },
-                'transform_str': None,
-                'ignore_plane_slicing': True,
                 '_boolean_mask_trimesh_script': """
 
 path_2d_dict = {
@@ -445,8 +445,8 @@ mesh = extrusion.to_mesh()
                 }
             },
             '_kwave_sim': {
-                'ignore_plane_slicing': True,
                 '_axisym_domain_gl_options': {
+                    'ignore_plane_slicing': True,
                     'gl_mesh_shader': None,
                     'gl_mesh_drawEdges': True,
                     'gl_mesh_drawFaces': False,
@@ -796,10 +796,10 @@ class KWaveAS3dSimulationArmature(STLMeshBooleanArmature):
                     'gl_mesh_edgeColor': (0.945, 0.768, 0.059, 1.0),
                     'gl_mesh_glOptions': 'opaque',
                     'gl_mesh_smooth': False,
-                    'gl_mesh_edgeWidth': 2
+                    'gl_mesh_edgeWidth': 2,
+                    'transform_str': None,
+                    'ignore_plane_slicing': True,
                 },
-                'transform_str': None,
-                'ignore_plane_slicing': True,
                 '_boolean_mask_trimesh_script': """
 
 path_2d_dict = {
@@ -868,7 +868,6 @@ mesh.apply_transform(z_translate_tmat)
                 }
             },
             '_kwave_sim': {
-                'ignore_plane_slicing': True,
                 '_axisym_domain_gl_options': {
                     'gl_mesh_shader': None,
                     'gl_mesh_drawEdges': True,
@@ -876,7 +875,8 @@ mesh.apply_transform(z_translate_tmat)
                     'gl_mesh_edgeColor': (0.945, 0.768, 0.059, 1.0),
                     'gl_mesh_glOptions': 'opaque',
                     'gl_mesh_smooth': False,
-                    'gl_mesh_edgeWidth': 2
+                    'gl_mesh_edgeWidth': 2,
+                    'ignore_plane_slicing': True,
                 },
                 '_axisymmetric_domain_boundary_trimesh_script': """
 

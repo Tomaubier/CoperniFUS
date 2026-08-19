@@ -520,8 +520,8 @@ However to properly describe the acoustic properties of the domain, a last mesh 
         },
         '_convex_hull': {
             '_src_mesh': 'Skull Mesh',
-            'ignore_plane_slicing': True,
             '_mask_preview_gl_options': {
+                'ignore_plane_slicing': True,
                 'gl_mesh_shader': None,
                 'gl_mesh_drawEdges': True,
                 'gl_mesh_drawFaces': False,

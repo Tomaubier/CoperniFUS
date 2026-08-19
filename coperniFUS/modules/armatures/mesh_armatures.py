@@ -2,6 +2,7 @@ from coperniFUS import *
 from coperniFUS.modules.interfaces.trimesh_interfaces import TrimeshHandler, TrimeshScriptHandler, StlHandler
 from coperniFUS.modules.armatures.base_armature import Armature
 
+# TODO make parent TrimeshArmature -> subclassed by STLMeshArmature, TrimeshScriptArmature, STLMeshConvexHull, STLMeshBooleanArmature
 
 class STLMeshArmature(Armature):
 
@@ -85,7 +86,9 @@ class STLMeshArmature(Armature):
         """ Called on render view updates """
         if not self._is_render_uptodate or force_update:
             super().update_render(force_update=True)
+            
             if self.visible is True:
+                # if not self.parent_viewer._postpone_slicing_plane_computation or ignore_plane_slicing: # TODO postpone
                 if self.mesh_handler.stl_glitem is None:
                     self.add_render()
                 self._update_stl_item_transform_matrix()
@@ -119,12 +122,12 @@ class STLMeshArmature(Armature):
         else:
             transforms_matrices = [np.eye(4)]
 
-        stl_item_tmat = np.eye(4)
+        stl_item_tmat = self.end_transform_mat
         for tr_mat in transforms_matrices:
                 stl_item_tmat = stl_item_tmat @ tr_mat
-        stl_item_tmat = stl_item_tmat @ self.end_transform_mat
 
-        self.mesh_handler.stl_item_tmat = stl_item_tmat
+        if not self.parent_viewer._postpone_slicing_plane_computation: # TODO transfer to TrimeshHandler
+            self.mesh_handler.stl_item_tmat = stl_item_tmat
           
 
 class TrimeshScriptArmature(Armature):
@@ -274,12 +277,12 @@ mesh.apply_transform(tmat)
         else:
             transforms_matrices = [np.eye(4)]
 
-        stl_item_tmat = np.eye(4)
+        stl_item_tmat = self.end_transform_mat
         for tr_mat in transforms_matrices:
                 stl_item_tmat = stl_item_tmat @ tr_mat
-        stl_item_tmat = stl_item_tmat @ self.end_transform_mat
 
-        self.mesh_handler.stl_item_tmat = stl_item_tmat
+        if not self.parent_viewer._postpone_slicing_plane_computation: # TODO transfer to TrimeshHandler
+            self.mesh_handler.stl_item_tmat = stl_item_tmat
 
 
 class STLMeshBooleanArmature(STLMeshArmature):
@@ -307,10 +310,10 @@ class STLMeshBooleanArmature(STLMeshArmature):
                 'gl_mesh_edgeWidth': 2
             },
             '_boolean_mask': {
-                'transform_str': 'Tz2mm',
-                'ignore_plane_slicing': True,
                 '_boolean_operations': ['difference', ['_stl_mesh', '_boolean_mask']],
                 '_mask_preview_gl_options': {
+                    'transform_str': 'Tz2mm',
+                    'ignore_plane_slicing': True,
                     'gl_mesh_shader': None,
                     'gl_mesh_drawEdges': True,
                     'gl_mesh_drawFaces': False,
@@ -609,7 +612,7 @@ mesh = extrusion.to_mesh()
 
                 if self.bmask_mesh[1]: # Check if the mesh has been updated
                     self.bool_mask_mesh_handler.raw_stl_item_mesh = self.bmask_mesh[0]
-                self.bool_mask_mesh_handler.update_rendered_object() #ignore_plane_slicing=True)
+                self.bool_mask_mesh_handler.update_rendered_object()
             else:
                 self.delete_render()
     
@@ -671,8 +674,8 @@ class STLMeshConvexHull(STLMeshArmature): # Armature
                 'gl_mesh_edgeWidth': 5},
             '_convex_hull': {
                 '_src_mesh': 'Skull acoustic window',
-                'ignore_plane_slicing': True,
                 '_mask_preview_gl_options': {
+                    'ignore_plane_slicing': True,
                     'gl_mesh_shader': None,
                     'gl_mesh_drawEdges': True,
                     'gl_mesh_drawFaces': False,

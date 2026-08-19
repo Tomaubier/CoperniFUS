@@ -1,5 +1,6 @@
 from coperniFUS import *
 
+# TODO plan trimesh / stl interfaces / modules / armature overall
 
 class TrimeshHandler:
 
@@ -140,29 +141,43 @@ class TrimeshHandler:
 
     def update_rendered_object(self):
         """ Called on render view updates """
-        def update_rendered_mesh(mesh, sub_mesh_index=0):
-            if self.parent_viewer.slicing_plane_normal_vect is None or ignore_plane_slicing:
-                stl_item_gl_mesh_data = gl.MeshData(vertexes=mesh.vertices, faces=mesh.faces)
-            else:
-                self._sliced_stl_item_mesh = mesh.slice_plane(
-                    plane_origin=self.parent_viewer.slicing_plane_normal_vect[0],
-                    plane_normal=self.parent_viewer.slicing_plane_normal_vect[1],
-                    cap=True)
-                stl_item_gl_mesh_data = gl.MeshData(vertexes=self._sliced_stl_item_mesh.vertices, faces=self._sliced_stl_item_mesh.faces)
 
-            if sub_mesh_index < len(self.stl_glitem):
-                self.stl_glitem[sub_mesh_index].setMeshData(meshdata=stl_item_gl_mesh_data)
+        # print(f'\nTRIMESH HANDLER update_rendered_object {self.stl_item_name} {self.parent_viewer._postpone_slicing_plane_computation} igpls: {self.get_user_param("ignore_plane_slicing")}') # debug
+        # print('self.parent_viewer.slicing_plane_normal_vect: ', self.parent_viewer.slicing_plane_normal_vect)
 
-        ignore_plane_slicing = self.get_user_param('ignore_plane_slicing')
-        if not self.parent_viewer._postpone_slicing_plane_computation or ignore_plane_slicing:
-            if self.stl_glitem is None:
-                self.add_rendered_object()
-            else:
-                if isinstance(self.stl_item_mesh, trimesh.Trimesh):
-                    update_rendered_mesh(self.stl_item_mesh)
-                elif isinstance(self.stl_item_mesh, list):
-                    for ii, mm in enumerate(self.stl_item_mesh):
-                        update_rendered_mesh(mm, sub_mesh_index=ii)
+        def update_rendered_mesh(mesh, sub_mesh_index=0, ignore_plane_slicing=False):
+            if not self.parent_viewer._postpone_slicing_plane_computation:
+                if self.parent_viewer.slicing_plane_normal_vect is None or ignore_plane_slicing:
+                    # print('\tRAW mesh data rewrite') # debug
+                    # TODO TOCHECK (prevent?) systematic data update (do it only on plane slicing state changes)
+                    stl_item_gl_mesh_data = gl.MeshData(
+                        vertexes=mesh.vertices,
+                        faces=mesh.faces
+                    )
+                else:
+                    # print('\tPLANE SLICING mesh data rewrite') # debug
+                    self._sliced_stl_item_mesh = mesh.slice_plane(
+                        plane_origin=self.parent_viewer.slicing_plane_normal_vect[0],
+                        plane_normal=self.parent_viewer.slicing_plane_normal_vect[1],
+                        cap=True)
+                    stl_item_gl_mesh_data = gl.MeshData(
+                        vertexes=self._sliced_stl_item_mesh.vertices,
+                        faces=self._sliced_stl_item_mesh.faces
+                    )
+
+                if sub_mesh_index < len(self.stl_glitem):
+                    self.stl_glitem[sub_mesh_index].setMeshData(meshdata=stl_item_gl_mesh_data)
+
+        # if not self.parent_viewer._postpone_slicing_plane_computation:
+        if self.stl_glitem is None:
+            self.add_rendered_object()
+        else:
+            ignore_plane_slicing = self.get_user_param('ignore_plane_slicing') # TODO move get_user_param to host modules / armatures (ignore_plane_slicing bug fix)
+            if isinstance(self.stl_item_mesh, trimesh.Trimesh):
+                update_rendered_mesh(self.stl_item_mesh, ignore_plane_slicing=ignore_plane_slicing)
+            elif isinstance(self.stl_item_mesh, list):
+                for ii, mm in enumerate(self.stl_item_mesh):
+                    update_rendered_mesh(mm, sub_mesh_index=ii, ignore_plane_slicing=ignore_plane_slicing)
             # Ignore if None
 
     def delete_rendered_object(self):

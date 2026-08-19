@@ -484,8 +484,8 @@ fake_brain_tissues_armature_test_config_dict = {
     },
     '_convex_hull': {
         '_src_mesh': 'Fake Skull Mesh',
-        'ignore_plane_slicing': True,
         '_mask_preview_gl_options': {
+            'ignore_plane_slicing': True,
             'gl_mesh_shader': None,
             'gl_mesh_drawEdges': True,
             'gl_mesh_drawFaces': False,
@@ -578,10 +578,10 @@ kwave_armature_test_config_dict = {
             'gl_mesh_edgeColor': [0.945, 0.768, 0.059, 1.0],
             'gl_mesh_glOptions': 'opaque',
             'gl_mesh_smooth': False,
-            'gl_mesh_edgeWidth': 2
+            'gl_mesh_edgeWidth': 2,
+            'transform_str': None,
+            'ignore_plane_slicing': True,
         },
-        'transform_str': None,
-        'ignore_plane_slicing': True,
         '_boolean_mask_trimesh_script': """
 
 
@@ -634,8 +634,8 @@ mesh = extrusion.to_mesh()
         }
     },
     '_kwave_sim': {
-        'ignore_plane_slicing': True,
         '_axisym_domain_gl_options': {
+            'ignore_plane_slicing': True,
             'gl_mesh_shader': None,
             'gl_mesh_drawEdges': True,
             'gl_mesh_drawFaces': False,
