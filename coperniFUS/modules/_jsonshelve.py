@@ -27,7 +27,6 @@ class JSONShelf(collections.abc.MutableMapping):
     def __del__(self):
         self.close()
 
-
     # As a context manager, the shelf saves on exit.
 
     def __enter__(self):

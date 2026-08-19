@@ -9,7 +9,7 @@ class StlHandlerGUI(StlHandler):
         'file_path': 'None',
         'ignore_anatomical_landmarks_calibration': True,
         'ignore_plane_slicing': False,
-        'stl_item_transforms_str' : 'S1 Rx0deg Tz0um',
+        'stl_item_transform_str' : 'S1 Rx0deg Tz0um',
         'gl_mesh_shader': 'viewNormalColor',
         'gl_mesh_drawEdges': False,
         'gl_mesh_drawFaces': True,
@@ -32,7 +32,7 @@ class StlHandlerGUI(StlHandler):
         if self._stl_item_tmat is None:
             # Compute transform matrix from transforms str
             transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_user_param('stl_item_transforms_str')
+                self.get_user_param('stl_item_transform_str')
             )
             self._stl_item_tmat = af_tr.scale_mat(1)
             for tr_mat in transforms_matrices:
@@ -72,8 +72,8 @@ class StlHandlerGUI(StlHandler):
         self.dock_layout.addWidget(self.select_stl_file_btn, 0, 0, 1, 1) # Y, X, w, h
 
         # Transform matrix str editor
-        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_user_param('stl_item_transforms_str')), 'Mesh transform')
-        self.stl_item_transform_editor.editingFinished.connect(functools.partial(self.parse_editor, self.stl_item_transform_editor, 'stl_item_transforms_str', '', 'str'))
+        self.stl_item_transform_editor = descriptive_line_edit(str(self.get_user_param('stl_item_transform_str')), 'Mesh transform')
+        self.stl_item_transform_editor.editingFinished.connect(functools.partial(self.parse_editor, self.stl_item_transform_editor, 'stl_item_transform_str', '', 'str'))
         self.stl_item_transform_editor.editingFinished.connect(self._on_stl_item_transform_editing_finished)
         self.stl_item_transform_editor.setEnabled(False)
         self.dock_layout.addWidget(self.stl_item_transform_editor, 1, 0, 1, 1) # Y, X, w, h
@@ -107,7 +107,7 @@ class StlHandlerGUI(StlHandler):
         self.select_stl_file_btn.clicked.disconnect()
         self.select_stl_file_btn.clicked.connect(self._import_stl)
 
-        self.stl_item_transform_editor.setText(str(self._DEFAULT_PARAMS['stl_item_transforms_str']))
+        self.stl_item_transform_editor.setText(str(self._DEFAULT_PARAMS['stl_item_transform_str']))
         self.stl_item_transform_editor.setEnabled(False)
 
     # --- Module specific attributes ---
@@ -128,7 +128,7 @@ class StlHandlerGUI(StlHandler):
         self.stl_item_tmat = None
 
     def _update_item_transform_editor(self):
-        self.stl_item_transform_editor.setText(str(self.get_user_param('stl_item_transforms_str')))
+        self.stl_item_transform_editor.setText(str(self.get_user_param('stl_item_transform_str')))
 
     def _import_stl(self):
         import_path = pyqtw.QFileDialog.getOpenFileName(parent=self.parent_viewer, caption=self.parent_viewer.tr("Select an STL"), filter=self.parent_viewer.tr('STL file (*.stl)'))

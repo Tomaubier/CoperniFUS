@@ -1020,7 +1020,7 @@ batlas_module.add_reference_atlas('whs_sd_rat_39um') # Loading atlas
 batlas_module.add_structure_layer(structure='Ventral tegmental area (VTA)', hemisphere='Right Hemisphere')
 batlas_module.add_structure_layer(structure='Nucleus accumbens (NAc)', hemisphere='Right Hemisphere')
 
-batlas_module.set_user_param('atlas_transforms_str', 'Rx0.7deg Ry-6.6deg Ty-0.5mm Tx-4.5mm Tz-8mm')
+batlas_module.set_user_param('atlas_transform_str', 'Rx0.7deg Ry-6.6deg Ty-0.5mm Tx-4.5mm Tz-8mm')
 batlas_module._update_atlas_user_params_editors()
 batlas_module.update_rendered_object()
 

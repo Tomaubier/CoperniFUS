@@ -145,7 +145,7 @@ class BrainAtlas(Module):
     _DEFAULT_N_VOXELS = 1e6 # target number of voxels for default atlas subsampling stride computation
     _DEFAULT_PARAMS = {
         'jsonable_layers_dict': "{}",
-        'atlas_transforms_str' : 'Rx0deg Tz0um',
+        'atlas_transform_str' : 'Rx0deg Tz0um',
         'subsampling_stride': 10,
     }
     """ Default configuration parameters used when a parameter value is not yet cached """
@@ -217,7 +217,7 @@ class BrainAtlas(Module):
 
             # Apply str transformations
             atlas_transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_user_param('atlas_transforms_str'))
+                self.get_user_param('atlas_transform_str'))
             for tr_mat in atlas_transforms_matrices:
                 self._brain_atlas_tmat = self._brain_atlas_tmat @ tr_mat
 
@@ -436,8 +436,8 @@ class BrainAtlas(Module):
         self.subsampling_stride_editor.setToolTip('Atlas subsampling stride<br>Use 1 to show the altas in its full resolution, larger strides will however improve performances.')
 
         # Transform string editor
-        self.atlas_transform_editor = descriptive_line_edit(str(self._DEFAULT_PARAMS['atlas_transforms_str']), 'Transform')
-        self.atlas_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.atlas_transform_editor, 'atlas_transforms_str', '', 'str'))
+        self.atlas_transform_editor = descriptive_line_edit(str(self._DEFAULT_PARAMS['atlas_transform_str']), 'Transform')
+        self.atlas_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.atlas_transform_editor, 'atlas_transform_str', '', 'str'))
         self.dock_layout.addWidget(self.atlas_transform_editor, 1, 1, 1, 1) # Y, X, h, w
         self.atlas_transform_editor.setToolTip('STL mesh transformations<br> - S0.5: Apply a 0.5 scaling factor (Use Sx to scale along x)<br> - Ty1mm: 1mm translation along y<br> - Rz90deg: Rotate by 90 degrees around z axis')
 
@@ -740,7 +740,7 @@ class BrainAtlas(Module):
 
     def _update_atlas_user_params_editors(self):
         self.subsampling_stride_editor.setText(str(self.get_user_param('subsampling_stride', default_value=self._default_subsampling_stride)))
-        self.atlas_transform_editor.setText(self.get_user_param('atlas_transforms_str'))
+        self.atlas_transform_editor.setText(self.get_user_param('atlas_transform_str'))
 
     # --- Atlas data handling ---
 

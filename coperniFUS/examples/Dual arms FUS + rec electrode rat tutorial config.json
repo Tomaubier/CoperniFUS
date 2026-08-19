@@ -17,7 +17,7 @@
         "Recording Electrode Body": "TrimeshScriptArmature",
         "kWave 3D Simulation": "KWave3dSimulationArmature"
     },
-    "tooltip.tooltip_transforms_str": "Rx0deg Tz0um",
+    "tooltip.tooltip_transform_str": "Rx0deg Tz0um",
     "sterotax_frame._steframe_arch_dict": {
         "Skull Mesh": null,
         "Brain Mesh": null,
@@ -1286,7 +1286,7 @@
         0.7
     ],
     "atlas.whs_sd_rat_39um.subsampling_stride": 6,
-    "atlas.whs_sd_rat_39um.atlas_transforms_str": "Rx0.7deg Ry-6.6deg Ty-0.5mm Tx-4.5mm Tz-8mm",
+    "atlas.whs_sd_rat_39um.atlas_transform_str": "Rx0.7deg Ry-6.6deg Ty-0.5mm Tx-4.5mm Tz-8mm",
     "mesh_handler.convex_hull_result_mesh_0.file_path": "None",
     "mesh_handler.convex_hull_result_mesh_0.ignore_anatomical_landmarks_calibration": true,
     "mesh_handler.convex_hull_result_mesh_0.ignore_plane_slicing": false,

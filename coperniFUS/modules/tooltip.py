@@ -5,7 +5,7 @@ import functools
 class Tooltip(Module):
 
     _DEFAULT_PARAMS = {
-        'tooltip_transforms_str' : 'Rx0deg Tz0um',
+        'tooltip_transform_str' : 'Rx0deg Tz0um',
         'axes_length': 1e-3
     }
     """ Default configuration parameters used when a parameter value is not yet cached """
@@ -44,9 +44,9 @@ class Tooltip(Module):
     def tooltip_tmat(self):
         """ Holds the current Tooltip affine transformation matrix """
         if self._tooltip_tmat is None:
-            # Compute tooltip transform matrix from tooltip_transforms_str (status bar qedit)
+            # Compute tooltip transform matrix from tooltip_transform_str (status bar qedit)
             transforms_matrices = af_tr_from_str.transform_matrices_from_str(
-                self.get_user_param('tooltip_transforms_str')
+                self.get_user_param('tooltip_transform_str')
             )
             self._tooltip_tmat = af_tr.scale_mat(1)
             for tr_mat in transforms_matrices:
@@ -132,8 +132,8 @@ class Tooltip(Module):
         self.parent_viewer.statusBar().addPermanentWidget(pyqtw.QLabel(" ")) # Termination spacer
 
         # Tooltip coordinate transform editor
-        self.tooltip_transform_editor = descriptive_line_edit(str(self.get_user_param('tooltip_transforms_str')), 'Default Tooltip transform')
-        self.tooltip_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.tooltip_transform_editor, 'tooltip_transforms_str', '', 'str'))
+        self.tooltip_transform_editor = descriptive_line_edit(str(self.get_user_param('tooltip_transform_str')), 'Default Tooltip transform')
+        self.tooltip_transform_editor.editingFinished.connect(functools.partial(self._parse_editor, self.tooltip_transform_editor, 'tooltip_transform_str', '', 'str'))
         self.parent_viewer.statusBar().addPermanentWidget(self.tooltip_transform_editor)
         self.parent_viewer.statusBar().addPermanentWidget(pyqtw.QLabel(" ")) # Termination spacer
         self.tooltip_transform_editor.setFixedWidth(500)

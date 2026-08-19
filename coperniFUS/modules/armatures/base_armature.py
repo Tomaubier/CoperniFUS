@@ -329,27 +329,15 @@ class Armature:
 
     def _update_armature_dict_value(self, nested_keys, value):
 
+        nested_keys_to_args_value = [*nested_keys, 'args', 1]
+
         # --- uneval dict update ---
-        uneval_armature_config_dict_copy = copy.deepcopy(self.uneval_armature_config_dict)
-        # Recurse through the dict copy based on nested_keys
-        param_flat_dict = uneval_armature_config_dict_copy
-        for nested_key in nested_keys:
-            param_flat_dict = param_flat_dict[nested_key]
-        # Apply the value
-        param_flat_dict['args'][1] = value
-        # Update the actual dict
-        self.uneval_armature_config_dict = uneval_armature_config_dict_copy
+        self.uneval_armature_config_dict = nested_dict_value_setter(
+            self.uneval_armature_config_dict, nested_keys_to_args_value, value)
 
         # --- evaluated dict update ---
-        armature_config_dict_copy = copy.deepcopy(self.armature_config_dict)
-        # Recurse through the dict copy based on nested_keys
-        param_flat_dict = armature_config_dict_copy
-        for nested_key in nested_keys:
-            param_flat_dict = param_flat_dict[nested_key]
-        # Apply the value
-        param_flat_dict['args'][1] = value
-        # Update the actual dict
-        self.armature_config_dict = armature_config_dict_copy
+        self.armature_config_dict = nested_dict_value_setter(
+            self.armature_config_dict, nested_keys_to_args_value, value)
 
     def _compute_armature_coords(self):
         if self.parent_transform_mat is None:

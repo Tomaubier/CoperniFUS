@@ -158,7 +158,7 @@ class Window(pyqtw.QMainWindow):
 
     def switch_cached_settings_file(self, cached_settings_fname, force_create_new=False):
         """ Switch between cached configuration files available in cache directory or create new ones. The list of avalable configuration files can be assessed by calling cached_settings_files. Setting force_create_new to True will force the creation a a new config file by adding a suffix to cached_settings_fname if it already exists."""
-        print(f'> Info: Switching to {cached_settings_fname}')
+        print(f'\n> Info: Switching to {cached_settings_fname}')
 
         def get_safe_config_name(name):
             safe_name = copy.deepcopy(name)

@@ -58,6 +58,9 @@ class GitVersionTrackerInterface(object):
             cwd=self.repo_path
         ).decode('utf-8').strip()
 
+# Get iso-formatted commit datetime
+# from coperniFUS import GitVersionTrackerInterface
+# GitVersionTrackerInterface('.').get_commit_datetime('f2e26712dc7143ae6e871bfcb16d074a8c0b5bce').isoformat()
 
 class CacheUpdater(object):
 
@@ -66,10 +69,10 @@ class CacheUpdater(object):
     """
 
     CACHE_UPDATER_PROCEDURES = {
-        # '2026-08-04T15:00:12+01:00': { # revision date using iso format
-        #     'commit_hash': 'ad44071b61f825a77c9f12f762cdd89faab817ad',
-        #     'commit_message': 'trimesh 2d path extrusion bug fix -> bumping mapbox_earcut to v2.0.0',
-        # },
+        '2026-08-18T16:53:58+01:00': { # revision date using iso format
+            'commit_hash': 'f2e26712dc7143ae6e871bfcb16d074a8c0b5bce',
+            'commit_message': 'illdefined affine transform fix with cache updater func',
+        },
     }
 
     def __init__(self, cache_data_handler):
@@ -111,7 +114,7 @@ class CacheUpdater(object):
 
         # Outdated CoperniFUS instance
         if self.cache_last_update_githash_datetime > self.current_coperniFUS_revision_datetime:
-            warning.warn(f'This configuration file appears to have been created using a more recent revision of CoperniFUS.\n\t-> Config. file {self.current_coperniFUS_revision_datetime} (git hash: {self.cache_last_update_githash})\n\t-> CoperniFUS: {self.cache_last_update_githash_datetime} (git hash: {self.current_coperniFUS_revision_hash})\nSome features might be missing in the version installed on this system. Please update CoperniFUS by pulling a newer version from its GitHub repo ({self.git_handler.GITHUB_BASE_URL}), or ignore this warning if you know what you are doing! :)')
+            print(f'\n> Info: This configuration file appears to have been created using a more recent revision of CoperniFUS.\n\t-> Config. file {self.current_coperniFUS_revision_datetime} (git hash: {self.cache_last_update_githash})\n\t-> CoperniFUS: {self.cache_last_update_githash_datetime} (git hash: {self.current_coperniFUS_revision_hash})\nSome features might be missing in the version installed on this system. Please update CoperniFUS by pulling a newer version from its GitHub repo ({self.git_handler.GITHUB_BASE_URL}), or ignore this warning if you know what you are doing! :)')
 
         # Outdated cache file
         if self.cache_last_update_githash_datetime < self.current_coperniFUS_revision_datetime:
@@ -154,20 +157,49 @@ class CacheUpdater(object):
 
     # === ADD UPDATER FUNCTIONS HERE ===
 
-    def updater_func_HASH_TOBEDEFINED(self):
+    def updater_func_f2e26712dc7143ae6e871bfcb16d074a8c0b5bce(self):
         """ With the correction of illdefined affine tranform matrices, transform strings need to flipped """
 
-        def str_afftmat_reversal(str_tmat):
-            return ' '.join(str_tmat.split(' ')[::-1])
+        # === Replace transforms_str by transform_str for consistency purposes ===
 
-        cached_transforms_strs = {
+        cached_transformS_strs_keys = {
             cache_key: cache_value
             for cache_key, cache_value in self.cache_data_handler._cached_db.data.items()
             if 'transforms_str' in cache_key
         }
 
-        for (tr_str_cache_key, og_tr_str) in cached_transforms_strs.items():
-            self.cache_data_handler.set_attr(tr_str_cache_key, str_afftmat_reversal(og_tr_str))
+        for (og_tr_str_cache_key, og_tr_str) in cached_transformS_strs_keys.items():
+            self.cache_data_handler.pop_attr(og_tr_str_cache_key)
+            new_tr_str_cache_key = og_tr_str_cache_key.replace('transforms_str', 'transform_str')
+            self.cache_data_handler.set_attr(new_tr_str_cache_key, og_tr_str)
+
+        # === Flip str transforms ===
+
+        def str_afftmat_reversal(str_tmat):
+            return ' '.join(str_tmat.split(' ')[::-1])
+
+        cached_transform_strs = recursive_key_finder(
+            self.cache_data_handler._cached_db.data, target_key='transform_str', require_exact_match=False
+        )
+
+        for (nested_tr_str_cache_key, og_tr_str) in cached_transform_strs:
+
+            if isinstance(og_tr_str, str):
+                new_tr_str = str_afftmat_reversal(og_tr_str)
+            else:
+                new_tr_str = None
+
+            print(f'UPDATING {nested_tr_str_cache_key[0]}\n\tChanges: {og_tr_str} -> {new_tr_str}')
+
+            if len(nested_tr_str_cache_key) == 1: # update value for simple key value pair
+                self.cache_data_handler.set_attr(nested_tr_str_cache_key[0], new_tr_str)
+
+            elif len(nested_tr_str_cache_key) > 1: # update value in a nested dict cache attribute
+                nested_attribute_value = self.cache_data_handler.get_attr(nested_tr_str_cache_key[0])
+                if isinstance(nested_attribute_value, dict):
+                    updated_nested_attribute_value = nested_dict_value_setter(
+                        nested_attribute_value, nested_tr_str_cache_key[1:], new_tr_str)
+                    self.cache_data_handler.set_attr(nested_tr_str_cache_key[0], updated_nested_attribute_value)
 
 
 class CachedDataHandler:
@@ -210,6 +242,9 @@ class CachedDataHandler:
         print(f'\n> Info: Cached configuration file location: {self.cached_settings_fpath}')
 
         # === Run cache updater ===
+        
+        # self._updater = CacheUpdater(self) # uncomment to go off rails (for updater funcs debug purposes only!)
+
         try:
             self._updater = CacheUpdater(self)
         except Exception as e:
@@ -248,6 +283,13 @@ class CachedDataHandler:
         with cached_db:
             cached_db[attribute_str_id] = value
         cached_db.close()
+
+    def pop_attr(self, attribute_id):
+        """ Remove an attrinute from the cache. """
+        cached_db = self._cached_db
+        with cached_db:
+            attribute_value = cached_db.pop(attribute_id)
+        return attribute_value
 
     def get_attr(self, attribute_id, default_value=None):
         """ Get the value of an attribute. default_value will be returned if the attribute does not exist in cache. """
@@ -576,6 +618,19 @@ def uncheck_all_checkboxes_in_qtree_column(model, checkbox_column=0, parent_inde
 
 # ----- misc helper functions -----
 
+def nested_dict_value_setter(nested_dict: dict, nested_keys: list, value):
+    if len(nested_keys) < 1:
+        raise IndexError('nested_dict_value_setter has to get a nested_keys list containing at least one key.')
+
+    # Make a copy of the dict in which changes can be made
+    nested_dict_copy = copy.deepcopy(nested_dict)
+    # Recurse through the dict copy based on nested_keys
+    flat_dict = nested_dict_copy
+    for nested_key in nested_keys[:-1]:
+        flat_dict = flat_dict[nested_key]
+    # Apply the value
+    flat_dict[nested_keys[-1]] = value
+    return nested_dict_copy
 
 def recursive_key_finder(nested_dict, target_key='_is_editable', require_exact_match=True):
     def recursive_search(d, parent_keys=None):
