@@ -41,29 +41,30 @@ class RefImageAsPlane(Module):
                 self.set_user_param('file_path', image_path)
 
     @property
-    def ref_image_tmat(self):
+    def ref_image_tmat(self): # TODO replace with str_transform gui element -> more flexible
         """ Holds the reference image affine transformation matrix """
         if self._ref_image_tmat is None:
+
             px_size = self.get_user_param('px_size')
             self._ref_image_tmat = af_tr.scale_mat(px_size)
-
-            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('x', -self.get_user_param('origin_px_xloc') * px_size)
-            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('y', -self.get_user_param('origin_px_yloc') * px_size)
 
             if self.get_user_param('plane') == 'X':
                 self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
             if self.get_user_param('plane') == '-X':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
                 self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 180)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
             if self.get_user_param('plane') == 'Y':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
                 self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
             if self.get_user_param('plane') == '-Y':
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
-                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
                 self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 180)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('z', 90)
+                self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('y', 90)
             if self.get_user_param('plane') == '-Z':
                 self._ref_image_tmat = self._ref_image_tmat @ af_tr.rot_mat('x', 180)
+
+            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('x', -self.get_user_param('origin_px_xloc'))
+            self._ref_image_tmat = self._ref_image_tmat @ af_tr.translat_mat('y', -self.get_user_param('origin_px_yloc'))
         
         # Apply anatomical landmark calibration transformation if enabled
         if not self.get_user_param('ignore_anatomical_landmarks_calibration'):
